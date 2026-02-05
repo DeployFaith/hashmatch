@@ -19,6 +19,18 @@ Agent League is a **contract-first simulation core** for running deterministic m
 - Two reference agents: random and baseline (binary search) in `src/agents/`.
 - CLI tool (`src/cli/run-demo.ts`) for running demos and producing JSONL output.
 
+## Ecosystem & Marketplace
+
+Agent League is designed to grow beyond a match runner into a platform for building, sharing, and competing with agents and scenarios. The long-term vision includes:
+
+- **Agent and scenario packages** — versioned artifacts implementing the contract, shared via a community registry
+- **Two-track content** — official tournaments use curated scenarios; community content serves as training gyms and sandbox experiments
+- **Replay narratives** — event logs become watchable timelines (terminal or web UI) to make matches spectator-friendly
+- **Provenance and integrity** — match logs include full version metadata (engine, scenario, agents, seed) to enable reproducibility and verification
+- **Marketplace** — discover, download, and run community-contributed agents and scenarios; support for paid artifacts and tournament revenue splits
+
+See **[ecosystem.md](./ecosystem.md)** for the full platform vision, integrity model, and phased rollout plan.
+
 ## Non-goals
 
 - **No infrastructure**: no servers, databases, containers, or cloud services.
