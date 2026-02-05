@@ -65,6 +65,7 @@ scripts/          Build/utility scripts (currently empty)
 ## CI Pipeline
 
 GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull request:
+
 1. Checkout → Setup Node LTS → `npm ci`
 2. `npm run lint`
 3. `npm run typecheck`
@@ -88,13 +89,13 @@ All steps must pass for the pipeline to succeed.
 
 ## Key Files
 
-| File | Purpose |
-|---|---|
-| `src/index.ts` | Main entry point |
-| `tests/smoke.test.ts` | Smoke test verifying test setup |
-| `eslint.config.js` | ESLint flat config with project rules |
-| `tsconfig.json` | TypeScript compiler options |
-| `.prettierrc.json` | Prettier formatting rules |
-| `.github/workflows/ci.yml` | CI pipeline definition |
-| `CONTRIBUTING.md` | Contribution guidelines |
-| `SECURITY.md` | Security vulnerability reporting (security@deployfaith.xyz) |
+| File                       | Purpose                                                     |
+| -------------------------- | ----------------------------------------------------------- |
+| `src/index.ts`             | Main entry point                                            |
+| `tests/smoke.test.ts`      | Smoke test verifying test setup                             |
+| `eslint.config.js`         | ESLint flat config with project rules                       |
+| `tsconfig.json`            | TypeScript compiler options                                 |
+| `.prettierrc.json`         | Prettier formatting rules                                   |
+| `.github/workflows/ci.yml` | CI pipeline definition                                      |
+| `CONTRIBUTING.md`          | Contribution guidelines                                     |
+| `SECURITY.md`              | Security vulnerability reporting (security@deployfaith.xyz) |

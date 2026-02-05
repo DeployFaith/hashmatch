@@ -7,13 +7,16 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.build.json",
+    "demo": "npm run build && node dist/cli/run-demo.js"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "eslint": "^9.0.0",
     "prettier": "^3.0.0",
     "typescript": "^5.0.0",
+    "typescript-eslint": "^8.54.0",
     "vitest": "^2.0.0"
   },
   "overrides": {
