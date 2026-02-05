@@ -3,7 +3,7 @@ import { runMatch } from "../src/engine/runMatch.js";
 import { createNumberGuessScenario } from "../src/scenarios/numberGuess/index.js";
 import { createRandomAgent } from "../src/agents/randomAgent.js";
 import { createBaselineAgent } from "../src/agents/baselineAgent.js";
-import type { MatchEvent } from "../src/contract/types.js";
+import type { JsonValue, MatchEvent } from "../src/contract/types.js";
 
 function makeAgents() {
   return [createRandomAgent("random-1"), createBaselineAgent("baseline-1")];
@@ -81,6 +81,32 @@ describe("Contract v0 — Match Runner", () => {
       const { matchId } = result;
       for (const event of result.events) {
         expect(event.matchId).toBe(matchId);
+      }
+    });
+  });
+
+  describe("secrets policy", () => {
+    it("StateUpdated summaries do not contain secretNumber", () => {
+      const result = runMatch(makeScenario(), makeAgents(), { seed: 42, maxTurns: 20 });
+      const stateEvents = result.events.filter((e) => e.type === "StateUpdated");
+      expect(stateEvents.length).toBeGreaterThan(0);
+      for (const e of stateEvents) {
+        if (e.type === "StateUpdated") {
+          const summary = e.summary as Record<string, JsonValue>;
+          expect(summary).not.toHaveProperty("secretNumber");
+        }
+      }
+    });
+
+    it("MatchEnded.details reveals secretNumber", () => {
+      const result = runMatch(makeScenario(), makeAgents(), { seed: 42, maxTurns: 20 });
+      const ended = result.events[result.events.length - 1];
+      expect(ended.type).toBe("MatchEnded");
+      if (ended.type === "MatchEnded") {
+        expect(ended.details).toBeDefined();
+        const details = ended.details as Record<string, JsonValue>;
+        expect(details).toHaveProperty("secretNumber");
+        expect(typeof details["secretNumber"]).toBe("number");
       }
     });
   });

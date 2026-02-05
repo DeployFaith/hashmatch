@@ -99,3 +99,7 @@ All steps must pass for the pipeline to succeed.
 | `.github/workflows/ci.yml` | CI pipeline definition                                      |
 | `CONTRIBUTING.md`          | Contribution guidelines                                     |
 | `SECURITY.md`              | Security vulnerability reporting (security@deployfaith.xyz) |
+
+## Secrets Policy
+
+Scenarios with hidden state must not leak secrets through mid-game `StateUpdated` events. Use `summarize()` for public state only; implement the optional `reveal()` method to disclose secrets at match end via `MatchEnded.details`. See `Documents/specification.md` §9 for details.

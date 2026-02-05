@@ -76,6 +76,8 @@ export interface MatchEndedEvent extends BaseEvent {
   reason: "completed" | "maxTurnsReached" | "error";
   scores: Record<AgentId, number>;
   turns: number;
+  /** Optional scenario-specific details revealed at match end (e.g. secret values). */
+  details?: JsonValue;
 }
 
 /** Discriminated union of all match events. */

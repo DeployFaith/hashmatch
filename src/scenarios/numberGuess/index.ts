@@ -24,7 +24,7 @@ export interface NumberGuessObservation {
   rangeMax: number;
   lastGuess: number | null;
   feedback: "higher" | "lower" | "correct" | "invalid" | null;
-  turn: number;
+  step: number;
 }
 
 export interface NumberGuessAction {
@@ -66,7 +66,7 @@ export function createNumberGuessScenario(
         rangeMax: state.range.max,
         lastGuess: fb?.lastGuess ?? null,
         feedback: fb?.feedback ?? null,
-        turn: Object.values(state.agentFeedback).reduce((s, f) => s + f.guessCount, 0),
+        step: Object.values(state.agentFeedback).reduce((s, f) => s + f.guessCount, 0),
       };
     },
 
@@ -155,9 +155,12 @@ export function createNumberGuessScenario(
       }
       return {
         winner: state.winner,
-        secretNumber: state.secretNumber,
         agentFeedback: feedback,
       };
+    },
+
+    reveal(state: NumberGuessState): JsonValue {
+      return { secretNumber: state.secretNumber };
     },
   };
 }

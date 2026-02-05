@@ -34,6 +34,7 @@ interface Scenario<TState, TObs, TAct> {
   isTerminal(state: TState): boolean;
   score(state: TState): Record<AgentId, number>;
   summarize(state: TState): JsonValue;
+  reveal?(state: TState): JsonValue;
 }
 ```
 
@@ -42,7 +43,8 @@ interface Scenario<TState, TObs, TAct> {
 - `adjudicate` validates an action, applies it, and returns the new state plus feedback.
 - `isTerminal` returns true when the match should end.
 - `score` computes final scores keyed by agent id.
-- `summarize` returns a JSON-serializable snapshot for the event log.
+- `summarize` returns a JSON-serializable snapshot for the event log. **Must not include hidden secrets** (see §9).
+- `reveal` _(optional)_ returns scenario-specific secrets at match end. If provided, the runner includes the value in `MatchEnded.details`.
 
 ### MatchRunnerConfig
 
@@ -85,7 +87,7 @@ interface BaseEvent {
 | `ActionAdjudicated`  | `agentId`, `turn`, `valid`, `feedback`         | Scenario judges the action |
 | `StateUpdated`       | `turn`, `summary`                              | End of each turn           |
 | `AgentError`         | `agentId`, `turn`, `message`                   | Agent throws during `act`  |
-| `MatchEnded`         | `reason`, `scores`, `turns`                    | Match finishes             |
+| `MatchEnded`         | `reason`, `scores`, `turns`, `details?`        | Match finishes             |
 
 ### Serialization
 
@@ -112,8 +114,9 @@ interface BaseEvent {
       - update state
    d. Emit StateUpdated
 7. Compute scores
-8. Emit MatchEnded (reason: "completed" | "maxTurnsReached")
-9. Return MatchResult
+8. Call scenario.reveal(state) if defined → include as MatchEnded.details
+9. Emit MatchEnded (reason: "completed" | "maxTurnsReached")
+10. Return MatchResult
 ```
 
 ## 6. Scoring
@@ -133,3 +136,10 @@ Scoring is scenario-defined. The runner calls `scenario.score(state)` after the 
 - Network transport or remote agents.
 - Persistent storage or databases.
 - Spectator/replay UI.
+
+## 9. Secrets Policy
+
+Scenarios with hidden state (e.g. a secret number) MUST NOT leak secrets through mid-game events:
+
+- `summarize()` must omit secret values. `StateUpdated` events are visible to spectators and replay tools during the match, so they must not reveal information that agents are competing to discover.
+- `reveal()` is the designated place for disclosing secrets. The runner calls it once at match end and attaches the result to `MatchEnded.details`. This keeps the event log truthful (the secret is recorded) while preventing mid-game leakage.

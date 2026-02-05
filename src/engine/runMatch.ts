@@ -124,7 +124,14 @@ export function runMatch<TState, TObs, TAct>(
   const scores = scenario.score(state);
   const reason = scenario.isTerminal(state) ? "completed" : "maxTurnsReached";
 
-  emit(events, seq, matchId, { type: "MatchEnded", reason, scores, turns: turn });
+  const details = scenario.reveal?.(state);
+  emit(events, seq, matchId, {
+    type: "MatchEnded",
+    reason,
+    scores,
+    turns: turn,
+    ...(details !== undefined && { details }),
+  });
 
   return { matchId, seed: config.seed, scores, events, turns: turn };
 }
