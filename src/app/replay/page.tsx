@@ -116,8 +116,6 @@ function groupByTurn(events: ReplayEvent[]): TurnGroup[] {
     current.events.push(ev);
   }
 
-  // Ensure "No turn" events that precede turns stay grouped at top
-  // They already are in seq order from parser, so this is fine.
   return groups;
 }
 
@@ -180,11 +178,14 @@ const typeColors: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 function hasDirectoryPicker(): boolean {
-  return typeof window !== "undefined" && "showDirectoryPicker" in window;
+  return (
+    typeof window !== "undefined" &&
+    window.isSecureContext === true &&
+    "showDirectoryPicker" in window
+  );
 }
 
 async function pickDirectory(): Promise<FileSystemDirectoryHandle> {
-  // showDirectoryPicker may not be in all TS DOM type declarations
   type WindowWithPicker = Window & {
     showDirectoryPicker: () => Promise<FileSystemDirectoryHandle>;
   };
@@ -215,13 +216,10 @@ async function readJsonFile<T>(
 }
 
 /** Load all tournament data from a directory handle. */
-async function loadTournamentDir(
-  dirHandle: FileSystemDirectoryHandle,
-): Promise<TournamentData> {
+async function loadTournamentDir(dirHandle: FileSystemDirectoryHandle): Promise<TournamentData> {
   const tournament = await readJsonFile<TournamentMeta>(dirHandle, "tournament.json");
   const standings = await readJsonFile<StandingsEntry[]>(dirHandle, "standings.json");
 
-  // Use the matches list from tournament.json to enumerate match summaries
   const matchSummaries: MatchSummaryEntry[] = [];
   for (const spec of tournament.matches) {
     try {
@@ -333,9 +331,7 @@ function FileDropZone({
     <div
     className={cn(
       "flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors",
-      dragOver
-      ? "border-primary bg-primary/5"
-      : "border-border hover:border-muted-foreground/50",
+      dragOver ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/50",
     )}
     onDragOver={(e) => {
       e.preventDefault();
@@ -353,9 +349,7 @@ function FileDropZone({
     accept=".jsonl"
     onChange={(e) => {
       const f = e.target.files?.[0];
-      if (f) {
-        handleFile(f);
-      }
+      if (f) {handleFile(f);}
     }}
     className="hidden"
     />
@@ -400,8 +394,9 @@ function FileDropZone({
       <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground text-center">
       <p className="font-medium mb-1">Tournament folder loading unavailable</p>
       <p>
-      The File System Access API is required. Use Chrome or Edge, or load a single match
-      JSONL file instead.
+      The File System Access API is required (and must be available in a secure context).
+      Use Chrome or Edge. Brave may hide <span className="font-mono">showDirectoryPicker</span>{" "}
+      behind flags/policies.
       </p>
       </div>
     )}
@@ -443,9 +438,7 @@ function Scoreboard({ events, spoilers }: { events: ReplayEvent[]; spoilers: boo
         </div>
       ))}
       {!spoilers && matchEnded && (
-        <p className="text-xs text-muted-foreground italic">
-        Enable spoilers to reveal scores
-        </p>
+        <p className="text-xs text-muted-foreground italic">Enable spoilers to reveal scores</p>
       )}
       </div>
     ) : (
@@ -512,8 +505,7 @@ function EventDetail({ event, spoilers }: { event: ReplayEvent | null; spoilers:
     );
   }
 
-  const displayRaw =
-  event.type === "MatchEnded" && !spoilers ? redactMatchEnded(event.raw) : event.raw;
+  const displayRaw = event.type === "MatchEnded" && !spoilers ? redactMatchEnded(event.raw) : event.raw;
 
   return (
     <div className="space-y-3">
@@ -521,9 +513,7 @@ function EventDetail({ event, spoilers }: { event: ReplayEvent | null; spoilers:
     <Badge variant="info">{event.type}</Badge>
     <span className="font-mono text-xs text-muted-foreground">seq {event.seq}</span>
     {event.agentId && <Badge variant="outline">{event.agentId}</Badge>}
-    {event.turn !== undefined && (
-      <span className="text-xs text-muted-foreground">turn {event.turn}</span>
-    )}
+    {event.turn !== undefined && <span className="text-xs text-muted-foreground">turn {event.turn}</span>}
     </div>
     <pre className="overflow-auto rounded-md border border-border bg-muted/30 p-3 text-xs leading-relaxed">
     {prettyJson(displayRaw)}
@@ -550,24 +540,32 @@ function TournamentBrowser({
 
   const { tournament, standings, matchSummaries } = data;
 
-  // Build a lookup from matchKey → summary
   const summaryByKey = useMemo(() => {
     const map = new Map<string, MatchSummaryEntry>();
-    for (const s of matchSummaries) {
-      map.set(s.matchKey, s);
-    }
+    for (const s of matchSummaries) {map.set(s.matchKey, s);}
     return map;
   }, [matchSummaries]);
 
+  const handleWatch = useCallback(
+    async (matchKey: string) => {
+      setLoadingMatch(matchKey);
+      try {
+        await onSelectMatch(matchKey);
+      } finally {
+        // Always clear loading state so the user can retry if load fails.
+        setLoadingMatch(null);
+      }
+    },
+    [onSelectMatch],
+  );
+
   return (
     <div className="space-y-4">
-    {/* Header */}
     <div className="flex items-center gap-3 rounded-md border border-border bg-card p-3">
     <div className="flex-1 min-w-0">
     <p className="text-sm font-medium">Tournament: {tournament.scenarioName}</p>
     <p className="text-xs text-muted-foreground">
-    Seed {tournament.tournamentSeed} · {tournament.agents.length} agents ·{" "}
-    {tournament.matches.length} matches
+    Seed {tournament.tournamentSeed} · {tournament.agents.length} agents · {tournament.matches.length} matches
     </p>
     </div>
 
@@ -585,7 +583,6 @@ function TournamentBrowser({
     </Button>
     </div>
 
-    {/* Standings (only shown when spoilers ON) */}
     {spoilers && standings.length > 0 && (
       <Card>
       <CardHeader className="pb-2">
@@ -620,11 +617,7 @@ function TournamentBrowser({
         <td className="py-1.5 pr-4 text-right">{row.draws}</td>
         <td className="py-1.5 pr-4 text-right">{row.losses}</td>
         <td className="py-1.5 text-right">
-        <span
-        className={
-          row.scoreDiff > 0 ? "text-success" : "text-muted-foreground"
-        }
-        >
+        <span className={row.scoreDiff > 0 ? "text-success" : "text-muted-foreground"}>
         {row.scoreDiff > 0 ? "+" : ""}
         {row.scoreDiff}
         </span>
@@ -639,12 +632,9 @@ function TournamentBrowser({
     )}
 
     {!spoilers && (
-      <p className="text-xs text-muted-foreground italic text-center">
-      Enable spoilers to reveal standings
-      </p>
+      <p className="text-xs text-muted-foreground italic text-center">Enable spoilers to reveal standings</p>
     )}
 
-    {/* Match list */}
     <Card>
     <CardHeader className="pb-2">
     <CardTitle className="text-sm">Matches</CardTitle>
@@ -660,7 +650,7 @@ function TournamentBrowser({
     <th className="pb-2 pr-4 font-medium text-right">Turns</th>
     <th className="pb-2 pr-4 font-medium">Status</th>
     {spoilers && <th className="pb-2 pr-4 font-medium">Winner</th>}
-    {spoilers && <th className="pb-2 font-medium">Scores</th>}
+    {spoilers && <th className="pb-2 pr-4 font-medium">Scores</th>}
     <th className="pb-2 font-medium"></th>
     </tr>
     </thead>
@@ -678,49 +668,29 @@ function TournamentBrowser({
         <td className="py-2 pr-4">{spec.scenarioName}</td>
         <td className="py-2 pr-4 text-right">{turns}</td>
         <td className="py-2 pr-4">
-        <Badge variant={reason === "completed" ? "success" : "secondary"}>
-        {reason}
-        </Badge>
+        <Badge variant={reason === "completed" ? "success" : "secondary"}>{reason}</Badge>
         </td>
+
         {spoilers && (
           <td className="py-2 pr-4">
-          {summary?.winner ? (
-            <Badge variant="info">{summary.winner}</Badge>
-          ) : (
-            <span className="text-muted-foreground">draw</span>
-          )}
+          {summary?.winner ? <Badge variant="info">{summary.winner}</Badge> : <span className="text-muted-foreground">draw</span>}
           </td>
         )}
+
         {spoilers && (
           <td className="py-2 pr-4 font-mono">
-          {summary
-            ? Object.entries(summary.scores)
-            .map(([id, s]) => `${id}: ${s}`)
-            .join(", ")
-            : "—"}
-            </td>
+          {summary ? Object.entries(summary.scores).map(([id, s]) => `${id}: ${s}`).join(", ") : "—"}
+          </td>
         )}
+
         <td className="py-2">
         <Button
         variant="outline"
         size="sm"
         disabled={isLoading}
-        onClick={async () => {
-          setLoadingMatch(spec.matchKey);
-          try {
-            await onSelectMatch(spec.matchKey);
-          } finally {
-            // Important: clear loading state even if loading fails,
-            // so the user can retry without a refresh.
-            setLoadingMatch(null);
-          }
-        }}
+        onClick={() => void handleWatch(spec.matchKey)}
         >
-        {isLoading ? (
-          <Loader2 className="h-3 w-3 animate-spin" />
-        ) : (
-          <Eye className="h-3 w-3" />
-        )}
+        {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
         Watch
         </Button>
         </td>
@@ -751,35 +721,25 @@ function ReplayViewer({
   errors: ParseError[];
   filename: string;
   onClose: () => void;
-  /** If provided, shows a "Back to tournament list" button. */
   onBack?: () => void;
 }) {
   const [spoilers, setSpoilers] = useState(false);
   const [selectedIdx, setSelectedIdx] = useState(0);
 
   const groups = useMemo(() => groupByTurn(events), [events]);
-
-  // Flat index → event mapping (for prev/next navigation)
   const selectedEvent = events[selectedIdx] ?? null;
 
-  // Current turn for the turn selector
   const currentTurn = selectedEvent?.turn ?? null;
   const turnNumbers = useMemo(() => {
     const turns = new Set<number>();
-    for (const ev of events) {
-      if (ev.turn !== undefined) {
-        turns.add(ev.turn);
-      }
-    }
+    for (const ev of events) {if (ev.turn !== undefined) {turns.add(ev.turn);}}
     return Array.from(turns).sort((a, b) => a - b);
   }, [events]);
 
   const jumpToTurn = useCallback(
     (turn: number) => {
       const idx = events.findIndex((e) => e.turn === turn);
-      if (idx >= 0) {
-        setSelectedIdx(idx);
-      }
+      if (idx >= 0) {setSelectedIdx(idx);}
     },
     [events],
   );
@@ -791,7 +751,6 @@ function ReplayViewer({
 
   return (
     <div className="flex h-[calc(100vh-theme(spacing.14)-theme(spacing.12))] flex-col gap-3">
-    {/* Header bar */}
     <div className="flex items-center gap-3 rounded-md border border-border bg-card p-3">
     {onBack && (
       <Button variant="ghost" size="sm" onClick={onBack}>
@@ -808,7 +767,6 @@ function ReplayViewer({
     </p>
     </div>
 
-    {/* Playback controls */}
     <div className="flex items-center gap-1">
     <Button variant="ghost" size="icon" onClick={firstEvent} disabled={selectedIdx === 0}>
     <ChevronsLeft className="h-4 w-4" />
@@ -819,25 +777,14 @@ function ReplayViewer({
     <span className="min-w-[4rem] text-center text-xs font-mono text-muted-foreground">
     {selectedIdx + 1} / {events.length}
     </span>
-    <Button
-    variant="ghost"
-    size="icon"
-    onClick={nextEvent}
-    disabled={selectedIdx === events.length - 1}
-    >
+    <Button variant="ghost" size="icon" onClick={nextEvent} disabled={selectedIdx === events.length - 1}>
     <ChevronRight className="h-4 w-4" />
     </Button>
-    <Button
-    variant="ghost"
-    size="icon"
-    onClick={lastEvent}
-    disabled={selectedIdx === events.length - 1}
-    >
+    <Button variant="ghost" size="icon" onClick={lastEvent} disabled={selectedIdx === events.length - 1}>
     <ChevronsRight className="h-4 w-4" />
     </Button>
     </div>
 
-    {/* Turn selector */}
     {turnNumbers.length > 0 && (
       <div className="flex items-center gap-1">
       <span className="text-xs text-muted-foreground">Turn:</span>
@@ -845,9 +792,7 @@ function ReplayViewer({
       value={currentTurn ?? ""}
       onChange={(e) => {
         const val = e.target.value;
-        if (val !== "") {
-          jumpToTurn(Number(val));
-        }
+        if (val !== "") {jumpToTurn(Number(val));}
       }}
       className="h-8 rounded-md border border-border bg-card px-2 text-xs"
       >
@@ -861,7 +806,6 @@ function ReplayViewer({
       </div>
     )}
 
-    {/* Spoilers toggle */}
     <Button
     variant={spoilers ? "destructive" : "outline"}
     size="sm"
@@ -878,7 +822,6 @@ function ReplayViewer({
     )}
     </div>
 
-    {/* Parse errors */}
     {errors.length > 0 && (
       <div className="flex items-start gap-2 rounded-md border border-warning/50 bg-warning/10 p-3 text-xs">
       <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
@@ -896,9 +839,7 @@ function ReplayViewer({
       </div>
     )}
 
-    {/* Main 3-panel layout */}
     <div className="flex flex-1 gap-3 overflow-hidden">
-    {/* Left: Timeline grouped by turn */}
     <div className="w-72 shrink-0 overflow-y-auto rounded-md border border-border bg-card p-3">
     <h2 className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
     Timeline
@@ -926,9 +867,7 @@ function ReplayViewer({
     </div>
     </div>
 
-    {/* Right: Event detail + Scoreboard */}
     <div className="flex flex-1 flex-col gap-3 overflow-hidden">
-    {/* Event detail */}
     <div className="flex-1 overflow-y-auto rounded-md border border-border bg-card p-4">
     <h2 className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
     Event Detail
@@ -936,7 +875,6 @@ function ReplayViewer({
     <EventDetail event={selectedEvent} spoilers={spoilers} />
     </div>
 
-    {/* Scoreboard */}
     <div className="shrink-0">
     <Scoreboard events={events} spoilers={spoilers} />
     </div>
@@ -966,12 +904,7 @@ export default function ReplayPage() {
       );
     } else {
       setLoadError(null);
-      setState({
-        mode: "single",
-        events: result.events,
-        errors: result.errors,
-        filename,
-      });
+      setState({ mode: "single", events: result.events, errors: result.errors, filename });
     }
   }, []);
 
@@ -982,9 +915,8 @@ export default function ReplayPage() {
 
   const handleMatchSelect = useCallback(
     async (matchKey: string) => {
-      if (state.mode !== "tournament") {
-        return;
-      }
+      if (state.mode !== "tournament") {return;}
+
       try {
         const { events, errors } = await loadMatchFromDir(state.data.dirHandle, matchKey);
         if (events.length === 0) {
@@ -992,13 +924,7 @@ export default function ReplayPage() {
           return;
         }
         setLoadError(null);
-        setState({
-          mode: "tournamentMatch",
-          data: state.data,
-          matchKey,
-          events,
-          errors,
-        });
+        setState({ mode: "tournamentMatch", data: state.data, matchKey, events, errors });
       } catch (err) {
         setLoadError(
           err instanceof Error
@@ -1010,7 +936,6 @@ export default function ReplayPage() {
     [state],
   );
 
-  // Idle mode: show loaders
   if (state.mode === "idle") {
     return (
       <div className="space-y-4">
@@ -1030,7 +955,6 @@ export default function ReplayPage() {
     );
   }
 
-  // Single JSONL mode
   if (state.mode === "single") {
     return (
       <ReplayViewer
@@ -1045,7 +969,6 @@ export default function ReplayPage() {
     );
   }
 
-  // Tournament browser mode
   if (state.mode === "tournament") {
     return (
       <div className="space-y-4">
@@ -1069,7 +992,6 @@ export default function ReplayPage() {
     );
   }
 
-  // Tournament match viewer mode
   if (state.mode === "tournamentMatch") {
     return (
       <ReplayViewer
@@ -1088,6 +1010,5 @@ export default function ReplayPage() {
     );
   }
 
-  // Exhaustive check
   return null;
 }
