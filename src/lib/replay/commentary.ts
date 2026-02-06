@@ -9,7 +9,7 @@
  * This module is offline-only: no network calls, no external APIs.
  */
 
-import type { ReplayMoment } from "./detectMoments";
+import type { ReplayMoment } from "./detectMoments.js";
 
 // ---------------------------------------------------------------------------
 // Types

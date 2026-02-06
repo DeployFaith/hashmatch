@@ -1,4 +1,4 @@
-import type { ReplayEvent } from "./parseJsonl";
+import type { ReplayEvent } from "./parseJsonl.js";
 
 export interface ReplayMoment {
   id: string;
