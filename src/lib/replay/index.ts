@@ -18,3 +18,9 @@ export { redactEvent, redactEvents } from "./redaction";
 export type { ViewerMode, RedactionOptions, RedactedEvent } from "./redaction";
 export { detectMoments } from "./detectMoments";
 export type { ReplayMoment } from "./detectMoments";
+export {
+  getVisibleCommentary,
+  normalizeAndSortCommentary,
+  parseCommentaryJson,
+} from "./commentary";
+export type { CommentaryDoc, CommentaryEntry, CommentaryEntryIn } from "./commentary";
