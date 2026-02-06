@@ -47,3 +47,13 @@ export type {
 
 // Replay bundles
 export type { TournamentBundleV1 } from "./lib/replay/bundle.js";
+export {
+  getVisibleCommentary,
+  normalizeAndSortCommentary,
+  parseCommentaryJson,
+} from "./lib/replay/commentary.js";
+export type {
+  CommentaryDoc,
+  CommentaryEntry,
+  CommentaryEntryIn,
+} from "./lib/replay/commentary.js";
