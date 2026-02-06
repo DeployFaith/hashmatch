@@ -23,6 +23,44 @@ export interface MatchSpec {
   maxTurns: number;
 }
 
+export interface MatchManifestAgent {
+  id: AgentId;
+  version: string | null;
+  contentHash: string | null;
+}
+
+export interface MatchManifestScenario {
+  id: string;
+  version: string | null;
+  contractVersion: string | null;
+  contentHash: string | null;
+}
+
+export interface MatchManifestConfig {
+  maxTurns: number;
+  seed: Seed;
+  seedDerivationInputs: {
+    tournamentSeed: Seed;
+    matchKey: MatchKey;
+  };
+}
+
+export interface MatchManifestRunner {
+  name: string;
+  version: string | null;
+  gitCommit: string | null;
+}
+
+export interface MatchManifest {
+  matchId: MatchId;
+  modeProfileId: string;
+  scenario: MatchManifestScenario;
+  agents: MatchManifestAgent[];
+  config: MatchManifestConfig;
+  runner: MatchManifestRunner;
+  createdAt: string;
+}
+
 /** Summary of a single match within a tournament. */
 export interface MatchSummary {
   matchId: MatchId;

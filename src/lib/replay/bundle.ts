@@ -1,4 +1,10 @@
-import type { MatchKey, MatchSummary, StandingsRow, TournamentResult } from "../../tournament/types.js";
+import type {
+  MatchKey,
+  MatchManifest,
+  MatchSummary,
+  StandingsRow,
+  TournamentResult,
+} from "../../tournament/types.js";
 
 export type TournamentBundleV1 = {
   version: 1;
@@ -7,6 +13,7 @@ export type TournamentBundleV1 = {
   matches: Array<{
     matchKey: MatchKey;
     summary?: MatchSummary;
+    manifest?: MatchManifest;
     jsonl: string;
   }>;
 };

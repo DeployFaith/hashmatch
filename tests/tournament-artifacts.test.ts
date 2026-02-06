@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { runTournament } from "../src/tournament/runTournament.js";
 import { writeTournamentArtifacts } from "../src/tournament/artifacts.js";
+import { stableStringify } from "../src/core/json.js";
 import type { TournamentConfig } from "../src/tournament/types.js";
 
 function makeConfig(overrides: Partial<TournamentConfig> = {}): TournamentConfig {
@@ -54,11 +55,63 @@ describe("Tournament artifacts determinism", () => {
       for (const file of filesA) {
         const a = readFileSync(join(dirA, file), "utf-8");
         const b = readFileSync(join(dirB, file), "utf-8");
-        expect(a).toBe(b);
+        if (file.endsWith("match_manifest.json")) {
+          const parsedA = JSON.parse(a) as { createdAt?: string };
+          const parsedB = JSON.parse(b) as { createdAt?: string };
+          delete parsedA.createdAt;
+          delete parsedB.createdAt;
+          expect(stableStringify(parsedA)).toBe(stableStringify(parsedB));
+        } else {
+          expect(a).toBe(b);
+        }
       }
     } finally {
       rmSync(dirA, { recursive: true, force: true });
       rmSync(dirB, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("Tournament artifacts manifest", () => {
+  it("writes match_manifest.json with required fields", () => {
+    const config = makeConfig({ seed: 55 });
+    const dir = mkdtempSync(join(tmpdir(), "agent-league-manifest-"));
+
+    try {
+      const result = runTournament(config);
+      writeTournamentArtifacts(result, dir);
+
+      const matchDir = join(dir, "matches", result.matchSummaries[0].matchKey);
+      const raw = readFileSync(join(matchDir, "match_manifest.json"), "utf-8");
+
+      expect(raw.endsWith("\n")).toBe(true);
+      expect(raw.endsWith("\n\n")).toBe(false);
+
+      const manifest = JSON.parse(raw) as {
+        matchId: string;
+        modeProfileId: string;
+        scenario: { id: string; version: string | null; contractVersion: string | null };
+        agents: Array<{ id: string; version: string | null }>;
+        config: { maxTurns: number; seed: number; seedDerivationInputs: Record<string, unknown> };
+        runner: { name: string; version: string | null; gitCommit: string | null };
+        createdAt: string;
+      };
+
+      expect(manifest.matchId).toBe(result.matchSummaries[0].matchId);
+      expect(manifest.modeProfileId).toBe("sandbox");
+      expect(manifest.scenario.id).toBe(result.tournament.scenarioName);
+      expect(manifest.scenario.contractVersion).toBeNull();
+      expect(manifest.agents).toHaveLength(2);
+      expect(manifest.config.maxTurns).toBe(result.config.maxTurns);
+      expect(manifest.config.seed).toBe(result.matchSummaries[0].seed);
+      expect(manifest.config.seedDerivationInputs).toEqual({
+        tournamentSeed: result.tournament.tournamentSeed,
+        matchKey: result.matchSummaries[0].matchKey,
+      });
+      expect(manifest.runner.name).toBe("tournament-harness");
+      expect(typeof manifest.createdAt).toBe("string");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
     }
   });
 });
