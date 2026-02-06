@@ -2,7 +2,10 @@ import tseslint from "typescript-eslint";
 
 export default [
   {
-    files: ["src/**/*.ts", "tests/**/*.ts"],
+    ignores: [".next/**", "dist/**", "out/**"],
+  },
+  {
+    files: ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
