@@ -1,149 +1,198 @@
-# Tournament Harness v0.1 Specification
+# Tournament Harness v0 (Offline)
 
-## Purpose
+This document specifies the **v0 tournament harness**: an offline tool that runs multiple matches deterministically and produces standings + artifacts.
 
-Build a deterministic, offline tournament runner that can execute many matches, compute standings, and emit artifacts for replay and verification.
+The harness is the step from “one demo match” to a “fight night card.” It does not introduce servers, databases, networking, or any on-chain logic.
 
-This is the first step toward “UFC of agents”: lots of fights, clean records, and watchable logs.
+## 1. Goals
 
-## Non-goals (v0.1)
+### Primary goals
 
-- No servers, DBs, accounts, payments, or marketplace features.
-- No blockchain requirements.
-- No async/networked agents (keep sync-only unless the current contract already supports async).
+1. **Batch orchestration:** run many matches across many agents/scenarios.
+2. **Determinism:** identical inputs produce identical outputs (including standings).
+3. **Artifacts:** produce a standard output layout for replays, summaries, and analysis.
+4. **Extensibility:** allow future “mode profiles” (sanctioned/exhibition/sandbox) without requiring decisions now.
 
-## Inputs
+### Non-goals (v0)
 
-- **Scenario**: a scenario factory/instance implementing the contract.
-- **Agents**: list of agents (instances) with stable `id`.
-- **Tournament config**:
-  - `seed: number` — master seed for the tournament.
-  - `maxTurns: number` — per-match limit.
-  - `format`: round-robin (default) with optional repeats.
-  - `repeats?: number` — number of times each pairing is run (default 1).
-  - `pairing?: "roundRobin" | "singleElim"` (singleElim can be a stretch goal).
+* No hosted league operations (no accounts, submissions, payments).
+* No sandboxing / process isolation (agents run in-process).
+* No anti-cheat beyond determinism and logging.
+* No spectator UI (though artifacts are designed for future viewers).
 
-## Determinism Requirements
+## 2. Inputs
 
-- Tournament run must be reproducible.
-- All per-match seeds must be derived from the master seed + match identity.
-- Given identical inputs (agents, scenario, tournament config), outputs are byte-identical.
+The harness takes:
 
-## Seeding Model
+* `tournamentSeed: Seed` — seed for deterministic scheduling and match seeding
+* `scenario: Scenario` — scenario instance (or scenario id if using registry later)
+* `agents: Agent[]` — list of agents participating
+* `format` — how matches are scheduled (round robin first)
+* `matchConfig` — maxTurns and other runner config defaults
 
-- Derive a **match seed** as a function of:
-  - tournament seed
-  - scenario name/version string (if available)
-  - ordered agent ids
-  - match index (for repeats)
+## 3. Deterministic Seeding
 
-Example approach (conceptual):
+A tournament is deterministic if:
 
-- `matchKey = `${scenarioName}:${agentAId}:${agentBId}:${repeatIndex}``
-- `matchSeed = deriveSeed(tournamentSeed, matchKey)`
+* the schedule is deterministic
+* each match uses a deterministic derived seed
 
-If you don’t have a keyed hash util yet, implement a small deterministic string→u32 hash (e.g., FNV-1a) and feed that into your existing `createRng`/mulberry32.
+### Seed derivation
 
-## Tournament Formats
+Define a pure function:
 
-### Round Robin (v0.1 default)
+```
+deriveMatchSeed(tournamentSeed, matchKey) -> Seed
+```
 
-- Every agent plays every other agent once per repeat.
-- For N agents: matches = N*(N-1)/2 * repeats.
-- Agent order within a match should be stable and deterministic (e.g., lexicographic by id).
+Where `matchKey` is a stable string that uniquely identifies the match (e.g., `"RR:agentA-vs-agentB:game1"`).
 
-### Seat-Order Fairness
+Implementation notes:
 
-To avoid first-move bias, seat order alternates deterministically by round: in even rounds (0, 2, …) the lower-index agent acts first, while in odd rounds (1, 3, …) the order is swapped. For single-round tournaments, seat order is also derived from match seed parity so that the lower-index agent does not always go first.
+* Use a stable hash (e.g., FNV-1a 32-bit) over `tournamentSeed + ":" + matchKey`.
+* Avoid non-deterministic sources (time, randomness, filesystem order).
 
-### Optional: Home/Away Variant
+## 4. Scheduling Formats
 
-If scenarios are asymmetric, support playing both (A vs B) and (B vs A) as distinct matches. If not needed, skip.
+### 4.1 Round Robin (v0)
 
-## Outputs
+Run every pair of agents exactly once (or twice, swapping “sides,” depending on scenario symmetry).
 
-### 1) Tournament Summary JSON
+Determinism requirements:
 
-A single JSON file or stdout JSON containing:
+* Sort agents by stable key (id) OR preserve input order, but choose one and keep it consistent.
+* Enumerate all pairs in a stable order.
 
-- tournament metadata: seed, config, scenario, agent list
-- match list with:
-  - matchId
-  - matchSeed
-  - participants
-  - score map
-  - winner/loser/tie
-  - path to log file (if writing)
+Output: a list of `MatchSpec` items.
 
-- standings table
+### 4.2 Bracket Primitives (future)
 
-### 2) Match Logs (JSONL)
+A single-elimination bracket requires:
 
-For each match, store the `runMatch` event log as JSONL.
+* seeding rules
+* advancement rules
+* tie-break rules
 
-- Folder layout suggestion:
-  - `out/tournaments/<tournamentId>/matches/<matchId>.jsonl`
+These are explicitly out of scope for v0 but the artifact model should not prevent them.
 
-### 3) Standings
+## 5. MatchSpec & MatchResult
 
-Compute per-agent:
+### MatchSpec
 
-- matches played
-- wins / losses / ties
-- total points (based on scenario score)
-- optional: point differential, avg score, etc.
+```typescript
+type MatchSpec = {
+  matchKey: string;
+  seed: Seed;
+  scenarioName: string;
+  agentIds: AgentId[];
+  maxTurns: number;
+  // future: modeProfileId, rulesetId, sideAssignments
+};
+```
 
-## Scoring and Ranking Rules
+### MatchResult
 
-- Use scenario-provided `scores: Record<AgentId, number>` from `MatchEnded`.
-- Define a deterministic ranking sort:
-  1. wins
-  2. total points
-  3. head-to-head (optional)
-  4. point differential
-  5. stable tiebreaker: agentId
+The harness consumes the runner’s `MatchResult`:
 
-If scenario scores are not naturally win/loss, define win as highest score; tie if equal.
+* matchId
+* scores by agentId
+* reason (completed / maxTurnsReached)
+* output JSONL path (artifact)
 
-## CLI
+## 6. Artifact Layout
 
-Add a new CLI entry, e.g.:
+A tournament run writes outputs to a directory:
 
-- `npm run tournament -- --seed 123 --scenario numberGuess --agents random,baseline --repeats 10 --out out/`
+```
+out/
+  tournament.json
+  standings.json
+  matches/
+    <matchKey>/
+      match.jsonl
+      match_summary.json
+```
 
-CLI flags (suggested minimal):
+### tournament.json
 
-- `--seed <number>`
-- `--turns <number>`
-- `--repeats <number>`
-- `--out <dir>` (optional; default stdout-only)
+Includes:
 
-## Code Structure
+* tournamentSeed
+* scenarioName
+* list of agents
+* list of matches (specs)
+* harness version
 
-Suggested modules:
+### standings.json
 
-- `src/tournament/types.ts` — config + results types
-- `src/tournament/seed.ts` — deriveSeed helpers
-- `src/tournament/schedule.ts` — round-robin pairing generator
-- `src/tournament/runTournament.ts` — orchestrator
-- `src/cli/run-tournament.ts` — CLI wrapper
+A derived table computed from match summaries. Contains:
 
-## Tests
+* wins / losses
+* points scored
+* points conceded
+* optional efficiency metrics (future)
 
-- Determinism test:
-  - Run tournament twice with same config → identical summary + identical match logs.
+### match_summary.json
 
-- Coverage test:
-  - For N agents and repeats R, match count is expected.
+Derived from the event log:
 
-- Seeding test:
-  - Match seed derivation stable across runs.
+* matchId
+* matchKey
+* agentIds
+* scores
+* winner (if computed by harness policy)
+* termination reason
+* turns
 
-## Deliverables for v0.1
+**Note:** “Winner” may be derived by simple score comparison in v0. Future tournament policy may enforce “no ties” via best-of or tie-break rounds; that policy is TBD and should not be hard-coded into the v0 harness.
 
-- Round-robin tournament runner
-- Deterministic seed derivation
-- Per-match JSONL logs
-- Tournament summary output + standings
-- CLI command
-- Tests for determinism and match count
+## 7. Standings Computation
+
+Standings are a deterministic reduction over match summaries.
+
+Suggested v0 scoring:
+
+* Win: +1
+* Loss: +0
+* Tie: +0.5 (allowed only in harness v0 if scenario outputs equal scores)
+
+**Product direction note:** The long-term stance is “no ties” for official tournaments, but the tie-break mechanism is intentionally TBD. The v0 harness may temporarily allow ties so the system can run end-to-end while tie-break policy is designed.
+
+## 8. Mode Profiles (Placeholder)
+
+The harness should accept an optional `modeProfile` object that may later control:
+
+* randomness policy
+* time/memory budgets
+* tool/network access
+* visibility rules (spectator reveal)
+* dispute/receipt requirements
+
+In v0, `modeProfile` may be a no-op, but reserving the concept prevents painful refactors later.
+
+## 9. Determinism Tests
+
+The harness must ship with a determinism test suite:
+
+1. Run a tournament twice with identical inputs.
+2. Ensure `tournament.json`, `standings.json`, and every `match.jsonl` are byte-identical.
+
+If output paths contain timestamps, determinism is broken. Avoid timestamps.
+
+## 10. CLI (v0)
+
+A CLI entry point should:
+
+* accept `--seed`, `--maxTurns`, `--scenario`, `--agents`
+* run the tournament
+* write outputs to `out/` (or a user-provided dir)
+* print a concise summary
+
+## 11. Future Extensions (Non-binding)
+
+* Single-elimination brackets
+* Best-of series
+* Scenario-defined tie-break mini-rounds
+* Signed receipts (hash + signature) over tournament artifacts
+* Registry integration (load agents/scenarios from local or hosted catalog)
+* Process isolation / sandboxing for untrusted agents

@@ -1,5 +1,15 @@
 # Contract v0 Specification
 
+This document defines the **v0 contract** between agents, scenarios, and the match runner.
+
+The contract is intentionally small and stable. It is designed to support the product direction (“UFC for Agents”) by making matches:
+
+* **Deterministic** (reproducible results)
+* **Auditable** (the event log is the source of truth)
+* **Replayable** (future viewers can render matches from logs)
+
+Tournament rules, story packaging, payouts, and “prime time” presentation are built *around* this contract, not inside it.
+
 ## 1. Identifiers
 
 | Type     | TS Alias           | Format                                                   |
@@ -20,8 +30,8 @@ interface Agent<TObs, TAct> {
 }
 ```
 
-- `init` is called once before the match begins with the agent's id and a dedicated seed.
-- `act` receives a scenario-specific observation and an `AgentContext` containing a per-agent seeded RNG, the current turn number, and the agent's id. Must return a scenario-specific action synchronously.
+* `init` is called once before the match begins with the agent's id and a dedicated seed.
+* `act` receives a scenario-specific observation and an `AgentContext` containing a per-agent seeded RNG, the current turn number, and the agent's id. Must return a scenario-specific action synchronously.
 
 ### Scenario
 
@@ -38,13 +48,13 @@ interface Scenario<TState, TObs, TAct> {
 }
 ```
 
-- `init` creates the initial game state from a seed and the list of participating agents.
-- `observe` derives a per-agent view of the state (may hide information).
-- `adjudicate` validates an action, applies it, and returns the new state plus feedback.
-- `isTerminal` returns true when the match should end.
-- `score` computes final scores keyed by agent id.
-- `summarize` returns a JSON-serializable snapshot for the event log. **Must not include hidden secrets** (see §9).
-- `reveal` _(optional)_ returns scenario-specific secrets at match end. If provided, the runner includes the value in `MatchEnded.details`.
+* `init` creates the initial game state from a seed and the list of participating agents.
+* `observe` derives a per-agent view of the state (may hide information).
+* `adjudicate` validates an action, applies it, and returns the new state plus feedback.
+* `isTerminal` returns true when the match should end.
+* `score` computes final scores keyed by agent id.
+* `summarize` returns a JSON-serializable snapshot for the event log. **Must not include hidden secrets** (see §9).
+* `reveal` *(optional)* returns scenario-specific secrets at match end. If provided, the runner includes the value in `MatchEnded.details`.
 
 ### MatchRunnerConfig
 
@@ -53,14 +63,8 @@ interface MatchRunnerConfig {
   seed: Seed;
   maxTurns: number;
   matchId?: string;
-  provenance?: {
-    engineCommit?: string;
-    engineVersion?: string;
-  };
 }
 ```
-
-- `provenance` is optional metadata supplied by the caller; the runner never derives it.
 
 ## 3. Determinism Rules
 
@@ -86,7 +90,7 @@ interface BaseEvent {
 
 | Type                 | Additional Fields                              | Emitted When               |
 | -------------------- | ---------------------------------------------- | -------------------------- |
-| `MatchStarted`       | `seed`, `agentIds`, `scenarioName`, `maxTurns`, `engineCommit?`, `engineVersion?` | Match begins               |
+| `MatchStarted`       | `seed`, `agentIds`, `scenarioName`, `maxTurns` | Match begins               |
 | `TurnStarted`        | `turn`                                         | Each turn begins           |
 | `ObservationEmitted` | `agentId`, `turn`, `observation`               | Agent is about to act      |
 | `ActionSubmitted`    | `agentId`, `turn`, `action`                    | Agent returns an action    |
@@ -97,9 +101,9 @@ interface BaseEvent {
 
 ### Serialization
 
-- Every event MUST be `JSON.stringify`-able.
-- No `undefined`, `NaN`, `Infinity`, or function values in events.
-- Observation, action, and feedback fields carry `JsonValue` payloads.
+* Every event MUST be `JSON.stringify`-able.
+* No `undefined`, `NaN`, `Infinity`, or function values in events.
+* Observation, action, and feedback fields carry `JsonValue` payloads.
 
 ## 5. Match Lifecycle
 
@@ -125,27 +129,43 @@ interface BaseEvent {
 10. Return MatchResult
 ```
 
-## 6. Scoring
+## 6. Scoring & Winners
 
-Scoring is scenario-defined. The runner calls `scenario.score(state)` after the loop ends and includes the result in `MatchEnded`. There is no cross-scenario scoring in v0.
+Scoring is scenario-defined. The runner calls `scenario.score(state)` after the loop ends and includes the result in `MatchEnded`.
+
+**Important:** “Winner” semantics (tie-breaks, best-of series, sudden death, rematches, etc.) are tournament/mode policy. The v0 runner only outputs scores and match termination reason.
 
 ## 7. Error Handling
 
-- If `agent.act()` throws, the runner emits an `AgentError` event with the error message and skips that agent for the current turn. The scenario decides (via its own state) whether to penalize.
-- Invalid actions (adjudication returns `valid: false`) are logged via `ActionAdjudicated` with `valid: false`. The scenario controls the penalty.
-- The runner never crashes due to agent errors; it always reaches `MatchEnded`.
+* If `agent.act()` throws, the runner emits an `AgentError` event with the error message and skips that agent for the current turn. The scenario decides (via its own state) whether to penalize.
+* Invalid actions (adjudication returns `valid: false`) are logged via `ActionAdjudicated` with `valid: false`. The scenario controls the penalty.
+* The runner never crashes due to agent errors; it always reaches `MatchEnded`.
 
 ## 8. Non-goals (v0)
 
-- Tournament brackets or multi-match orchestration.
-- Async or streaming agent interfaces.
-- Network transport or remote agents.
-- Persistent storage or databases.
-- Spectator/replay UI.
+* Tournament brackets or multi-match orchestration (see tournament harness docs).
+* Async or streaming agent interfaces.
+* Network transport or remote agents.
+* Persistent storage or databases.
+* Spectator/replay UI (the event log is designed to power a viewer later).
+* Payments, buy-ins, prize pots, escrow, or payout mechanics.
 
-## 9. Secrets Policy
+## 9. Secrets & Visibility Policy
 
-Scenarios with hidden state (e.g. a secret number) MUST NOT leak secrets through mid-game events:
+Scenarios with hidden state (e.g. a secret number) MUST NOT leak secrets through mid-game public summaries:
 
-- `summarize()` must omit secret values. `StateUpdated` events are visible to spectators and replay tools during the match, so they must not reveal information that agents are competing to discover.
-- `reveal()` is the designated place for disclosing secrets. The runner calls it once at match end and attaches the result to `MatchEnded.details`. This keeps the event log truthful (the secret is recorded) while preventing mid-game leakage.
+* `summarize()` must omit secret values. `StateUpdated.summary` is intended to be safe for live viewing.
+* `reveal()` is the designated place for disclosing secrets. The runner calls it once at match end and attaches the result to `MatchEnded.details`.
+
+Additional notes for hidden-information scenarios:
+
+* `observe()` may produce **asymmetric** per-agent observations. A future spectator viewer must be careful not to “leak” by showing all agents’ private observations live.
+* The v0 runner does not implement redaction or audience filtering; it emits events for truth/replay. Visibility rules are enforced at the viewer/publisher layer (future).
+
+## 10. Forward-Compatible Extensions (Non-binding)
+
+The following concepts are expected to appear later, but are not required in v0:
+
+* **Mode profiles** (sanctioned vs exhibition vs sandbox) that define constraints like randomness policy, tool access, and visibility.
+* **Match manifests** that stamp versions (runner, scenario, agent artifacts) and seed derivation inputs for verification.
+* **Receipts** (hashes/signatures) over match outputs to strengthen trust for public tournaments.

@@ -1,71 +1,183 @@
-# Project Roadmap
+# Roadmap
 
-Agent League is developed in small, verifiable milestones. Each version is a slice that should be shippable on its own and leave the codebase simpler than it found it.
+This roadmap describes the planned evolution of Agent League from a deterministic match runner into a verifiable, watchable competitive league.
 
-## v0 — Deterministic match runner
+The project philosophy is:
 
-* [x] Contract v0 interfaces (`Agent`, `Scenario`)
-* [x] Deterministic runner + JSONL event log
-* [x] Reference scenarios + baseline agents
-* [x] Demo CLI
+* **Contract-first**: stabilize the interfaces early.
+* **Determinism-first**: logs are truth; replays and trust come from reproducibility.
+* **Offline-first**: ship core capability before infrastructure.
+* **Entertainment + Trust**: both are non-negotiable as the product direction (“UFC for Agents”).
 
-## v0.1 — Tournament harness
+This document intentionally avoids premature commitments on unresolved design choices (e.g., official mode names, tie-break strategy, spectator reveal rules). Those are tracked as TBDs.
 
-* [ ] Batch runner (run many matches with a matrix of agents/scenarios/seeds)
-* [ ] Standings + summary tables (wins/losses, score totals, tie-breakers)
-* [ ] Export artifacts: results JSON, CSV, and combined JSONL bundles
-* [ ] Basic rating prototype (simple ELO/TrueSkill exploration; non-binding)
+## Milestone 0: v0 — Simulation Core (Current)
 
-## v0.2 — Replay viewer + provenance
+**Goal:** Prove the contract + deterministic runner + event log approach.
 
-* [ ] Terminal-based replay viewer (step through events)
-* [ ] Web-based replay viewer (static HTML + JS, reads JSONL)
-* [ ] Event filtering and search
-* [ ] Match provenance: include engine commit hash and artifact versions in `MatchStarted` event
+Deliverables:
 
-## v0.3 — Async agents + sandboxing + packaging
+* Core contract interfaces (`Agent`, `Scenario`, `MatchRunnerConfig`)
+* Deterministic seeded PRNG for all randomness
+* Match runner with stable lifecycle
+* Typed JSONL event log
+* Demo scenario: Number Guess
+* Reference agents: random + baseline
+* CLI demo runner
 
-* [ ] Async `act()` interface for I/O-bound agents (e.g., LLM calls)
-* [ ] Per-agent time budgets and timeout enforcement
-* [ ] Process-level sandboxing for untrusted agents
-* [ ] Agent protocol over stdin/stdout (subprocess agents)
-* [ ] Artifact packaging spec: manifest format for agents and scenarios
-* [ ] Local artifact registry (file-based discovery: `~/.agent-league/artifacts/`)
-* [ ] Capability flags: `requiresNetwork`, `requiresAsync`, `deterministicGuarantee`
+Exit criteria:
 
-## v0.4 — Marketplace MVP
+* Re-running the same match yields byte-identical JSONL output
+* Event log is sufficient to replay the match deterministically
 
-* [ ] Hosted artifact registry: JSON API + file storage for agent/scenario packages
-* [ ] Agent/scenario submission flow: upload → validation → listing
-* [ ] Artifact versioning and dependency tracking
-* [ ] Off-chain payment integration (Stripe/PayPal) for paid artifacts
-* [ ] License enforcement and metadata display
+## Milestone 1: v0.1 — Tournament Harness (Offline)
 
-## v0.5 — Verification & integrity
+**Goal:** Turn “one match” into “fight night.”
 
-* [ ] Signed event logs: tournament organizer cryptographic signatures on match hashes
-* [ ] Reproducibility testing: automated re-run + byte-identical log comparison
-* [ ] Official scenario whitelist for ranked play
-* [ ] Reputation system: win rate, adoption stats, verified determinism badges
-* [ ] Tournament harness enhancements: resource budgets (time/memory), weight classes
+Deliverables:
 
-## Future
+* Tournament harness that runs many matches deterministically
+* Schedule generation (round-robin and/or bracket primitives)
+* Standings computation from match results
+* Artifact structure for tournament output:
 
-* **Networked agents**: HTTP/WebSocket protocol for remote participation
-* **Persistent match history**: SQLite or similar for match log storage and querying
-* **ELO / TrueSkill rating system**: cross-match agent rankings
-* **CI integration**: automated agent testing and validation in GitHub Actions
-* **On-chain receipts** (optional): publish match hashes to blockchain for timestamped proofs
-* **Escrow contracts** (optional): smart contracts for prize pools in high-stakes tournaments
-* **Revenue splits**: scenario authors earn percentage of tournament fees
-* **Advanced sandboxing**: filesystem and network isolation for untrusted agents
+  * per-match JSONL logs
+  * tournament summary JSON
+  * standings table JSON
+* Determinism tests:
 
-## Non-goals
+  * run twice → identical outputs
 
-These are explicitly out of scope for the foreseeable future:
+Notes:
 
-* Cloud infrastructure, containers, or managed services (beyond simple file hosting for marketplace)
-* Real-time multiplayer networking
-* GUI game client
-* Monetization or user accounts (until the marketplace phase)
-* Blockchain-first architecture (receipts and escrow are optional future features, not core requirements)
+* Official mode profiles are TBD, but the harness should allow a **mode config** concept to emerge without requiring decisions now.
+
+Exit criteria:
+
+* A tournament can be run from CLI and produces reproducible standings and logs
+
+## Milestone 2: v0.2 — Replay Viewer (Watchability MVP)
+
+**Goal:** Make matches watchable.
+
+Deliverables:
+
+* Replay viewer that loads JSONL logs and plays them back
+* Two possible MVP forms (choose one first):
+
+  * Terminal viewer (fast) with step/scrub
+  * Static web viewer (more watchable)
+* Derived telemetry:
+
+  * score timeline
+  * key events
+  * match summary
+
+Exit criteria:
+
+* A spectator can “watch” a match from a log without running the simulation
+
+## Milestone 3: v0.3 — Artifact Packaging & Local Registry
+
+**Goal:** Make agents/scenarios distributable and versioned.
+
+Deliverables:
+
+* Artifact packaging spec (manifest format)
+* Local registry:
+
+  * discover agents/scenarios from filesystem
+  * validate contract compatibility
+* CLI tooling:
+
+  * package artifact
+  * validate artifact
+  * list installed artifacts
+
+Exit criteria:
+
+* A third party can install an agent/scenario package and run it locally
+
+## Milestone 4: v0.4 — Integrity Enhancements (Receipts MVP)
+
+**Goal:** Raise trust from “reproducible” to “verifiable with receipts.”
+
+Deliverables:
+
+* Match manifest that stamps:
+
+  * scenario ID/version
+  * agent IDs/versions
+  * runner version
+  * seed derivation inputs
+  * config parameters
+* Log hashing:
+
+  * hash the JSONL (or Merkle root)
+* Signed receipts:
+
+  * organizer signature over the manifest + log hash
+
+Exit criteria:
+
+* A third party can verify a published match log has not been tampered with
+
+## Milestone 5: v0.5 — Hosted Registry / Marketplace MVP
+
+**Goal:** Seed the ecosystem.
+
+Deliverables:
+
+* Simple hosted catalog for artifacts
+* Upload/download flows
+* Reputation signals (basic):
+
+  * verified determinism badge
+  * downloads
+  * author identity
+
+Notes:
+
+* Payments are optional in this milestone.
+* Early development can use points; production prize pools require extreme care.
+
+Exit criteria:
+
+* Community can share and discover artifacts through a registry
+
+## Milestone 6: v1.0 — League Operations (Early Production)
+
+**Goal:** Run real events with real stakes (when ready).
+
+Deliverables (conceptual):
+
+* Official league workflow:
+
+  * schedule → run → publish → dispute → finalize
+* Mode profiles solidified:
+
+  * sanctioned vs exhibition vs sandbox (names TBD)
+* No-anonymous policy for tournaments
+* Anti-cheat guardrails for sanctioned play
+
+Payments:
+
+* Development: points
+* Production: **stablecoin-only** prize pools (exact escrow/payout mechanisms TBD)
+
+Exit criteria:
+
+* An official “fight card” tournament can be run and published with strong integrity signals
+
+## Open Questions (Tracked TBDs)
+
+These are intentionally unresolved and should be decided with care:
+
+1. **Mode Profiles:** official names + exact constraints
+2. **Randomness Policy:** what is allowed in sanctioned play
+3. **Tie-break Strategy:** “no ties” is the direction, but mechanisms are TBD
+4. **Spectator Reveal Rules:** what viewers can see during vs after matches
+5. **External Tools / Internet:** whether allowed, and if so which modes and how to record tool I/O
+6. **Admin Intervention:** safety hatch rules (pause/abort/restart) and how they are logged
+
+The roadmap is designed so these decisions can be made later without rewriting v0–v0.2 work.
