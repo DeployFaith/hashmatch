@@ -1,221 +1,192 @@
 # Tournament Rules
 
-This document defines tournament-level policy: how matches are scheduled into events, how winners are decided, and how standings/rankings are produced.
+This document defines tournament rules for Agent League.
 
-Key separation of concerns:
+It focuses on rules that can be enforced by the harness and verified via artifacts.
 
-* The **match runner** outputs logs + scores.
-* **Tournament rules** interpret those outputs to decide winners, advancement, and rankings.
+Rules are applied via a **mode profile**. This document describes the human-readable defaults and what must be recorded in manifests.
 
-This keeps the core engine stable while allowing different competitive formats.
+## 1. Core Principles
 
-## 1. Goals
+* tournaments are competitive and spectator-first
+* sanctioned play prioritizes determinism and verification
+* outcomes must be grounded in published truth artifacts
+* entertainment packaging is encouraged but must not affect match execution
 
-* Provide a clear rulebook for official competition.
-* Support multiple formats (1v1 main card, teams, brackets).
-* Enforce the product direction: tournaments must be **entertaining** and **trustworthy**.
-* Support “no ties” for official tournaments (mechanism TBD).
+## 2. Tournament Formats
 
-## 2. Core Formats
+Supported formats (by harness configuration):
 
-### 2.1 1v1 Matches (Core)
+* round‑robin
+* single elimination bracket
+* double elimination (future)
+* best‑of series (scenario/mode dependent)
 
-The default unit of competition is a head-to-head match between two agents.
+The tournament manifest must declare the format.
 
-### 2.2 Fight Card (Event)
+## 3. Match Format
 
-A fight card is a set of matches presented together:
+### 3.1 Core Match
 
-* prelims
-* main card
-* main event
+A match is a head-to-head contest between two agents in one scenario.
 
-This is a presentation concept; the harness can implement it as a structured schedule.
+### 3.2 Series (Optional)
 
-### 2.3 Round Robin (Early)
+Official tournaments may use best‑of series:
 
-Useful for:
+* best‑of‑3
+* best‑of‑5
 
-* benchmarking a pool of agents
-* seeding brackets
-* early “league table” standings
+Series rules must be declared in the tournament manifest.
 
-### 2.4 Single Elimination Bracket (Future)
+## 4. Determinism Requirements (Sanctioned)
 
-Classic tournament format:
+Sanctioned tournaments require:
 
-* winners advance
-* losers eliminated
+* deterministic seed derivation
+* no wall-clock dependence
+* stable agent/scenario artifact bytes (or content hashes)
 
-Requires seeding and tie-break policy.
+The tournament manifest must include:
 
-### 2.5 Best-of Series
+* tournamentSeed
+* seed derivation method
 
-Best-of-N increases reliability and reduces variance.
+Each match manifest must include:
 
-Common values:
+* matchSeed
+* derivation inputs (matchKey, etc.)
 
-* Bo3 (best of 3)
-* Bo5 (best of 5)
+## 5. Tools and External Access
 
-In a “UFC for Agents” presentation, best-of series can be marketed as “rounds.”
+Default for sanctioned play:
 
-### 2.6 Teams (Future)
+* no internet
+* no external APIs
 
-Team formats are scenario-dependent:
+If any tools are allowed, the mode profile must specify:
 
-* 2v2 or 3v3 within a scenario
-* team points aggregated across multiple 1v1 matches
+* which tool classes
+* whether tool I/O is logged
+* whether tool access affects determinism
 
-## 3. Winners & Scoring
+Tool usage must be reflected in the event log (or a tool log that is referenced by the manifest).
 
-### 3.1 Match Scores
+## 6. Resource Limits
 
-A scenario produces scores:
+Resource limits are enforced by the runner/harness.
 
-* `score: Record<AgentId, number>`
+At minimum:
 
-Higher score is better unless the scenario declares otherwise.
+* max turns
 
-### 3.2 Winner Determination (Default)
+Future limits:
 
-If two agents have different final scores:
+* time budget per turn
+* memory budget
+* tool call quotas
 
-* higher score wins
+Limits must be declared in the match manifest.
 
-If equal, the match is a **tie** at the match-runner level.
+## 7. Invalid Actions
 
-Tournament rules decide how ties are resolved.
+Invalid actions must be:
 
-## 4. “No Ties” Policy (Direction)
+* detected deterministically
+* penalized consistently
+* logged as events
 
-Product direction: **no ties** for official tournaments.
+Default penalty options (scenario-defined):
 
-This section defines acceptable tie-break frameworks.
+* forfeited turn
+* score penalty
+* match loss after N invalid actions
 
-### 4.1 Tie-Break Framework Options (TBD)
+Penalty behavior must be explicit in scenario rules.
 
-1. **Best-of series**
+## 8. No Ties (Direction)
 
-   * repeat the match with new derived seeds
-   * first to reach majority wins
+Direction: sanctioned play should avoid ties.
 
-2. **Sudden death**
+Mechanisms may include:
 
-   * extend the same match with additional turns
-   * only allowed if scenario supports it cleanly
+* best‑of series
+* sudden death extension
+* deterministic tie-break via scenario-defined efficiency
 
-3. **Tie-break mini-round scenario**
+The tie-break policy must be declared in tournament manifest.
 
-   * run a short tie-break scenario designed to force separation
+## 9. Standings Tie‑Breaks
 
-4. **Deterministic efficiency tie-break**
+Standings can tie even if matches do not.
 
-   * compare efficiency metrics derived from logs:
+Recommended tie-break order:
 
-     * fewer turns
-     * fewer invalid moves
-     * lower time usage (future)
-     * lower resource usage (future)
+1. head-to-head
+2. point differential
+3. total points
+4. deterministic efficiency metrics
 
-Policy must be mode- and scenario-specific.
+The chosen order must be declared in tournament manifest.
 
-### 4.2 Current Stance
+## 10. Visibility and Spoilers
 
-* Official tournaments: no ties
-* Exhibition: likely no ties, but exceptions allowed
-* Sandbox: ties allowed
+Hidden information scenarios must define:
 
-## 5. Seeding
+* what spectators can see live
+* what is revealed post-match
 
-Seeding orders competitors into brackets.
+Default sanctioned policy:
 
-### 5.1 Seeding Inputs
+* live-safe view
+* post-match reveal of private observations
 
-Possible sources:
+Viewer must enforce redactions.
 
-* prior tournament results
-* round robin standings
-* ELO-like rating (future)
-* manual seeding for exhibition storylines (not for sanctioned ranked play)
+Spoiler protection (recommended for broadcast):
 
-### 5.2 Seeding Integrity
+* hide final score until match end
+* do not reveal winner in early highlights
 
-For sanctioned competition:
+## 11. Publishing Requirements
 
-* seeding inputs should be transparent
-* seed policy must be documented
+A published sanctioned tournament should include:
 
-## 6. Scheduling & Derived Seeds
+* tournament manifest
+* standings
+* per-match truth artifacts
+* hashes and receipts (as required by mode)
 
-Tournament scheduling must be deterministic when required.
+Show packaging may be included:
 
-* schedule order must be stable
-* match seeds must be derived deterministically (see `tournament_harness_v0.md`)
+* match cards
+* commentary
+* highlights
 
-For sanctioned play, seed anti-rigging policy is TBD (see `integrity_and_verification.md`).
+But show artifacts:
 
-## 7. Standings & Rankings
+* must be labeled non-authoritative
+* must be grounded in truth/telemetry
+* must not leak secrets
 
-### 7.1 Standings (Event-Local)
+## 12. Disputes
 
-A standings table for a single tournament/event, derived from match results.
+A dispute should be resolvable by reference to:
 
-Common fields:
+* match log
+* match manifest
+* receipt (if present)
+* scenario/agent artifact hashes
 
-* wins
-* losses
-* points for / against
-* strength of schedule (future)
+Dispute outcomes should be recorded and (ideally) signed by organizers.
 
-### 7.2 Rankings (Global)
+## 13. Conduct and Fair Play (Placeholder)
 
-A long-lived rating/leaderboard across events.
+Future additions:
 
-Policies TBD:
+* prohibited agent behaviors (log spam, denial of service)
+* scenario exploit disclosure policy
+* collusion rules
+* organizer intervention policy
 
-* rating algorithm (ELO/Glicko/etc)
-* decay over time
-* season resets
-
-Official rankings must be separated from sandbox results.
-
-## 8. Weight Classes / Budgets (Future)
-
-To keep competition fair, official modes may define “weight classes” by resource budgets:
-
-* time per turn
-* memory cap
-* tool usage constraints
-
-Agents compete within the same class.
-
-## 9. Disqualifications & Penalties (Future)
-
-Tournament policy must define how to handle:
-
-* timeouts
-* crashes
-* invalid actions
-* rule violations (network use, tool use, etc)
-
-Sanctioned play needs strict, transparent rules.
-
-## 10. Presentation Hooks (UFC Feel)
-
-These are show-layer concepts but influence tournament structure:
-
-* fight cards
-* rounds (best-of series)
-* main events
-* rivalries and rematches
-
-The key rule: presentation must not compromise integrity for sanctioned matches.
-
-## 11. Open Decisions
-
-1. Final tie-break mechanisms by mode/scenario
-2. Best-of defaults (Bo3 vs Bo5)
-3. Seeding algorithm for official rankings
-4. Weight classes and enforcement
-5. Disqualification and penalty rules
+These are not required for v0 harness implementation.
