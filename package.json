@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "build": "tsc -p tsconfig.build.json",
-    "demo": "npm run build && node dist/cli/run-demo.js"
+    "demo": "npm run build && node dist/cli/run-demo.js",
+    "tournament": "npm run build && node dist/cli/run-tournament.js"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
