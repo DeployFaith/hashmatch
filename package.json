@@ -15,7 +15,9 @@
     "demo": "npm run build:engine && node dist/cli/run-demo.js",
     "tournament": "npm run build:engine && node dist/cli/run-tournament.js",
     "match": "npm run build:engine && node dist/cli/run-match.js",
-    "replay": "npm run build:engine && node dist/cli/run-match.js"
+    "replay": "npm run build:engine && node dist/cli/run-match.js",
+    "gen:sample-replay": "tsc -p tsconfig.scripts.json && node dist-scripts/scripts/gen-sample-replay.js",
+    "validate:jsonl": "tsc -p tsconfig.scripts.json && node dist-scripts/scripts/validate-jsonl.js"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
