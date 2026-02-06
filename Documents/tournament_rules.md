@@ -104,9 +104,19 @@ Default penalty options (scenario-defined):
 
 Penalty behavior must be explicit in scenario rules.
 
-## 8. No Ties (Direction)
+## 8. Scoring Model
 
-Direction: sanctioned play should avoid ties.
+### 8.1 Default Standings Points
+
+* win = 3
+* draw = 1
+* loss = 0
+
+This scoring model intentionally discourages draws by rewarding wins disproportionately.
+
+### 8.2 No Ties (Direction)
+
+Direction: sanctioned play should avoid ties within matches.
 
 Mechanisms may include:
 
@@ -114,20 +124,24 @@ Mechanisms may include:
 * sudden death extension
 * deterministic tie-break via scenario-defined efficiency
 
-The tie-break policy must be declared in tournament manifest.
+The tie-break policy must be declared in the tournament manifest.
 
-## 9. Standings Tie‑Breaks
+## 9. Standings Ranking (Single Source of Truth)
 
-Standings can tie even if matches do not.
+**Primary sort key:** standings points (descending). Points are the primary ranking criterion, NOT a tie-breaker.
 
-Recommended tie-break order:
+**Tie-breakers** (applied only when two or more agents have equal standings points):
 
-1. head-to-head
-2. point differential
-3. total points
-4. deterministic efficiency metrics
+1. Head-to-head record
+2. Total score differential (pointsFor − pointsAgainst)
+3. Total points scored (`totalPointsScored` — the aggregate match score, i.e., pointsFor across all matches, NOT standings points)
+4. Deterministic seed-derived coinflip (last resort, prevents ambiguity)
 
-The chosen order must be declared in tournament manifest.
+> **Terminology note:** "Total points scored" (`totalPointsScored`) refers to the aggregate match-level score (pointsFor across all matches), not standings points. This label exists to prevent confusion between the two meanings of "points."
+
+If a scenario supports points, the harness must also compute and publish `pointsFor` and `pointsAgainst` per agent.
+
+The chosen tie-break order must be declared in the tournament manifest.
 
 ## 10. Visibility and Spoilers
 
@@ -152,9 +166,9 @@ Spoiler protection (recommended for broadcast):
 
 A published sanctioned tournament should include:
 
-* tournament manifest
-* standings
-* per-match truth artifacts
+* `tournament_manifest.json`
+* `standings.json`
+* per-match truth artifacts (`match.jsonl` + `match_manifest.json`)
 * hashes and receipts (as required by mode)
 
 Show packaging may be included:
