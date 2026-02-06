@@ -13,7 +13,7 @@ interface CliArgs {
   scenario: string;
 }
 
-const DEFAULT_OUT_PATH = "public/replays/number-guess-demo.jsonl";
+const DEFAULT_OUT_PATH = "public/replays/number-guess-latest.jsonl";
 
 function parseArgs(argv: string[]): CliArgs {
   let seed = 42;

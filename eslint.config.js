@@ -2,6 +2,9 @@ import tseslint from "typescript-eslint";
 
 export default [
   {
+    ignores: ["dist/**"],
+  },
+  {
     files: ["src/**/*.ts", "tests/**/*.ts"],
     languageOptions: {
       ecmaVersion: "latest",
