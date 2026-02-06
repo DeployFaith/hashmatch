@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { runTournament } from "../tournament/runTournament.js";
-import { writeTournamentArtifacts } from "../tournament/artifacts.js";
+import { writeTournamentArtifacts, writeTournamentBundle } from "../tournament/artifacts.js";
 import type { TournamentConfig, StandingsRow } from "../tournament/types.js";
 
 // ---------------------------------------------------------------------------
@@ -15,6 +15,7 @@ interface CliArgs {
   scenario: string;
   agents: string[];
   outDir: string;
+  bundleOut?: string;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -24,6 +25,7 @@ function parseArgs(argv: string[]): CliArgs {
   let scenario = "numberGuess";
   let agents: string[] = ["random", "baseline"];
   let outDir = "out";
+  let bundleOut: string | undefined;
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -39,10 +41,12 @@ function parseArgs(argv: string[]): CliArgs {
       agents = argv[++i].split(",");
     } else if ((arg === "--outDir" || arg === "--out") && i + 1 < argv.length) {
       outDir = argv[++i];
+    } else if (arg === "--bundle-out" && i + 1 < argv.length) {
+      bundleOut = argv[++i];
     }
   }
 
-  return { seed, rounds, maxTurns, scenario, agents, outDir };
+  return { seed, rounds, maxTurns, scenario, agents, outDir, bundleOut };
 }
 
 // ---------------------------------------------------------------------------
@@ -135,6 +139,12 @@ function main(): void {
   writeTournamentArtifacts(result, args.outDir);
   // eslint-disable-next-line no-console
   console.log(`\nWrote tournament artifacts to ${args.outDir}`);
+
+  if (args.bundleOut) {
+    writeTournamentBundle(result, args.bundleOut);
+    // eslint-disable-next-line no-console
+    console.log(`Wrote tournament bundle to ${args.bundleOut}`);
+  }
 }
 
 main();

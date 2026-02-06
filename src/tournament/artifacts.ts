@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { stableStringify, toStableJsonl } from "../core/json.js";
 import type { MatchEvent } from "../contract/types.js";
+import type { TournamentBundleV1 } from "../lib/replay/bundle.js";
 import type { MatchKey, TournamentResult } from "./types.js";
 
 function assertMatchLogs(
@@ -44,4 +45,31 @@ export function writeTournamentArtifacts(result: TournamentResult, outDir: strin
     const events = result.matchLogs[summary.matchKey];
     writeFileSync(join(matchDir, "match.jsonl"), toStableJsonl(events), "utf-8");
   }
+}
+
+export function buildTournamentBundle(result: TournamentResult): TournamentBundleV1 {
+  const summaryLookup = new Map(result.matchSummaries.map((summary) => [summary.matchKey, summary]));
+
+  const matches = result.tournament.matches.map((spec) => {
+    assertMatchLogs(spec.matchKey, result.matchLogs);
+    const events = result.matchLogs[spec.matchKey];
+    const summary = summaryLookup.get(spec.matchKey);
+    return {
+      matchKey: spec.matchKey,
+      ...(summary ? { summary } : {}),
+      jsonl: toStableJsonl(events),
+    };
+  });
+
+  return {
+    version: 1,
+    tournament: result.tournament,
+    standings: result.standings,
+    matches,
+  };
+}
+
+export function writeTournamentBundle(result: TournamentResult, outPath: string): void {
+  const bundle = buildTournamentBundle(result);
+  writeFileSync(outPath, stableStringify(bundle) + "\n", "utf-8");
 }
