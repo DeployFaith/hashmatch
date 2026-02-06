@@ -80,24 +80,35 @@ export function runTournament(config: TournamentConfig): TournamentResult {
         const matchSeed = deriveSeed(rng);
         const scenario = scenarioFactory();
 
-        // Fresh agent instances per match (agents can be stateful)
-        const agentA = agentFactories[i].factory(`${agentFactories[i].key}-${i}`);
-        const agentB = agentFactories[j].factory(`${agentFactories[j].key}-${j}`);
+        // Stable competitor IDs (index-based, independent of seat order)
+        const agentAId = `${agentFactories[i].key}-${i}`;
+        const agentBId = `${agentFactories[j].key}-${j}`;
 
-        const result = runMatch(scenario, [agentA, agentB], {
+        // Fresh agent instances per match (agents can be stateful)
+        const agentA = agentFactories[i].factory(agentAId);
+        const agentB = agentFactories[j].factory(agentBId);
+
+        // Deterministic seat-order swap to avoid first-move bias:
+        //   - Multi-round: alternate by round parity
+        //   - Single-round: derive from match seed parity
+        const swapOrder = round % 2 === 1 || (rounds === 1 && Math.abs(matchSeed) % 2 === 1);
+        const orderedAgents = swapOrder ? [agentB, agentA] : [agentA, agentB];
+        const seats: [AgentId, AgentId] = [orderedAgents[0].id, orderedAgents[1].id];
+
+        const result = runMatch(scenario, orderedAgents, {
           seed: matchSeed,
           maxTurns,
         });
 
         // Determine winner
-        const ids = [agentA.id, agentB.id];
-        const scoreA = result.scores[agentA.id] ?? 0;
-        const scoreB = result.scores[agentB.id] ?? 0;
+        const ids = [agentAId, agentBId];
+        const scoreA = result.scores[agentAId] ?? 0;
+        const scoreB = result.scores[agentBId] ?? 0;
         let winner: AgentId | null = null;
         if (scoreA > scoreB) {
-          winner = agentA.id;
+          winner = agentAId;
         } else if (scoreB > scoreA) {
-          winner = agentB.id;
+          winner = agentBId;
         }
 
         const lastEvent = result.events[result.events.length - 1];
@@ -107,6 +118,7 @@ export function runTournament(config: TournamentConfig): TournamentResult {
           matchId: result.matchId,
           seed: matchSeed,
           agentIds: ids,
+          seats,
           scores: result.scores,
           winner,
           turns: result.turns,

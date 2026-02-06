@@ -13,7 +13,10 @@ export interface TournamentConfig {
 export interface MatchSummary {
   matchId: MatchId;
   seed: Seed;
+  /** Stable participant IDs in index order [lower, higher]. */
   agentIds: AgentId[];
+  /** Actual seating order passed to runMatch: seats[0] acts first. */
+  seats: [AgentId, AgentId];
   scores: Record<AgentId, number>;
   winner: AgentId | null;
   turns: number;

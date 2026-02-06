@@ -115,6 +115,15 @@ describe("Tournament Harness v0.1", () => {
       }
     });
 
+    it("each match has exactly 2 seats", () => {
+      const result = runTournament(makeConfig({ rounds: 2 }));
+      for (const m of result.matches) {
+        expect(m.seats).toHaveLength(2);
+        // seats contains the same agents as agentIds
+        expect([...m.seats].sort()).toEqual([...m.agentIds].sort());
+      }
+    });
+
     it("winner is null (draw) or one of the participating agents", () => {
       const result = runTournament(makeConfig({ rounds: 3 }));
       for (const m of result.matches) {
@@ -128,6 +137,34 @@ describe("Tournament Harness v0.1", () => {
       const config = makeConfig({ seed: 777, rounds: 2 });
       const result = runTournament(config);
       expect(result.config).toEqual(config);
+    });
+  });
+
+  describe("seat-order fairness", () => {
+    it("2 agents, 2 rounds: each agent appears in seat 0 exactly once", () => {
+      const result = runTournament(makeConfig({ seed: 42, rounds: 2 }));
+      expect(result.matches).toHaveLength(2);
+
+      const seat0Counts: Record<string, number> = {};
+      for (const m of result.matches) {
+        seat0Counts[m.seats[0]] = (seat0Counts[m.seats[0]] ?? 0) + 1;
+      }
+
+      // Each agent should be in seat 0 exactly once across the two rounds
+      for (const id of Object.keys(seat0Counts)) {
+        expect(seat0Counts[id]).toBe(1);
+      }
+    });
+
+    it("rounds=1: seat ordering can differ between seeds based on matchSeed parity", () => {
+      // Collect seat orders across several seeds; at least one should differ
+      const seatOrders = new Set<string>();
+      for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+        const result = runTournament(makeConfig({ seed, rounds: 1 }));
+        seatOrders.add(JSON.stringify(result.matches[0].seats));
+      }
+      // With matchSeed parity swapping, we expect both orderings to appear
+      expect(seatOrders.size).toBeGreaterThan(1);
     });
   });
 });
