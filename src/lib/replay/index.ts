@@ -19,8 +19,19 @@ export type { ViewerMode, RedactionOptions, RedactedEvent } from "./redaction";
 export { detectMoments } from "./detectMoments";
 export type { ReplayMoment } from "./detectMoments";
 export {
+  parseCommentaryFile,
   getVisibleCommentary,
-  normalizeAndSortCommentary,
-  parseCommentaryJson,
+  getCommentaryForMoment,
+  getCommentaryAtIndex,
+  getEntryStartIdx,
+  getEntryEndIdx,
 } from "./commentary";
-export type { CommentaryDoc, CommentaryEntry, CommentaryEntryIn } from "./commentary";
+export type {
+  CommentaryEntry,
+  MomentBoundEntry,
+  RangeBoundEntry,
+  CommentarySeverity,
+  CommentaryWarning,
+  CommentaryFile,
+  CommentaryLoadStatus,
+} from "./commentary";
