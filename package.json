@@ -3,19 +3,24 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "lint": "eslint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "tsc -p tsconfig.build.json",
-    "demo": "npm run build && node dist/cli/run-demo.js",
-    "tournament": "npm run build && node dist/cli/run-tournament.js",
-    "match": "npm run build && node dist/cli/run-match.js",
-    "replay": "npm run build && node dist/cli/replay-match.js"
+    "build:engine": "tsc -p tsconfig.build.json",
+    "demo": "npm run build:engine && node dist/cli/run-demo.js",
+    "tournament": "npm run build:engine && node dist/cli/run-tournament.js",
+    "match": "npm run build:engine && node dist/cli/run-match.js",
+    "replay": "npm run build:engine && node dist/cli/run-match.js"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/react": "^19.2.13",
+    "@types/react-dom": "^19.2.3",
     "eslint": "^9.0.0",
     "prettier": "^3.0.0",
     "typescript": "^5.0.0",
@@ -24,5 +29,26 @@
   },
   "overrides": {
     "esbuild": "^0.25.0"
+  },
+  "dependencies": {
+    "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-separator": "^1.1.8",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-switch": "^1.2.6",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "@tailwindcss/postcss": "^4.1.18",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.563.0",
+    "next": "^16.1.6",
+    "postcss": "^8.5.6",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss": "^4.1.18",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.11"
   }
 }

@@ -1,9 +1,13 @@
 {
-  "extends": "./tsconfig.json",
   "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
     "noEmit": false,
     "outDir": "dist",
     "declaration": true
   },
-  "exclude": ["tests"]
+  "include": ["src/agents", "src/cli", "src/contract", "src/core", "src/engine", "src/scenarios", "src/tournament", "src/index.ts"],
+  "exclude": ["tests", "src/app", "src/components", "src/lib"]
 }
