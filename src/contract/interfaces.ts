@@ -1,4 +1,4 @@
-import type { AgentId, JsonValue, Seed } from "./types.js";
+import type { AgentId, JsonValue, MatchProvenance, Seed } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Agent
@@ -64,4 +64,5 @@ export interface MatchRunnerConfig {
   seed: Seed;
   maxTurns: number;
   matchId?: string;
+  provenance?: MatchProvenance;
 }

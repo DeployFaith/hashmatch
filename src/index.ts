@@ -5,6 +5,7 @@ export type {
   Seed,
   JsonValue,
   MatchEvent,
+  MatchProvenance,
   MatchStartedEvent,
   TurnStartedEvent,
   ObservationEmittedEvent,

@@ -1,4 +1,6 @@
-import { writeFileSync } from "node:fs";
+import { execSync } from "node:child_process";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { runMatch } from "../engine/runMatch.js";
 import { createNumberGuessScenario } from "../scenarios/numberGuess/index.js";
 import { createRandomAgent } from "../agents/randomAgent.js";
@@ -10,6 +12,8 @@ interface CliArgs {
   out?: string;
   scenario: string;
 }
+
+const DEFAULT_OUT_PATH = "public/replays/number-guess-demo.jsonl";
 
 function parseArgs(argv: string[]): CliArgs {
   let seed = 42;
@@ -33,6 +37,30 @@ function parseArgs(argv: string[]): CliArgs {
   return { seed, turns, out, scenario };
 }
 
+function tryReadEngineCommit(): string | undefined {
+  try {
+    const output = execSync("git rev-parse HEAD", {
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+    return output === "" ? undefined : output;
+  } catch {
+    return undefined;
+  }
+}
+
+function tryReadEngineVersion(): string | undefined {
+  try {
+    const packagePath = resolve(process.cwd(), "package.json");
+    const raw = readFileSync(packagePath, "utf-8");
+    const parsed = JSON.parse(raw) as { version?: string };
+    return typeof parsed.version === "string" ? parsed.version : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function main(): void {
   const args = parseArgs(process.argv.slice(2));
 
@@ -45,20 +73,25 @@ function main(): void {
   const scenario = createNumberGuessScenario();
   const agents = [createRandomAgent("random-1"), createBaselineAgent("baseline-1")];
 
+  const engineCommit = tryReadEngineCommit();
+  const engineVersion = tryReadEngineVersion();
+  const provenance =
+    engineCommit !== undefined || engineVersion !== undefined
+      ? { engineCommit, engineVersion }
+      : undefined;
+
   const result = runMatch(scenario, agents, {
     seed: args.seed,
     maxTurns: args.turns,
+    provenance,
   });
 
   const lines = result.events.map((e) => JSON.stringify(e)).join("\n") + "\n";
-
-  if (args.out) {
-    writeFileSync(args.out, lines, "utf-8");
-    // eslint-disable-next-line no-console
-    console.error(`Wrote ${result.events.length} events to ${args.out}`);
-  } else {
-    process.stdout.write(lines);
-  }
+  const outPath = args.out ?? DEFAULT_OUT_PATH;
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, lines, "utf-8");
+  // eslint-disable-next-line no-console
+  console.error(`Wrote ${result.events.length} events to ${outPath}`);
 }
 
 main();

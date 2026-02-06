@@ -23,7 +23,13 @@ export interface BaseEvent {
   matchId: MatchId;
 }
 
-export interface MatchStartedEvent extends BaseEvent {
+/** Optional provenance fields for match generation. */
+export interface MatchProvenance {
+  engineCommit?: string;
+  engineVersion?: string;
+}
+
+export interface MatchStartedEvent extends BaseEvent, MatchProvenance {
   type: "MatchStarted";
   seed: Seed;
   agentIds: AgentId[];

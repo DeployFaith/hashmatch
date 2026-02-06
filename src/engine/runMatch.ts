@@ -54,12 +54,24 @@ export function runMatch<TState, TObs, TAct>(
   const scenarioSeed = deriveSeed(masterRng);
   let state = scenario.init(scenarioSeed, agentIds);
 
+  const provenanceFields = config.provenance
+    ? {
+        ...(config.provenance.engineCommit !== undefined && {
+          engineCommit: config.provenance.engineCommit,
+        }),
+        ...(config.provenance.engineVersion !== undefined && {
+          engineVersion: config.provenance.engineVersion,
+        }),
+      }
+    : {};
+
   emit(events, seq, matchId, {
     type: "MatchStarted",
     seed: config.seed,
     agentIds,
     scenarioName: scenario.name,
     maxTurns: config.maxTurns,
+    ...provenanceFields,
   });
 
   let turn = 0;
