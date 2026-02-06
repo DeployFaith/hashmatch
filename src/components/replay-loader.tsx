@@ -6,6 +6,7 @@ import { Upload, FileText, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useAppStore } from "@/lib/store";
+import { SAMPLE_JSONL } from "@/lib/replay/fixtures/sampleNumberGuess";
 
 export function ReplayLoader() {
   const router = useRouter();
@@ -25,9 +26,7 @@ export function ReplayLoader() {
 
         if (!result.matchId) {
           setError(
-            result.errors.length > 0
-              ? result.errors.join("\n")
-              : "Failed to parse replay file",
+            result.errors.length > 0 ? result.errors.join("\n") : "Failed to parse replay file",
           );
           setLoading(false);
           return;
@@ -92,22 +91,20 @@ export function ReplayLoader() {
     [handleFileSelect],
   );
 
-  const handleLoadSample = useCallback(async () => {
+  const handleLoadSample = useCallback(() => {
     setLoading(true);
     setError(null);
 
     try {
-      const resp = await fetch("/replays/number-guess-demo.jsonl");
-      if (!resp.ok) {
-        throw new Error(`Failed to fetch sample: ${resp.status}`);
-      }
-      const text = await resp.text();
-      handleLoad(text, "number-guess-demo.jsonl");
+      // Use in-repo constant — no network request needed
+      const blob = new Blob([SAMPLE_JSONL], { type: "text/plain" });
+      const file = new File([blob], "sample-number-guess.jsonl", { type: "text/plain" });
+      handleFileSelect(file);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load sample replay");
       setLoading(false);
     }
-  }, [handleLoad]);
+  }, [handleFileSelect]);
 
   return (
     <Card>
@@ -131,9 +128,7 @@ export function ReplayLoader() {
         >
           <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
           <p className="mb-1 text-sm font-medium">Drop a .jsonl replay file here</p>
-          <p className="mb-3 text-xs text-muted-foreground">
-            or click below to browse
-          </p>
+          <p className="mb-3 text-xs text-muted-foreground">or click below to browse</p>
           <input
             ref={fileInputRef}
             type="file"
