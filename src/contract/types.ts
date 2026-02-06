@@ -79,7 +79,7 @@ export interface AgentErrorEvent extends BaseEvent {
 
 export interface MatchEndedEvent extends BaseEvent {
   type: "MatchEnded";
-  reason: "completed" | "maxTurnsReached" | "error";
+  reason: "completed" | "maxTurnsReached";
   scores: Record<AgentId, number>;
   turns: number;
   /** Optional scenario-specific details revealed at match end (e.g. secret values). */

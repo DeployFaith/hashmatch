@@ -29,6 +29,7 @@ export type {
 
 // Core
 export { createRng, randomInt, deriveSeed } from "./core/rng.js";
+export { stableStringify, toStableJsonl } from "./core/json.js";
 
 // Engine
 export { runMatch } from "./engine/runMatch.js";
@@ -37,6 +38,8 @@ export { runMatch } from "./engine/runMatch.js";
 export { runTournament } from "./tournament/runTournament.js";
 export type {
   TournamentConfig,
+  MatchKey,
+  MatchSpec,
   MatchSummary,
   StandingsRow,
   TournamentResult,

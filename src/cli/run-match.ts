@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { runMatch } from "../engine/runMatch.js";
+import { toStableJsonl } from "../core/json.js";
 import { getScenarioFactory, getAgentFactory } from "../tournament/runTournament.js";
 
 // ---------------------------------------------------------------------------
@@ -40,7 +41,7 @@ function parseArgs(argv: string[]): MatchCliArgs {
       scenario = argv[++i];
     } else if (arg === "--seed" && i + 1 < argv.length) {
       seed = parseInt(argv[++i], 10);
-    } else if (arg === "--turns" && i + 1 < argv.length) {
+    } else if ((arg === "--turns" || arg === "--maxTurns") && i + 1 < argv.length) {
       turns = parseInt(argv[++i], 10);
     } else if (arg === "--out" && i + 1 < argv.length) {
       out = argv[++i];
@@ -151,7 +152,7 @@ function main(): void {
     ...(provenance ? { provenance } : {}),
   });
 
-  const lines = result.events.map((e) => JSON.stringify(e)).join("\n") + "\n";
+  const lines = toStableJsonl(result.events);
 
   if (args.out) {
     mkdirSync(dirname(args.out), { recursive: true });
