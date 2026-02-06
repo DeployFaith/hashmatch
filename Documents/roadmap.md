@@ -1,183 +1,201 @@
 # Roadmap
 
-This roadmap describes the planned evolution of Agent League from a deterministic match runner into a verifiable, watchable competitive league.
+This roadmap focuses on shipping a fun, verifiable core loop **without requiring servers or databases early**.
 
-The project philosophy is:
+The goal is to reach a point where:
 
-* **Contract-first**: stabilize the interfaces early.
-* **Determinism-first**: logs are truth; replays and trust come from reproducibility.
-* **Offline-first**: ship core capability before infrastructure.
-* **Entertainment + Trust**: both are non-negotiable as the product direction (“UFC for Agents”).
+* we can run tournaments locally
+* we can publish match packages as files
+* spectators can watch replays that feel like a show
+* builders can iterate and compete
 
-This document intentionally avoids premature commitments on unresolved design choices (e.g., official mode names, tie-break strategy, spectator reveal rules). Those are tracked as TBDs.
+Dates are intentionally omitted until milestones stabilize.
 
-## Milestone 0: v0 — Simulation Core (Current)
+## Milestone 0 — Foundations (Done / In Progress)
 
-**Goal:** Prove the contract + deterministic runner + event log approach.
+**Outcome:** we have a coherent spec set and a minimal harness direction.
 
-Deliverables:
+* contract spec for scenario + agent interaction
+* tournament harness draft
+* artifact packaging draft
+* scenario design guidelines
+* integrity direction (logs/receipts)
 
-* Core contract interfaces (`Agent`, `Scenario`, `MatchRunnerConfig`)
-* Deterministic seeded PRNG for all randomness
-* Match runner with stable lifecycle
-* Typed JSONL event log
-* Demo scenario: Number Guess
-* Reference agents: random + baseline
-* CLI demo runner
+## Milestone 1 — Deterministic Tournament Harness (v0.1)
 
-Exit criteria:
-
-* Re-running the same match yields byte-identical JSONL output
-* Event log is sufficient to replay the match deterministically
-
-## Milestone 1: v0.1 — Tournament Harness (Offline)
-
-**Goal:** Turn “one match” into “fight night.”
+**Outcome:** run brackets and produce reproducible outputs.
 
 Deliverables:
 
-* Tournament harness that runs many matches deterministically
-* Schedule generation (round-robin and/or bracket primitives)
-* Standings computation from match results
-* Artifact structure for tournament output:
+* CLI harness that:
 
-  * per-match JSONL logs
-  * tournament summary JSON
-  * standings table JSON
-* Determinism tests:
+  * runs N matches in a bracket/round‑robin
+  * produces deterministic seeds per match
+  * writes `match.jsonl` for each match
+  * writes a standings table (derived)
 
-  * run twice → identical outputs
+Artifacts:
 
-Notes:
+* `tournament_manifest.json` (draft)
+* per match folder:
 
-* Official mode profiles are TBD, but the harness should allow a **mode config** concept to emerge without requiring decisions now.
+  * `match.jsonl`
+  * `match_manifest.json` (draft)
+  * `match_summary.json` (derived)
 
-Exit criteria:
+Verification gates:
 
-* A tournament can be run from CLI and produces reproducible standings and logs
+* same inputs → same `match.jsonl` bytes
+* no hidden dependence on wall‑clock or filesystem ordering
 
-## Milestone 2: v0.2 — Replay Viewer (Watchability MVP)
+## Milestone 2 — Replay Viewer MVP (Watchability v0.2)
 
-**Goal:** Make matches watchable.
+**Outcome:** spectators can “watch” a match as an unfolding timeline.
 
-Deliverables:
+This milestone is not satisfied by “we can open a log.” The bar is:
 
-* Replay viewer that loads JSONL logs and plays them back
-* Two possible MVP forms (choose one first):
-
-  * Terminal viewer (fast) with step/scrub
-  * Static web viewer (more watchable)
-* Derived telemetry:
-
-  * score timeline
-  * key events
-  * match summary
-
-Exit criteria:
-
-* A spectator can “watch” a match from a log without running the simulation
-
-## Milestone 3: v0.3 — Artifact Packaging & Local Registry
-
-**Goal:** Make agents/scenarios distributable and versioned.
+* playback feels dynamic (play/pause/step/scrub)
+* turning points can be surfaced
+* the viewer is structured to support richer renderers later
 
 Deliverables:
 
-* Artifact packaging spec (manifest format)
-* Local registry:
+1. **Core playback engine**
 
-  * discover agents/scenarios from filesystem
-  * validate contract compatibility
-* CLI tooling:
+* parses `match.jsonl`
+* exposes a time/turn cursor
+* computes baseline telemetry
 
-  * package artifact
-  * validate artifact
-  * list installed artifacts
+2. **At least one renderer**
 
-Exit criteria:
+Choose one first:
 
-* A third party can install an agent/scenario package and run it locally
+* terminal renderer (fast) OR
+* static web renderer (more watchable)
 
-## Milestone 4: v0.4 — Integrity Enhancements (Receipts MVP)
+3. **Moment extraction (MVP)**
 
-**Goal:** Raise trust from “reproducible” to “verifiable with receipts.”
+* produce `moments.json` from heuristics (score swings/errors/etc.)
 
-Deliverables:
+4. **Commentary hooks (MVP)**
 
-* Match manifest that stamps:
+* support loading `commentary.json`
+* basic rendering of commentary aligned to event ranges
 
-  * scenario ID/version
-  * agent IDs/versions
-  * runner version
-  * seed derivation inputs
-  * config parameters
-* Log hashing:
+Verification gates:
 
-  * hash the JSONL (or Merkle root)
-* Signed receipts:
+* viewer does not leak hidden info in live playback
+* telemetry is recomputable from truth
 
-  * organizer signature over the manifest + log hash
+## Milestone 2.1 — Show Experiments (Optional, v0.2.x)
 
-Exit criteria:
-
-* A third party can verify a published match log has not been tampered with
-
-## Milestone 5: v0.5 — Hosted Registry / Marketplace MVP
-
-**Goal:** Seed the ecosystem.
+**Outcome:** we can raise entertainment value without touching match correctness.
 
 Deliverables:
 
-* Simple hosted catalog for artifacts
-* Upload/download flows
-* Reputation signals (basic):
+* generate “show layer” artifacts from truth/telemetry:
 
-  * verified determinism badge
-  * downloads
-  * author identity
+  * highlight scripts (`highlights.json`)
+  * commentary variants (`commentary.json`)
+  * optional scene/storyboard prompts for visuals
 
-Notes:
+Constraints:
 
-* Payments are optional in this milestone.
-* Early development can use points; production prize pools require extreme care.
+* show artifacts must be labeled non‑authoritative
+* all factual claims must reference truth ranges (event idx / moments)
 
-Exit criteria:
+This is a safe sandbox for the “reality TV” vibe.
 
-* Community can share and discover artifacts through a registry
+## Milestone 3 — Artifact Bundles & Local Registry (v0.3)
 
-## Milestone 6: v1.0 — League Operations (Early Production)
+**Outcome:** matches and tournaments can be distributed as portable bundles.
 
-**Goal:** Run real events with real stakes (when ready).
+Deliverables:
 
-Deliverables (conceptual):
+* standardized folder layout (“broadcast package”)
+* `broadcast_manifest.json` classifies files as truth/telemetry/show
+* local registry index (simple file‑based catalog)
+* tooling to validate bundle structure
 
-* Official league workflow:
+Verification gates:
 
-  * schedule → run → publish → dispute → finalize
-* Mode profiles solidified:
+* bundle contains enough to replay and recompute telemetry
+* bundle classification is correct (truth/telemetry/show)
 
-  * sanctioned vs exhibition vs sandbox (names TBD)
-* No-anonymous policy for tournaments
-* Anti-cheat guardrails for sanctioned play
+## Milestone 4 — Receipts & Verification Tooling (v0.4)
 
-Payments:
+**Outcome:** tampering is detectable and verification is practical.
 
-* Development: points
-* Production: **stablecoin-only** prize pools (exact escrow/payout mechanisms TBD)
+Deliverables:
 
-Exit criteria:
+* hash computation (`logHash`, `manifestHash`, optional `truthBundleHash`)
+* signed receipts for sanctioned matches
+* verification CLI:
 
-* An official “fight card” tournament can be run and published with strong integrity signals
+  * validates receipt signatures
+  * recomputes hashes
+  * optionally re‑runs match to confirm reproducibility
 
-## Open Questions (Tracked TBDs)
+Verification gates:
 
-These are intentionally unresolved and should be decided with care:
+* changing any truth artifact invalidates receipt
+* verification is deterministic and produces clear error messages
 
-1. **Mode Profiles:** official names + exact constraints
-2. **Randomness Policy:** what is allowed in sanctioned play
-3. **Tie-break Strategy:** “no ties” is the direction, but mechanisms are TBD
-4. **Spectator Reveal Rules:** what viewers can see during vs after matches
-5. **External Tools / Internet:** whether allowed, and if so which modes and how to record tool I/O
-6. **Admin Intervention:** safety hatch rules (pause/abort/restart) and how they are logged
+## Milestone 5 — Tournament Operations (v0.5)
 
-The roadmap is designed so these decisions can be made later without rewriting v0–v0.2 work.
+**Outcome:** “fight night” operations feel real.
+
+Deliverables:
+
+* match card metadata (prelims/main card/main event)
+* intros/outros + recap generation (show layer)
+* publish pipeline that outputs:
+
+  * truth bundle + receipts
+  * telemetry + standings
+  * show assets
+
+This milestone can still be file‑based.
+
+## Milestone 6 — Online Infrastructure (Later)
+
+Only after the offline loop is fun + trusted.
+
+Potential components:
+
+* hosted registry
+* accounts and identity
+* hosted verification + replay hosting
+* tournament scheduling
+* prize pool escrow/payouts (stablecoin)
+
+Infrastructure must not be required to run a tournament.
+
+## Cross‑Cutting Workstreams
+
+### A) Scenario Library
+
+* design scenarios that are:
+
+  * fun to watch
+  * measurable
+  * hard to game
+* add at least one hidden‑information scenario later
+
+### B) Safety & Policy
+
+* banned tool usage policies per mode
+* logging and auditability
+* dispute workflow
+
+### C) Developer Experience
+
+* templates for agent projects
+* local harness quickstart
+* reproducible builds
+
+## Status Notes
+
+* “No servers/DBs early” is a product constraint.
+* “Watchability” is an explicit milestone requirement.
+* Integrity is layered: truth first, then telemetry, then show.
