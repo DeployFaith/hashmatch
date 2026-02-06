@@ -13,6 +13,7 @@ import {
   Moon,
   LayoutDashboard,
   GitCompare,
+  Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/matches", label: "Matches", icon: Swords },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/agents", label: "Agents", icon: Users },
+  { href: "/replay", label: "Replay", icon: Play },
   { href: "/director", label: "Director", icon: Workflow },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

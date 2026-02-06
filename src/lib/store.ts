@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import type { Agent, Match, Event, Run, Flow } from "@/lib/models";
 import { mockAgents, mockMatches, mockEvents, mockRuns, mockFlows } from "@/lib/mock";
+import { parseReplayJsonl, adaptReplayToViewModel } from "@/lib/replay";
+import type { ReplayMeta } from "@/lib/replay";
 
 interface AppState {
   // Data
@@ -9,6 +11,9 @@ interface AppState {
   events: Event[];
   runs: Run[];
   flows: Flow[];
+
+  // Replay
+  replayMeta: Record<string, ReplayMeta>;
 
   // Theme
   theme: "dark" | "light";
@@ -26,8 +31,14 @@ interface AppState {
   getRunsForAgent: (agentId: string) => Run[];
   getMatchesForAgent: (agentId: string) => Match[];
 
+  // Replay selectors
+  getReplayMeta: (matchId: string) => ReplayMeta | undefined;
+  isReplayMatch: (matchId: string) => boolean;
+
   // Actions
   resetData: () => void;
+  loadReplay: (jsonl: string) => { matchId: string; errors: string[] };
+  clearReplay: (matchId: string) => void;
 }
 
 const initialData = () => ({
@@ -36,6 +47,7 @@ const initialData = () => ({
   events: [...mockEvents],
   runs: [...mockRuns],
   flows: [...mockFlows],
+  replayMeta: {} as Record<string, ReplayMeta>,
 });
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -64,5 +76,56 @@ export const useAppStore = create<AppState>((set, get) => ({
   getRunsForAgent: (agentId) => get().runs.filter((r) => r.agentId === agentId),
   getMatchesForAgent: (agentId) => get().matches.filter((m) => m.agents.includes(agentId)),
 
+  // Replay selectors
+  getReplayMeta: (matchId) => get().replayMeta[matchId],
+  isReplayMatch: (matchId) => matchId in get().replayMeta,
+
   resetData: () => set(initialData()),
+
+  loadReplay: (jsonl) => {
+    const { events: engineEvents, errors: parseErrors } = parseReplayJsonl(jsonl);
+
+    if (engineEvents.length === 0) {
+      return {
+        matchId: "",
+        errors: parseErrors.length > 0
+          ? parseErrors.map((e) => `Line ${e.line}: ${e.message}`)
+          : ["No valid events found in replay file"],
+      };
+    }
+
+    const { match, events: uiEvents, meta } = adaptReplayToViewModel(engineEvents);
+
+    // Remove previous version of this replay if re-loading
+    const state = get();
+    const filteredMatches = state.matches.filter((m) => m.id !== match.id);
+    const existingReplayEventIds = new Set(
+      state.events
+        .filter((e) => e.id.startsWith(`replay-${match.id}-`))
+        .map((e) => e.id),
+    );
+    const filteredEvents = state.events.filter((e) => !existingReplayEventIds.has(e.id));
+
+    set({
+      matches: [...filteredMatches, match],
+      events: [...filteredEvents, ...uiEvents],
+      replayMeta: { ...state.replayMeta, [match.id]: meta },
+    });
+
+    return {
+      matchId: match.id,
+      errors: parseErrors.map((e) => `Line ${e.line}: ${e.message}`),
+    };
+  },
+
+  clearReplay: (matchId) => {
+    const state = get();
+    set({
+      matches: state.matches.filter((m) => m.id !== matchId),
+      events: state.events.filter((e) => !e.id.startsWith(`replay-${matchId}-`)),
+      replayMeta: Object.fromEntries(
+        Object.entries(state.replayMeta).filter(([id]) => id !== matchId),
+      ),
+    });
+  },
 }));
