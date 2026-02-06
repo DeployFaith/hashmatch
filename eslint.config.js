@@ -2,14 +2,18 @@ import tseslint from "typescript-eslint";
 
 export default [
   {
-    ignores: [".next/**", "dist/**", "out/**"],
+    // Ignore build artifacts and generated output
+    ignores: ["dist/**", ".next/**", "out/**", "coverage/**"],
   },
   {
-    files: ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts"],
+    files: ["src/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
       parser: tseslint.parser,
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+      },
     },
     plugins: { "@typescript-eslint": tseslint.plugin },
     rules: {
