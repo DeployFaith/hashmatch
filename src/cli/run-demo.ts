@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { runMatch } from "../engine/runMatch.js";
+import { toStableJsonl } from "../core/json.js";
 import { createNumberGuessScenario } from "../scenarios/numberGuess/index.js";
 import { createRandomAgent } from "../agents/randomAgent.js";
 import { createBaselineAgent } from "../agents/baselineAgent.js";
@@ -25,7 +26,7 @@ function parseArgs(argv: string[]): CliArgs {
     const arg = argv[i];
     if (arg === "--seed" && i + 1 < argv.length) {
       seed = parseInt(argv[++i], 10);
-    } else if (arg === "--turns" && i + 1 < argv.length) {
+    } else if ((arg === "--turns" || arg === "--maxTurns") && i + 1 < argv.length) {
       turns = parseInt(argv[++i], 10);
     } else if (arg === "--out" && i + 1 < argv.length) {
       out = argv[++i];
@@ -86,12 +87,16 @@ function main(): void {
     provenance,
   });
 
-  const lines = result.events.map((e) => JSON.stringify(e)).join("\n") + "\n";
+  const lines = toStableJsonl(result.events);
   const outPath = args.out ?? DEFAULT_OUT_PATH;
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, lines, "utf-8");
   // eslint-disable-next-line no-console
-  console.error(`Wrote ${result.events.length} events to ${outPath}`);
+  console.log(
+    `Match ${result.matchId}: scenario=${scenario.name} turns=${result.turns} events=${result.events.length}`,
+  );
+  // eslint-disable-next-line no-console
+  console.log(`Wrote ${result.events.length} events to ${outPath}`);
 }
 
 main();

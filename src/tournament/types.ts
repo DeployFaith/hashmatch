@@ -1,4 +1,6 @@
-import type { AgentId, MatchEvent, MatchId, Seed } from "../contract/types.js";
+import type { AgentId, MatchEvent, MatchId, Seed, JsonValue } from "../contract/types.js";
+
+export type MatchKey = string;
 
 /** Configuration for a round-robin tournament. */
 export interface TournamentConfig {
@@ -7,18 +9,26 @@ export interface TournamentConfig {
   rounds: number;
   scenarioKey: string;
   agentKeys: string[];
+  modeProfile?: JsonValue;
+  harnessVersion?: string;
   /** If true, include full per-match event logs in the result. */
   includeEventLogs?: boolean;
+}
+
+export interface MatchSpec {
+  matchKey: MatchKey;
+  seed: Seed;
+  scenarioName: string;
+  agentIds: AgentId[];
+  maxTurns: number;
 }
 
 /** Summary of a single match within a tournament. */
 export interface MatchSummary {
   matchId: MatchId;
+  matchKey: MatchKey;
   seed: Seed;
-  /** Stable participant IDs in index order [lower, higher]. */
   agentIds: AgentId[];
-  /** Actual seating order passed to runMatch: seats[0] acts first. */
-  seats: [AgentId, AgentId];
   scores: Record<AgentId, number>;
   winner: AgentId | null;
   turns: number;
@@ -41,8 +51,16 @@ export interface StandingsRow {
 /** Complete result of a tournament run. */
 export interface TournamentResult {
   config: TournamentConfig;
-  matches: MatchSummary[];
+  tournament: {
+    tournamentSeed: Seed;
+    scenarioName: string;
+    agents: AgentId[];
+    matches: MatchSpec[];
+    modeProfile?: JsonValue;
+    harnessVersion?: string;
+  };
+  matchSummaries: MatchSummary[];
   standings: StandingsRow[];
-  /** Per-match event logs, keyed by matchId. Only present when config.includeEventLogs is true. */
-  matchLogs?: Record<MatchId, MatchEvent[]>;
+  /** Per-match event logs, keyed by matchKey. Only present when config.includeEventLogs is true. */
+  matchLogs?: Record<MatchKey, MatchEvent[]>;
 }
