@@ -35,6 +35,8 @@ export interface RedactedEvent {
   seq: number;
   /** Match identifier. */
   matchId: string;
+  /** Original index in the replay list (-1 when unknown). */
+  originalIdx: number;
   /** Turn number (if present). */
   turn?: number;
   /** Agent identifier (if present). */
@@ -177,6 +179,7 @@ export function redactEvent(event: ReplayEvent, opts?: Partial<RedactionOptions>
     type: event.type,
     seq: event.seq,
     matchId: event.matchId,
+    originalIdx: -1,
     turn: event.turn,
     agentId: event.agentId,
     isRedacted: redacted,
