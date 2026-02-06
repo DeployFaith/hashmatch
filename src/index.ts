@@ -44,3 +44,6 @@ export type {
   StandingsRow,
   TournamentResult,
 } from "./tournament/types.js";
+
+// Replay bundles
+export type { TournamentBundleV1 } from "./lib/replay/bundle.js";

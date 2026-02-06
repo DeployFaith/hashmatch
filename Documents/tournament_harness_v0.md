@@ -113,6 +113,8 @@ out/
       match_summary.json
 ```
 
+Optionally, the CLI can emit a single-file **tournament bundle** via `--bundle-out <path>`. The bundle is a versioned JSON payload that embeds `tournament.json`, `standings.json`, each match summary, and the `match.jsonl` logs as strings so replay viewers can load a full tournament without relying on the File System Access API.
+
 ### tournament.json
 
 Includes:
