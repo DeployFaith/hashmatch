@@ -85,6 +85,30 @@ describe("Contract v0 — Match Runner", () => {
     });
   });
 
+  describe("provenance", () => {
+    it("omits provenance fields when not provided", () => {
+      const result = runMatch(makeScenario(), makeAgents(), { seed: 42, maxTurns: 10 });
+      const started = result.events[0];
+      if (started.type === "MatchStarted") {
+        expect("engineCommit" in started).toBe(false);
+        expect("engineVersion" in started).toBe(false);
+      }
+    });
+
+    it("includes provenance fields when provided", () => {
+      const result = runMatch(makeScenario(), makeAgents(), {
+        seed: 42,
+        maxTurns: 10,
+        provenance: { engineCommit: "abc123", engineVersion: "1.2.3" },
+      });
+      const started = result.events[0];
+      if (started.type === "MatchStarted") {
+        expect(started.engineCommit).toBe("abc123");
+        expect(started.engineVersion).toBe("1.2.3");
+      }
+    });
+  });
+
   describe("secrets policy", () => {
     it("StateUpdated summaries do not contain secretNumber", () => {
       const result = runMatch(makeScenario(), makeAgents(), { seed: 42, maxTurns: 20 });
