@@ -28,3 +28,6 @@ next-env.d.ts
 __pycache__/
 .pytest_cache/
 .venv/
+
+# Local replay artifacts
+public/replays/*-latest.jsonl
