@@ -227,7 +227,60 @@ broadcast/
 
 This package can be uploaded, shared, or replayed offline.
 
-## 9. Roadmap Hooks
+## 9. Using the Replay Viewer
+
+The replay viewer is at `/replay` and works entirely offline (no backend required).
+
+### 9.1 Loading a Replay
+
+1. **File picker / drag-and-drop:** Open `/replay`, then drag a `.jsonl` match log onto the drop zone or click "Choose file" to browse.
+2. **Sample replay:** Click "Load sample replay (Number Guess)" to load a bundled demo file instantly.
+3. **Tournament folder:** Click "Load tournament folder" (or "Upload tournament folder" on browsers without the File System Access API) to load an entire tournament output. The viewer reads `tournament.json`, `standings.json`, and per-match `match.jsonl` files.
+
+A sample JSONL file is available at `public/samples/sample.match.jsonl` and `public/replays/number-guess-demo.jsonl`.
+
+### 9.2 Viewer Modes
+
+The viewer supports three modes (selectable in the toolbar):
+
+| Mode | Behaviour |
+|------|-----------|
+| **Spectator** (default) | Private observations redacted; match outcome hidden until spoilers toggled. |
+| **Post-match** | Observations visible; match outcome still hidden until spoilers toggled. |
+| **Director** | Everything visible; spoilers always on. Intended for admins/developers. |
+
+### 9.3 Spoiler Protection
+
+* Scores, match outcome, and per-agent observations are hidden by default.
+* Click "Spoilers ON/OFF" to toggle. A persistent amber banner indicates when spoilers are active.
+* In Director mode, spoilers are always enabled.
+
+### 9.4 Deterministic Ordering
+
+Events are displayed in strict `seq` order (ascending), with ties broken by original JSONL line order. An info tooltip next to "Ordered by seq" explains the guarantee. This ensures identical display across reloads and machines.
+
+### 9.5 Filtering Events
+
+Use the filter bar above the timeline to narrow by:
+
+* **Turn number**
+* **Agent ID**
+* **Event type** (including unknown types)
+
+The count of shown vs total events is displayed in the toolbar.
+
+### 9.6 Unknown Events
+
+If the JSONL contains event types not recognized by the spec, they appear with an orange "(unknown)" label, a dashed border, and display the raw JSON payload. They are never dropped from the timeline.
+
+### 9.7 Event Detail
+
+Click any event in the timeline to view its detail panel:
+
+* **Redacted view** (default): sensitive fields show "[hidden — enable spoilers to reveal]".
+* **Full raw JSON**: available when spoilers are on; toggle with "Show full raw" / "Show redacted".
+
+## 10. Roadmap Hooks
 
 * v0.2: replay viewer MVP
 * v0.3: artifact packaging + local registry
