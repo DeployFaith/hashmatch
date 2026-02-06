@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import {
   Upload,
   FileText,
@@ -74,12 +74,17 @@ interface StandingsEntry {
   scoreDiff: number;
 }
 
+/** A source-agnostic handle for reading tournament files. */
+type TournamentSource =
+  | { kind: "dirHandle"; handle: FileSystemDirectoryHandle }
+  | { kind: "fileMap"; files: Map<string, File> };
+
 /** Loaded tournament data held in state. */
 interface TournamentData {
   tournament: TournamentMeta;
   standings: StandingsEntry[];
   matchSummaries: MatchSummaryEntry[];
-  dirHandle: FileSystemDirectoryHandle;
+  source: TournamentSource;
 }
 
 /** Discriminated union for the page state machine. */
@@ -178,18 +183,21 @@ const typeColors: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 function hasDirectoryPicker(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    window.isSecureContext === true &&
-    "showDirectoryPicker" in window
-  );
+  if (typeof window === "undefined" || !window.isSecureContext) {
+    return false;
+  }
+  type WindowWithPicker = Window & {
+    showDirectoryPicker?: unknown;
+  };
+  return typeof (window as WindowWithPicker).showDirectoryPicker === "function";
 }
 
 async function pickDirectory(): Promise<FileSystemDirectoryHandle> {
-  type WindowWithPicker = Window & {
-    showDirectoryPicker: () => Promise<FileSystemDirectoryHandle>;
-  };
-  return (window as unknown as WindowWithPicker).showDirectoryPicker();
+  return (
+    window as unknown as Window & {
+      showDirectoryPicker: () => Promise<FileSystemDirectoryHandle>;
+    }
+  ).showDirectoryPicker();
 }
 
 /** Read a text file from a directory handle by path segments. */
@@ -206,25 +214,76 @@ async function readTextFile(
   return file.text();
 }
 
-/** Parse a JSON file from a directory, returning a typed result. */
-async function readJsonFile<T>(
-  dirHandle: FileSystemDirectoryHandle,
-  ...path: string[]
-): Promise<T> {
-  const text = await readTextFile(dirHandle, ...path);
+// ---------------------------------------------------------------------------
+// File-map helpers (for <input webkitdirectory> fallback)
+// ---------------------------------------------------------------------------
+
+/** Build a Map of normalised relative paths to File objects from a FileList. */
+function buildFileMap(fileList: FileList): Map<string, File> {
+  const map = new Map<string, File>();
+  for (const file of Array.from(fileList)) {
+    const rawPath = file.webkitRelativePath || file.name;
+    const normalized = rawPath.replace(/\\/g, "/");
+    map.set(normalized, file);
+  }
+  return map;
+}
+
+/**
+ * Find a file in the map by its relative path segments within the tournament
+ * folder.  Handles both "parentDir/path" and "path" depending on which folder
+ * the user selected.
+ */
+function findFileInMap(fileMap: Map<string, File>, ...segments: string[]): File | undefined {
+  const target = segments.join("/");
+  // Direct match
+  const direct = fileMap.get(target);
+  if (direct) {
+    return direct;
+  }
+  // Suffix match (user selected parent folder, so paths are prefixed)
+  for (const [key, file] of fileMap) {
+    if (key.endsWith("/" + target)) {
+      return file;
+    }
+  }
+  return undefined;
+}
+
+async function readTextFromFileMap(fileMap: Map<string, File>, ...path: string[]): Promise<string> {
+  const file = findFileInMap(fileMap, ...path);
+  if (!file) {
+    throw new Error(`File not found: ${path.join("/")}`);
+  }
+  return file.text();
+}
+
+// ---------------------------------------------------------------------------
+// Source-agnostic reading helpers
+// ---------------------------------------------------------------------------
+
+async function readTextFromSource(source: TournamentSource, ...path: string[]): Promise<string> {
+  if (source.kind === "dirHandle") {
+    return readTextFile(source.handle, ...path);
+  }
+  return readTextFromFileMap(source.files, ...path);
+}
+
+async function readJsonFromSource<T>(source: TournamentSource, ...path: string[]): Promise<T> {
+  const text = await readTextFromSource(source, ...path);
   return JSON.parse(text) as T;
 }
 
-/** Load all tournament data from a directory handle. */
-async function loadTournamentDir(dirHandle: FileSystemDirectoryHandle): Promise<TournamentData> {
-  const tournament = await readJsonFile<TournamentMeta>(dirHandle, "tournament.json");
-  const standings = await readJsonFile<StandingsEntry[]>(dirHandle, "standings.json");
+/** Load all tournament data from any supported source. */
+async function loadTournamentFromSource(source: TournamentSource): Promise<TournamentData> {
+  const tournament = await readJsonFromSource<TournamentMeta>(source, "tournament.json");
+  const standings = await readJsonFromSource<StandingsEntry[]>(source, "standings.json");
 
   const matchSummaries: MatchSummaryEntry[] = [];
   for (const spec of tournament.matches) {
     try {
-      const summary = await readJsonFile<MatchSummaryEntry>(
-        dirHandle,
+      const summary = await readJsonFromSource<MatchSummaryEntry>(
+        source,
         "matches",
         spec.matchKey,
         "match_summary.json",
@@ -235,15 +294,15 @@ async function loadTournamentDir(dirHandle: FileSystemDirectoryHandle): Promise<
     }
   }
 
-  return { tournament, standings, matchSummaries, dirHandle };
+  return { tournament, standings, matchSummaries, source };
 }
 
-/** Load a single match's JSONL from the tournament directory. */
-async function loadMatchFromDir(
-  dirHandle: FileSystemDirectoryHandle,
+/** Load a single match's JSONL from the tournament source. */
+async function loadMatchFromSource(
+  source: TournamentSource,
   matchKey: string,
 ): Promise<{ events: ReplayEvent[]; errors: ParseError[] }> {
-  const text = await readTextFile(dirHandle, "matches", matchKey, "match.jsonl");
+  const text = await readTextFromSource(source, "matches", matchKey, "match.jsonl");
   return parseJsonl(text);
 }
 
@@ -259,6 +318,7 @@ function FileDropZone({
   onTournamentLoad: (data: TournamentData) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dirInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [tournamentLoading, setTournamentLoading] = useState(false);
   const [tournamentError, setTournamentError] = useState<string | null>(null);
@@ -300,7 +360,8 @@ function FileDropZone({
     setTournamentLoading(true);
     try {
       const dirHandle = await pickDirectory();
-      const data = await loadTournamentDir(dirHandle);
+      const source: TournamentSource = { kind: "dirHandle", handle: dirHandle };
+      const data = await loadTournamentFromSource(source);
       onTournamentLoad(data);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
@@ -315,7 +376,45 @@ function FileDropZone({
     }
   }, [onTournamentLoad]);
 
+  const handleDirectoryUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (!files || files.length === 0) {
+        return;
+      }
+      setTournamentError(null);
+      setTournamentLoading(true);
+      try {
+        const fileMap = buildFileMap(files);
+        const source: TournamentSource = { kind: "fileMap", files: fileMap };
+        const data = await loadTournamentFromSource(source);
+        onTournamentLoad(data);
+      } catch (err) {
+        if (err instanceof Error) {
+          setTournamentError(err.message);
+        } else {
+          setTournamentError("Failed to load tournament folder");
+        }
+      } finally {
+        setTournamentLoading(false);
+        // Reset input so the same folder can be re-selected
+        e.target.value = "";
+      }
+    },
+    [onTournamentLoad],
+  );
+
   const directoryPickerAvailable = hasDirectoryPicker();
+
+  // Set non-standard webkitdirectory / directory attributes imperatively
+  // to avoid TypeScript errors with unknown JSX props.
+  useEffect(() => {
+    const el = dirInputRef.current;
+    if (el) {
+      el.setAttribute("webkitdirectory", "");
+      el.setAttribute("directory", "");
+    }
+  }, []);
 
   return (
     <div className="mx-auto max-w-xl space-y-4">
@@ -376,6 +475,15 @@ function FileDropZone({
     <div className="h-px flex-1 bg-border" />
     </div>
 
+    {/* Hidden directory input for the fallback upload path */}
+    <input
+    ref={dirInputRef}
+    type="file"
+    multiple
+    onChange={handleDirectoryUpload}
+    className="hidden"
+    />
+
     {directoryPickerAvailable ? (
       <Button
       variant="secondary"
@@ -391,14 +499,19 @@ function FileDropZone({
       Load tournament folder
       </Button>
     ) : (
-      <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground text-center">
-      <p className="font-medium mb-1">Tournament folder loading unavailable</p>
-      <p>
-      The File System Access API is required (and must be available in a secure context).
-      Use Chrome or Edge. Brave may hide <span className="font-mono">showDirectoryPicker</span>{" "}
-      behind flags/policies.
-      </p>
-      </div>
+      <Button
+      variant="secondary"
+      className="w-full"
+      onClick={() => dirInputRef.current?.click()}
+      disabled={tournamentLoading}
+      >
+      {tournamentLoading ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <FolderOpen className="h-4 w-4" />
+      )}
+      Upload tournament folder
+      </Button>
     )}
 
     {tournamentError && (
@@ -915,10 +1028,12 @@ export default function ReplayPage() {
 
   const handleMatchSelect = useCallback(
     async (matchKey: string) => {
-      if (state.mode !== "tournament") {return;}
+      if (state.mode !== "tournament") {
+        return;
+      }
 
       try {
-        const { events, errors } = await loadMatchFromDir(state.data.dirHandle, matchKey);
+        const { events, errors } = await loadMatchFromSource(state.data.source, matchKey);
         if (events.length === 0) {
           setLoadError(`No valid events found in match ${matchKey}`);
           return;
@@ -928,8 +1043,8 @@ export default function ReplayPage() {
       } catch (err) {
         setLoadError(
           err instanceof Error
-          ? `Failed to load match ${matchKey}: ${err.message}`
-          : `Failed to load match ${matchKey}`,
+            ? `Failed to load match ${matchKey}: ${err.message}`
+            : `Failed to load match ${matchKey}`,
         );
       }
     },
