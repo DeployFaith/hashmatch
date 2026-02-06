@@ -12,6 +12,12 @@ export type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue };
 
+/** Optional metadata describing the engine that produced a replay. */
+export interface MatchProvenance {
+  engineCommit?: string;
+  engineVersion?: string;
+}
+
 // ---------------------------------------------------------------------------
 // Events
 // ---------------------------------------------------------------------------
@@ -29,6 +35,8 @@ export interface MatchStartedEvent extends BaseEvent {
   agentIds: AgentId[];
   scenarioName: string;
   maxTurns: number;
+  engineCommit?: string;
+  engineVersion?: string;
 }
 
 export interface TurnStartedEvent extends BaseEvent {

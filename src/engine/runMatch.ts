@@ -60,6 +60,8 @@ export function runMatch<TState, TObs, TAct>(
     agentIds,
     scenarioName: scenario.name,
     maxTurns: config.maxTurns,
+    ...(config.provenance?.engineCommit && { engineCommit: config.provenance.engineCommit }),
+    ...(config.provenance?.engineVersion && { engineVersion: config.provenance.engineVersion }),
   });
 
   let turn = 0;

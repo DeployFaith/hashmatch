@@ -1,6 +1,7 @@
 import { writeFileSync } from "node:fs";
 import { runMatch } from "../engine/runMatch.js";
 import { getScenarioFactory, getAgentFactory } from "../tournament/runTournament.js";
+import { resolveEngineProvenance } from "./provenance.js";
 
 // ---------------------------------------------------------------------------
 // Arg parsing
@@ -13,6 +14,9 @@ interface MatchCliArgs {
   out?: string;
   agentA: string;
   agentB: string;
+  emitProvenance: boolean;
+  engineCommit?: string;
+  engineVersion?: string;
 }
 
 function parseArgs(argv: string[]): MatchCliArgs {
@@ -22,6 +26,9 @@ function parseArgs(argv: string[]): MatchCliArgs {
   let out: string | undefined;
   let agentA = "random";
   let agentB = "baseline";
+  let emitProvenance = false;
+  let engineCommit: string | undefined;
+  let engineVersion: string | undefined;
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -37,10 +44,16 @@ function parseArgs(argv: string[]): MatchCliArgs {
       agentA = argv[++i];
     } else if (arg === "--agentB" && i + 1 < argv.length) {
       agentB = argv[++i];
+    } else if (arg === "--emit-provenance") {
+      emitProvenance = true;
+    } else if (arg === "--engine-commit" && i + 1 < argv.length) {
+      engineCommit = argv[++i];
+    } else if (arg === "--engine-version" && i + 1 < argv.length) {
+      engineVersion = argv[++i];
     }
   }
 
-  return { scenario, seed, turns, out, agentA, agentB };
+  return { scenario, seed, turns, out, agentA, agentB, emitProvenance, engineCommit, engineVersion };
 }
 
 // ---------------------------------------------------------------------------
@@ -80,10 +93,15 @@ function main(): void {
 
   const scenario = scenarioFactory();
   const agents = [agentAFactory(`${args.agentA}-0`), agentBFactory(`${args.agentB}-1`)];
+  const provenance = resolveEngineProvenance(
+    { engineCommit: args.engineCommit, engineVersion: args.engineVersion },
+    args.emitProvenance,
+  );
 
   const result = runMatch(scenario, agents, {
     seed: args.seed,
     maxTurns: args.turns,
+    ...(provenance && { provenance }),
   });
 
   const lines = result.events.map((e) => JSON.stringify(e)).join("\n") + "\n";

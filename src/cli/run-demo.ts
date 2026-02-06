@@ -1,4 +1,5 @@
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { runMatch } from "../engine/runMatch.js";
 import { createNumberGuessScenario } from "../scenarios/numberGuess/index.js";
 import { createRandomAgent } from "../agents/randomAgent.js";
@@ -35,6 +36,7 @@ function parseArgs(argv: string[]): CliArgs {
 
 function main(): void {
   const args = parseArgs(process.argv.slice(2));
+  const outPath = args.out ?? "public/replays/number-guess-latest.jsonl";
 
   if (args.scenario !== "numberGuess") {
     // eslint-disable-next-line no-console
@@ -52,10 +54,11 @@ function main(): void {
 
   const lines = result.events.map((e) => JSON.stringify(e)).join("\n") + "\n";
 
-  if (args.out) {
-    writeFileSync(args.out, lines, "utf-8");
+  if (outPath) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, lines, "utf-8");
     // eslint-disable-next-line no-console
-    console.error(`Wrote ${result.events.length} events to ${args.out}`);
+    console.error(`Wrote ${result.events.length} events to ${outPath}`);
   } else {
     process.stdout.write(lines);
   }
