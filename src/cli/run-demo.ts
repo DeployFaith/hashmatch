@@ -12,15 +12,21 @@ interface CliArgs {
   turns: number;
   out?: string;
   scenario: string;
+  emitProvenance: boolean;
+  engineCommit?: string;
+  engineVersion?: string;
 }
 
-const DEFAULT_OUT_PATH = "public/replays/number-guess-latest.jsonl";
+const DEFAULT_OUT_PATH = "out/replays/number-guess-latest.jsonl";
 
 function parseArgs(argv: string[]): CliArgs {
   let seed = 42;
   let turns = 20;
   let out: string | undefined;
   let scenario = "numberGuess";
+  let emitProvenance = false;
+  let engineCommit: string | undefined;
+  let engineVersion: string | undefined;
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -32,10 +38,24 @@ function parseArgs(argv: string[]): CliArgs {
       out = argv[++i];
     } else if (arg === "--scenario" && i + 1 < argv.length) {
       scenario = argv[++i];
+    } else if (arg === "--emit-provenance") {
+      emitProvenance = true;
+    } else if (arg === "--engine-commit" && i + 1 < argv.length) {
+      engineCommit = argv[++i];
+    } else if (arg === "--engine-version" && i + 1 < argv.length) {
+      engineVersion = argv[++i];
     }
   }
 
-  return { seed, turns, out, scenario };
+  return {
+    seed,
+    turns,
+    out,
+    scenario,
+    emitProvenance,
+    engineCommit,
+    engineVersion,
+  };
 }
 
 function tryReadEngineCommit(): string | undefined {
@@ -74,17 +94,22 @@ function main(): void {
   const scenario = createNumberGuessScenario();
   const agents = [createRandomAgent("random-1"), createBaselineAgent("baseline-1")];
 
-  const engineCommit = tryReadEngineCommit();
-  const engineVersion = tryReadEngineVersion();
-  const provenance =
-    engineCommit !== undefined || engineVersion !== undefined
-      ? { engineCommit, engineVersion }
-      : undefined;
+  let provenance:
+    | { engineCommit?: string; engineVersion?: string }
+    | undefined;
+
+  if (args.emitProvenance) {
+    const engineCommit = args.engineCommit ?? tryReadEngineCommit();
+    const engineVersion = args.engineVersion ?? tryReadEngineVersion();
+    if (engineCommit !== undefined || engineVersion !== undefined) {
+      provenance = { engineCommit, engineVersion };
+    }
+  }
 
   const result = runMatch(scenario, agents, {
     seed: args.seed,
     maxTurns: args.turns,
-    provenance,
+    ...(provenance ? { provenance } : {}),
   });
 
   const lines = toStableJsonl(result.events);
