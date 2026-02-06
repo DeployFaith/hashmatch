@@ -16,6 +16,9 @@ import {
   FolderOpen,
   ArrowLeft,
   Loader2,
+  Info,
+  ShieldAlert,
+  Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -23,7 +26,24 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { parseJsonl } from "@/lib/replay/parseJsonl";
 import type { ReplayEvent, ParseError } from "@/lib/replay/parseJsonl";
+import { redactEvent } from "@/lib/replay/redaction";
+import type { ViewerMode, RedactedEvent } from "@/lib/replay/redaction";
 import { SAMPLE_JSONL } from "@/lib/replay/fixtures/sampleNumberGuess";
+
+// ---------------------------------------------------------------------------
+// Known event types for the type filter
+// ---------------------------------------------------------------------------
+
+const KNOWN_EVENT_TYPES = [
+  "MatchStarted",
+  "TurnStarted",
+  "ObservationEmitted",
+  "ActionSubmitted",
+  "ActionAdjudicated",
+  "StateUpdated",
+  "AgentError",
+  "MatchEnded",
+] as const;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -32,7 +52,7 @@ import { SAMPLE_JSONL } from "@/lib/replay/fixtures/sampleNumberGuess";
 interface TurnGroup {
   label: string;
   turn: number | null;
-  events: ReplayEvent[];
+  events: RedactedEvent[];
 }
 
 /** Shape of tournament.json written by the artifact writer. */
@@ -89,22 +109,31 @@ interface TournamentData {
 
 /** Discriminated union for the page state machine. */
 type PageState =
-| { mode: "idle" }
-| { mode: "single"; events: ReplayEvent[]; errors: ParseError[]; filename: string }
-| { mode: "tournament"; data: TournamentData }
-| {
-  mode: "tournamentMatch";
-  data: TournamentData;
-  matchKey: string;
-  events: ReplayEvent[];
-  errors: ParseError[];
-};
+  | { mode: "idle" }
+  | { mode: "single"; events: ReplayEvent[]; errors: ParseError[]; filename: string }
+  | { mode: "tournament"; data: TournamentData }
+  | {
+      mode: "tournamentMatch";
+      data: TournamentData;
+      matchKey: string;
+      events: ReplayEvent[];
+      errors: ParseError[];
+    };
+
+/** Event filter state. */
+interface EventFilters {
+  turn: number | null;
+  agentId: string | null;
+  type: string | null;
+}
+
+const EMPTY_FILTERS: EventFilters = { turn: null, agentId: null, type: null };
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function groupByTurn(events: ReplayEvent[]): TurnGroup[] {
+function groupByTurn(events: RedactedEvent[]): TurnGroup[] {
   const groups: TurnGroup[] = [];
   let current: TurnGroup | null = null;
 
@@ -112,7 +141,7 @@ function groupByTurn(events: ReplayEvent[]): TurnGroup[] {
     const turn = ev.turn ?? null;
     if (current === null || current.turn !== turn) {
       current = {
-        label: turn !== null ? `Turn ${turn}` : "No turn",
+        label: turn !== null ? `Turn ${turn}` : "Pre-game",
         turn,
         events: [],
       };
@@ -124,30 +153,6 @@ function groupByTurn(events: ReplayEvent[]): TurnGroup[] {
   return groups;
 }
 
-function compactSummary(ev: ReplayEvent): string {
-  const raw = ev.raw;
-  switch (ev.type) {
-    case "MatchStarted":
-      return `${raw.scenarioName} — ${(raw.agentIds as string[])?.join(" vs ")}`;
-    case "TurnStarted":
-      return `Turn ${ev.turn} started`;
-    case "ObservationEmitted":
-      return `Observation → ${ev.agentId}`;
-    case "ActionSubmitted":
-      return `Action ← ${ev.agentId}`;
-    case "ActionAdjudicated":
-      return `${raw.valid ? "Valid" : "INVALID"} — ${ev.agentId}`;
-    case "StateUpdated":
-      return "State updated";
-    case "AgentError":
-      return `Error: ${ev.agentId}`;
-    case "MatchEnded":
-      return "Match ended";
-    default:
-      return ev.type;
-  }
-}
-
 function prettyJson(value: unknown): string {
   try {
     return JSON.stringify(value, null, 2);
@@ -156,27 +161,41 @@ function prettyJson(value: unknown): string {
   }
 }
 
-/** Redact spoiler fields from a MatchEnded event for display. */
-function redactMatchEnded(raw: Record<string, unknown>): Record<string, unknown> {
-  const redacted = { ...raw };
-  redacted.scores = "[hidden — enable spoilers]";
-  redacted.details = "[hidden — enable spoilers]";
-  if ("reason" in redacted) {
-    redacted.reason = "[hidden — enable spoilers]";
-  }
-  return redacted;
-}
-
 const typeColors: Record<string, string> = {
-  MatchStarted: "text-info",
-  MatchEnded: "text-success",
+  MatchStarted: "text-blue-400",
+  MatchEnded: "text-green-400",
   TurnStarted: "text-muted-foreground",
-  ObservationEmitted: "text-primary",
-  ActionSubmitted: "text-warning",
-  ActionAdjudicated: "text-success",
+  ObservationEmitted: "text-purple-400",
+  ActionSubmitted: "text-amber-400",
+  ActionAdjudicated: "text-green-400",
   StateUpdated: "text-muted-foreground",
   AgentError: "text-destructive",
 };
+
+/** Extract unique agent IDs from events. */
+function extractAgentIds(events: ReplayEvent[]): string[] {
+  const ids = new Set<string>();
+  for (const ev of events) {
+    if (ev.agentId) {
+      ids.add(ev.agentId);
+    }
+  }
+  return Array.from(ids).sort();
+}
+
+/** Extract unique event types from events. */
+function extractEventTypes(events: ReplayEvent[]): string[] {
+  const types = new Set<string>();
+  for (const ev of events) {
+    types.add(ev.type);
+  }
+  return Array.from(types);
+}
+
+/** Check if an event type is unknown (not in the spec). */
+function isUnknownType(type: string): boolean {
+  return !(KNOWN_EVENT_TYPES as readonly string[]).includes(type);
+}
 
 // ---------------------------------------------------------------------------
 // File System Access API helpers
@@ -322,6 +341,7 @@ function FileDropZone({
   const [dragOver, setDragOver] = useState(false);
   const [tournamentLoading, setTournamentLoading] = useState(false);
   const [tournamentError, setTournamentError] = useState<string | null>(null);
+  const [sampleLoading, setSampleLoading] = useState(false);
 
   const handleFile = useCallback(
     (file: File) => {
@@ -354,6 +374,23 @@ function FileDropZone({
     const file = new File([blob], "sample-number-guess.jsonl", { type: "text/plain" });
     handleFile(file);
   }, [handleFile]);
+
+  const handleLoadSampleFile = useCallback(async () => {
+    setSampleLoading(true);
+    try {
+      const res = await fetch("/replays/number-guess-demo.jsonl");
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const text = await res.text();
+      onLoad(text, "number-guess-demo.jsonl");
+    } catch {
+      // Fall back to the embedded sample
+      handleSample();
+    } finally {
+      setSampleLoading(false);
+    }
+  }, [onLoad, handleSample]);
 
   const handleTournamentFolder = useCallback(async () => {
     setTournamentError(null);
@@ -418,220 +455,462 @@ function FileDropZone({
 
   return (
     <div className="mx-auto max-w-xl space-y-4">
-    <div className="text-center">
-    <h1 className="text-lg font-bold">Replay Viewer</h1>
-    <p className="text-sm text-muted-foreground">
-    Load a JSONL engine log and explore the match timeline
-    </p>
-    </div>
-
-    <Card>
-    <CardContent className="space-y-4 p-6">
-    <div
-    className={cn(
-      "flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors",
-      dragOver ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/50",
-    )}
-    onDragOver={(e) => {
-      e.preventDefault();
-      setDragOver(true);
-    }}
-    onDragLeave={() => setDragOver(false)}
-    onDrop={handleDrop}
-    >
-    <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
-    <p className="mb-1 text-sm font-medium">Drop a .jsonl replay file here</p>
-    <p className="mb-3 text-xs text-muted-foreground">or click below to browse</p>
-    <input
-    ref={fileInputRef}
-    type="file"
-    accept=".jsonl"
-    onChange={(e) => {
-      const f = e.target.files?.[0];
-      if (f) {handleFile(f);}
-    }}
-    className="hidden"
-    />
-    <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-    <FileText className="h-4 w-4" />
-    Choose file
-    </Button>
-    </div>
-
-    <div className="flex items-center gap-3">
-    <div className="h-px flex-1 bg-border" />
-    <span className="text-xs text-muted-foreground">or</span>
-    <div className="h-px flex-1 bg-border" />
-    </div>
-
-    <Button variant="secondary" className="w-full" onClick={handleSample}>
-    <FileText className="h-4 w-4" />
-    Load sample replay (Number Guess)
-    </Button>
-
-    <div className="flex items-center gap-3">
-    <div className="h-px flex-1 bg-border" />
-    <span className="text-xs text-muted-foreground">or</span>
-    <div className="h-px flex-1 bg-border" />
-    </div>
-
-    {/* Hidden directory input for the fallback upload path */}
-    <input
-    ref={dirInputRef}
-    type="file"
-    multiple
-    onChange={handleDirectoryUpload}
-    className="hidden"
-    />
-
-    {directoryPickerAvailable ? (
-      <Button
-      variant="secondary"
-      className="w-full"
-      onClick={handleTournamentFolder}
-      disabled={tournamentLoading}
-      >
-      {tournamentLoading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <FolderOpen className="h-4 w-4" />
-      )}
-      Load tournament folder
-      </Button>
-    ) : (
-      <Button
-      variant="secondary"
-      className="w-full"
-      onClick={() => dirInputRef.current?.click()}
-      disabled={tournamentLoading}
-      >
-      {tournamentLoading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <FolderOpen className="h-4 w-4" />
-      )}
-      Upload tournament folder
-      </Button>
-    )}
-
-    {tournamentError && (
-      <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-      <p className="text-xs">{tournamentError}</p>
+      <div className="text-center">
+        <h1 className="text-lg font-bold">Replay Viewer</h1>
+        <p className="text-sm text-muted-foreground">
+          Load a JSONL engine log and explore the match timeline
+        </p>
       </div>
-    )}
-    </CardContent>
-    </Card>
+
+      <Card>
+        <CardContent className="space-y-4 p-6">
+          <div
+            className={cn(
+              "flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors",
+              dragOver
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-muted-foreground/50",
+            )}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+          >
+            <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
+            <p className="mb-1 text-sm font-medium">Drop a .jsonl replay file here</p>
+            <p className="mb-3 text-xs text-muted-foreground">or click below to browse</p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".jsonl"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) {
+                  handleFile(f);
+                }
+              }}
+              className="hidden"
+            />
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+              <FileText className="h-4 w-4" />
+              Choose file
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={handleLoadSampleFile}
+            disabled={sampleLoading}
+          >
+            {sampleLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileText className="h-4 w-4" />
+            )}
+            Load sample replay (Number Guess)
+          </Button>
+
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          {/* Hidden directory input for the fallback upload path */}
+          <input
+            ref={dirInputRef}
+            type="file"
+            multiple
+            onChange={handleDirectoryUpload}
+            className="hidden"
+          />
+
+          {directoryPickerAvailable ? (
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={handleTournamentFolder}
+              disabled={tournamentLoading}
+            >
+              {tournamentLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FolderOpen className="h-4 w-4" />
+              )}
+              Load tournament folder
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={() => dirInputRef.current?.click()}
+              disabled={tournamentLoading}
+            >
+              {tournamentLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FolderOpen className="h-4 w-4" />
+              )}
+              Upload tournament folder
+            </Button>
+          )}
+
+          {tournamentError && (
+            <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p className="text-xs">{tournamentError}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
-function Scoreboard({ events, spoilers }: { events: ReplayEvent[]; spoilers: boolean }) {
+function Scoreboard({
+  events,
+  spoilers,
+}: {
+  events: ReplayEvent[];
+  spoilers: boolean;
+}) {
   const matchEnded = events.find((e) => e.type === "MatchEnded");
   const matchStarted = events.find((e) => e.type === "MatchStarted");
-  const agentIds: string[] = matchStarted ? ((matchStarted.raw.agentIds as string[]) ?? []) : [];
+  const agentIds: string[] = matchStarted
+    ? ((matchStarted.raw.agentIds as string[]) ?? [])
+    : [];
 
   return (
     <Card>
-    <CardHeader className="pb-2">
-    <CardTitle className="flex items-center gap-2">
-    <Trophy className="h-4 w-4" />
-    Scoreboard
-    </CardTitle>
-    </CardHeader>
-    <CardContent>
-    {!matchEnded || !spoilers ? (
-      <div className="space-y-2">
-      {agentIds.map((id) => (
-        <div key={id} className="flex items-center justify-between text-sm">
-        <span className="font-medium">{id}</span>
-        <span className="text-muted-foreground">
-        {spoilers && !matchEnded ? "In progress" : "Unknown until end"}
-        </span>
-        </div>
-      ))}
-      {!spoilers && matchEnded && (
-        <p className="text-xs text-muted-foreground italic">Enable spoilers to reveal scores</p>
-      )}
-      </div>
-    ) : (
-      <div className="space-y-2">
-      {Object.entries(matchEnded.raw.scores as Record<string, number>).map(([id, score]) => (
-        <div key={id} className="flex items-center justify-between text-sm">
-        <span className="font-medium">{id}</span>
-        <Badge variant={score > 0 ? "success" : "secondary"}>{score}</Badge>
-        </div>
-      ))}
-      {typeof matchEnded.raw.reason === "string" && (
-        <p className="text-xs text-muted-foreground">Reason: {matchEnded.raw.reason}</p>
-      )}
-      </div>
-    )}
-    </CardContent>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2">
+          <Trophy className="h-4 w-4" />
+          Scoreboard
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {!matchEnded || !spoilers ? (
+          <div className="space-y-2">
+            {agentIds.map((id) => (
+              <div key={id} className="flex items-center justify-between text-sm">
+                <span className="font-medium">{id}</span>
+                <span className="text-muted-foreground">
+                  {spoilers && !matchEnded ? "In progress" : "Hidden"}
+                </span>
+              </div>
+            ))}
+            {!spoilers && matchEnded && (
+              <p className="text-xs text-muted-foreground italic">
+                Enable spoilers to reveal scores
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {Object.entries(matchEnded.raw.scores as Record<string, number>).map(
+              ([id, score]) => (
+                <div key={id} className="flex items-center justify-between text-sm">
+                  <span className="font-medium">{id}</span>
+                  <Badge variant={score > 0 ? "success" : "secondary"}>{score}</Badge>
+                </div>
+              ),
+            )}
+            {typeof matchEnded.raw.reason === "string" && (
+              <p className="text-xs text-muted-foreground">Reason: {matchEnded.raw.reason}</p>
+            )}
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Event card with redaction-aware rendering
+// ---------------------------------------------------------------------------
 
 function EventCard({
   event,
   isSelected,
   onClick,
-  spoilers,
 }: {
-  event: ReplayEvent;
+  event: RedactedEvent;
   isSelected: boolean;
   onClick: () => void;
-  spoilers: boolean;
 }) {
-  const isSpoiler = event.type === "MatchEnded" && !spoilers;
+  const unknown = isUnknownType(event.type);
 
   return (
     <button
-    onClick={onClick}
-    className={cn(
-      "w-full text-left rounded-md border px-3 py-2 text-xs transition-colors",
-      isSelected ? "border-primary bg-primary/10" : "border-border hover:bg-muted/50",
-    )}
+      onClick={onClick}
+      className={cn(
+        "w-full text-left rounded-md border px-3 py-2 text-xs transition-colors",
+        isSelected
+          ? "border-primary bg-primary/10"
+          : "border-border hover:bg-muted/50",
+        unknown && "border-dashed",
+      )}
     >
-    <div className="flex items-center gap-2">
-    <span className="font-mono text-muted-foreground">{event.seq}</span>
-    <span className={cn("font-medium", typeColors[event.type])}>{event.type}</span>
-    {event.agentId && (
-      <Badge variant="outline" className="text-[10px] px-1 py-0">
-      {event.agentId}
-      </Badge>
-    )}
-    </div>
-    <p className="mt-0.5 text-muted-foreground truncate">
-    {isSpoiler ? "Match ended [spoiler hidden]" : compactSummary(event)}
-    </p>
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-muted-foreground">{event.seq}</span>
+        <span
+          className={cn(
+            "font-medium",
+            unknown ? "text-orange-400 italic" : typeColors[event.type],
+          )}
+        >
+          {event.type}
+          {unknown && " (unknown)"}
+        </span>
+        {event.agentId && (
+          <Badge variant="outline" className="text-[10px] px-1 py-0">
+            {event.agentId}
+          </Badge>
+        )}
+        {event.isRedacted && (
+          <ShieldAlert className="h-3 w-3 text-muted-foreground" />
+        )}
+      </div>
+      <p className="mt-0.5 text-muted-foreground truncate">{event.summary}</p>
     </button>
   );
 }
 
-function EventDetail({ event, spoilers }: { event: ReplayEvent | null; spoilers: boolean }) {
+// ---------------------------------------------------------------------------
+// Event detail with redaction and raw JSON toggle
+// ---------------------------------------------------------------------------
+
+function EventDetail({
+  event,
+  viewerMode,
+}: {
+  event: RedactedEvent | null;
+  viewerMode: ViewerMode;
+}) {
+  const [showRaw, setShowRaw] = useState(false);
+
   if (!event) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-      Select an event from the timeline
+        Select an event from the timeline
       </div>
     );
   }
 
-  const displayRaw = event.type === "MatchEnded" && !spoilers ? redactMatchEnded(event.raw) : event.raw;
+  const displayData = showRaw && event.fullRaw ? event.fullRaw : event.displayRaw;
+  const unknown = isUnknownType(event.type);
 
   return (
     <div className="space-y-3">
-    <div className="flex items-center gap-2">
-    <Badge variant="info">{event.type}</Badge>
-    <span className="font-mono text-xs text-muted-foreground">seq {event.seq}</span>
-    {event.agentId && <Badge variant="outline">{event.agentId}</Badge>}
-    {event.turn !== undefined && <span className="text-xs text-muted-foreground">turn {event.turn}</span>}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Badge variant={unknown ? "warning" : "info"}>{event.type}</Badge>
+        <span className="font-mono text-xs text-muted-foreground">seq {event.seq}</span>
+        {event.agentId && <Badge variant="outline">{event.agentId}</Badge>}
+        {event.turn !== undefined && (
+          <span className="text-xs text-muted-foreground">turn {event.turn}</span>
+        )}
+        {event.isRedacted && (
+          <Badge variant="secondary" className="text-[10px]">
+            <ShieldAlert className="mr-1 h-3 w-3" />
+            redacted
+          </Badge>
+        )}
+        {unknown && (
+          <Badge variant="warning" className="text-[10px]">
+            unknown type — raw fallback
+          </Badge>
+        )}
+      </div>
+
+      <p className="text-sm text-muted-foreground">{event.summary}</p>
+
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium text-muted-foreground">
+          {showRaw && event.fullRaw ? "Raw JSON (unrestricted)" : "JSON"}
+        </span>
+        {event.fullRaw && (
+          <button
+            onClick={() => setShowRaw((s) => !s)}
+            className="text-xs text-primary hover:underline"
+          >
+            {showRaw ? "Show redacted" : "Show full raw"}
+          </button>
+        )}
+        {viewerMode !== "director" && event.isRedacted && !event.fullRaw && (
+          <span className="text-xs text-muted-foreground italic">
+            Enable spoilers to see full data
+          </span>
+        )}
+      </div>
+
+      <pre className="overflow-auto rounded-md border border-border bg-muted/30 p-3 text-xs leading-relaxed max-h-96">
+        {prettyJson(displayData)}
+      </pre>
     </div>
-    <pre className="overflow-auto rounded-md border border-border bg-muted/30 p-3 text-xs leading-relaxed">
-    {prettyJson(displayRaw)}
-    </pre>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Event filter bar
+// ---------------------------------------------------------------------------
+
+function ReplayFilterBar({
+  events,
+  filters,
+  onFiltersChange,
+}: {
+  events: ReplayEvent[];
+  filters: EventFilters;
+  onFiltersChange: (f: EventFilters) => void;
+}) {
+  const agentIds = useMemo(() => extractAgentIds(events), [events]);
+  const eventTypes = useMemo(() => extractEventTypes(events), [events]);
+  const turnNumbers = useMemo(() => {
+    const turns = new Set<number>();
+    for (const ev of events) {
+      if (ev.turn !== undefined) {
+        turns.add(ev.turn);
+      }
+    }
+    return Array.from(turns).sort((a, b) => a - b);
+  }, [events]);
+
+  const hasFilters =
+    filters.turn !== null || filters.agentId !== null || filters.type !== null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs">
+      <Filter className="h-3 w-3 text-muted-foreground" />
+
+      <select
+        value={filters.turn ?? ""}
+        onChange={(e) =>
+          onFiltersChange({
+            ...filters,
+            turn: e.target.value === "" ? null : Number(e.target.value),
+          })
+        }
+        className="h-7 rounded-md border border-border bg-card px-2 text-xs"
+      >
+        <option value="">All turns</option>
+        {turnNumbers.map((t) => (
+          <option key={t} value={t}>
+            Turn {t}
+          </option>
+        ))}
+      </select>
+
+      <select
+        value={filters.agentId ?? ""}
+        onChange={(e) =>
+          onFiltersChange({
+            ...filters,
+            agentId: e.target.value === "" ? null : e.target.value,
+          })
+        }
+        className="h-7 rounded-md border border-border bg-card px-2 text-xs"
+      >
+        <option value="">All agents</option>
+        {agentIds.map((id) => (
+          <option key={id} value={id}>
+            {id}
+          </option>
+        ))}
+      </select>
+
+      <select
+        value={filters.type ?? ""}
+        onChange={(e) =>
+          onFiltersChange({
+            ...filters,
+            type: e.target.value === "" ? null : e.target.value,
+          })
+        }
+        className="h-7 rounded-md border border-border bg-card px-2 text-xs"
+      >
+        <option value="">All types</option>
+        {eventTypes.map((t) => (
+          <option key={t} value={t}>
+            {t}
+            {isUnknownType(t) ? " (unknown)" : ""}
+          </option>
+        ))}
+      </select>
+
+      {hasFilters && (
+        <button
+          onClick={() => onFiltersChange(EMPTY_FILTERS)}
+          className="text-xs text-primary hover:underline"
+        >
+          Clear filters
+        </button>
+      )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Deterministic ordering tooltip
+// ---------------------------------------------------------------------------
+
+function OrderingTooltip() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <span className="relative inline-block">
+      <button
+        className="text-muted-foreground hover:text-foreground"
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onClick={() => setOpen((s) => !s)}
+        aria-label="Ordering explanation"
+      >
+        <Info className="h-3.5 w-3.5" />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-md border border-border bg-card p-3 text-xs shadow-lg">
+          <p className="font-medium mb-1">Deterministic ordering</p>
+          <p className="text-muted-foreground">
+            Events are sorted by <code className="rounded bg-muted px-1">seq</code> (ascending),
+            with ties broken by original line order in the JSONL file. This guarantees identical
+            display order across reloads and machines.
+          </p>
+        </div>
+      )}
+    </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Viewer mode selector
+// ---------------------------------------------------------------------------
+
+function ViewerModeSelector({
+  mode,
+  onChange,
+}: {
+  mode: ViewerMode;
+  onChange: (m: ViewerMode) => void;
+}) {
+  return (
+    <select
+      value={mode}
+      onChange={(e) => onChange(e.target.value as ViewerMode)}
+      className="h-8 rounded-md border border-border bg-card px-2 text-xs"
+    >
+      <option value="spectator">Spectator</option>
+      <option value="postMatch">Post-match</option>
+      <option value="director">Director</option>
+    </select>
   );
 }
 
@@ -655,7 +934,9 @@ function TournamentBrowser({
 
   const summaryByKey = useMemo(() => {
     const map = new Map<string, MatchSummaryEntry>();
-    for (const s of matchSummaries) {map.set(s.matchKey, s);}
+    for (const s of matchSummaries) {
+      map.set(s.matchKey, s);
+    }
     return map;
   }, [matchSummaries]);
 
@@ -674,147 +955,172 @@ function TournamentBrowser({
 
   return (
     <div className="space-y-4">
-    <div className="flex items-center gap-3 rounded-md border border-border bg-card p-3">
-    <div className="flex-1 min-w-0">
-    <p className="text-sm font-medium">Tournament: {tournament.scenarioName}</p>
-    <p className="text-xs text-muted-foreground">
-    Seed {tournament.tournamentSeed} · {tournament.agents.length} agents · {tournament.matches.length} matches
-    </p>
-    </div>
+      <div className="flex items-center gap-3 rounded-md border border-border bg-card p-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium">Tournament: {tournament.scenarioName}</p>
+          <p className="text-xs text-muted-foreground">
+            Seed {tournament.tournamentSeed} · {tournament.agents.length} agents ·{" "}
+            {tournament.matches.length} matches
+          </p>
+        </div>
 
-    <Button
-    variant={spoilers ? "destructive" : "outline"}
-    size="sm"
-    onClick={() => setSpoilers((s) => !s)}
-    >
-    {spoilers ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-    Spoilers {spoilers ? "ON" : "OFF"}
-    </Button>
-
-    <Button variant="ghost" size="icon" onClick={onClose}>
-    <X className="h-4 w-4" />
-    </Button>
-    </div>
-
-    {spoilers && standings.length > 0 && (
-      <Card>
-      <CardHeader className="pb-2">
-      <CardTitle className="flex items-center gap-2 text-sm">
-      <Trophy className="h-4 w-4" />
-      Standings
-      </CardTitle>
-      </CardHeader>
-      <CardContent>
-      <div className="overflow-x-auto">
-      <table className="w-full text-xs">
-      <thead>
-      <tr className="border-b border-border text-left text-muted-foreground">
-      <th className="pb-2 pr-4 font-medium">#</th>
-      <th className="pb-2 pr-4 font-medium">Agent</th>
-      <th className="pb-2 pr-4 font-medium text-right">Pts</th>
-      <th className="pb-2 pr-4 font-medium text-right">W</th>
-      <th className="pb-2 pr-4 font-medium text-right">D</th>
-      <th className="pb-2 pr-4 font-medium text-right">L</th>
-      <th className="pb-2 font-medium text-right">+/-</th>
-      </tr>
-      </thead>
-      <tbody>
-      {standings.map((row, i) => (
-        <tr key={row.agentId} className="border-b border-border/50">
-        <td className="py-1.5 pr-4 text-muted-foreground">{i + 1}</td>
-        <td className="py-1.5 pr-4 font-medium">{row.agentId}</td>
-        <td className="py-1.5 pr-4 text-right">
-        <Badge variant="default">{row.points}</Badge>
-        </td>
-        <td className="py-1.5 pr-4 text-right">{row.wins}</td>
-        <td className="py-1.5 pr-4 text-right">{row.draws}</td>
-        <td className="py-1.5 pr-4 text-right">{row.losses}</td>
-        <td className="py-1.5 text-right">
-        <span className={row.scoreDiff > 0 ? "text-success" : "text-muted-foreground"}>
-        {row.scoreDiff > 0 ? "+" : ""}
-        {row.scoreDiff}
-        </span>
-        </td>
-        </tr>
-      ))}
-      </tbody>
-      </table>
-      </div>
-      </CardContent>
-      </Card>
-    )}
-
-    {!spoilers && (
-      <p className="text-xs text-muted-foreground italic text-center">Enable spoilers to reveal standings</p>
-    )}
-
-    <Card>
-    <CardHeader className="pb-2">
-    <CardTitle className="text-sm">Matches</CardTitle>
-    </CardHeader>
-    <CardContent>
-    <div className="overflow-x-auto">
-    <table className="w-full text-xs">
-    <thead>
-    <tr className="border-b border-border text-left text-muted-foreground">
-    <th className="pb-2 pr-4 font-medium">Match</th>
-    <th className="pb-2 pr-4 font-medium">Agents</th>
-    <th className="pb-2 pr-4 font-medium">Scenario</th>
-    <th className="pb-2 pr-4 font-medium text-right">Turns</th>
-    <th className="pb-2 pr-4 font-medium">Status</th>
-    {spoilers && <th className="pb-2 pr-4 font-medium">Winner</th>}
-    {spoilers && <th className="pb-2 pr-4 font-medium">Scores</th>}
-    <th className="pb-2 font-medium"></th>
-    </tr>
-    </thead>
-    <tbody>
-    {tournament.matches.map((spec) => {
-      const summary = summaryByKey.get(spec.matchKey);
-      const turns = summary?.turns ?? "?";
-      const reason = summary?.reason ?? "unknown";
-      const isLoading = loadingMatch === spec.matchKey;
-
-      return (
-        <tr key={spec.matchKey} className="border-b border-border/50">
-        <td className="py-2 pr-4 font-mono text-muted-foreground">{spec.matchKey}</td>
-        <td className="py-2 pr-4">{spec.agentIds.join(" vs ")}</td>
-        <td className="py-2 pr-4">{spec.scenarioName}</td>
-        <td className="py-2 pr-4 text-right">{turns}</td>
-        <td className="py-2 pr-4">
-        <Badge variant={reason === "completed" ? "success" : "secondary"}>{reason}</Badge>
-        </td>
-
-        {spoilers && (
-          <td className="py-2 pr-4">
-          {summary?.winner ? <Badge variant="info">{summary.winner}</Badge> : <span className="text-muted-foreground">draw</span>}
-          </td>
-        )}
-
-        {spoilers && (
-          <td className="py-2 pr-4 font-mono">
-          {summary ? Object.entries(summary.scores).map(([id, s]) => `${id}: ${s}`).join(", ") : "—"}
-          </td>
-        )}
-
-        <td className="py-2">
         <Button
-        variant="outline"
-        size="sm"
-        disabled={isLoading}
-        onClick={() => void handleWatch(spec.matchKey)}
+          variant={spoilers ? "destructive" : "outline"}
+          size="sm"
+          onClick={() => setSpoilers((s) => !s)}
         >
-        {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
-        Watch
+          {spoilers ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+          Spoilers {spoilers ? "ON" : "OFF"}
         </Button>
-        </td>
-        </tr>
-      );
-    })}
-    </tbody>
-    </table>
-    </div>
-    </CardContent>
-    </Card>
+
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {spoilers && standings.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Trophy className="h-4 w-4" />
+              Standings
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border text-left text-muted-foreground">
+                    <th className="pb-2 pr-4 font-medium">#</th>
+                    <th className="pb-2 pr-4 font-medium">Agent</th>
+                    <th className="pb-2 pr-4 font-medium text-right">Pts</th>
+                    <th className="pb-2 pr-4 font-medium text-right">W</th>
+                    <th className="pb-2 pr-4 font-medium text-right">D</th>
+                    <th className="pb-2 pr-4 font-medium text-right">L</th>
+                    <th className="pb-2 font-medium text-right">+/-</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {standings.map((row, i) => (
+                    <tr key={row.agentId} className="border-b border-border/50">
+                      <td className="py-1.5 pr-4 text-muted-foreground">{i + 1}</td>
+                      <td className="py-1.5 pr-4 font-medium">{row.agentId}</td>
+                      <td className="py-1.5 pr-4 text-right">
+                        <Badge variant="default">{row.points}</Badge>
+                      </td>
+                      <td className="py-1.5 pr-4 text-right">{row.wins}</td>
+                      <td className="py-1.5 pr-4 text-right">{row.draws}</td>
+                      <td className="py-1.5 pr-4 text-right">{row.losses}</td>
+                      <td className="py-1.5 text-right">
+                        <span
+                          className={
+                            row.scoreDiff > 0
+                              ? "text-green-400"
+                              : "text-muted-foreground"
+                          }
+                        >
+                          {row.scoreDiff > 0 ? "+" : ""}
+                          {row.scoreDiff}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!spoilers && (
+        <p className="text-xs text-muted-foreground italic text-center">
+          Enable spoilers to reveal standings
+        </p>
+      )}
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Matches</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border text-left text-muted-foreground">
+                  <th className="pb-2 pr-4 font-medium">Match</th>
+                  <th className="pb-2 pr-4 font-medium">Agents</th>
+                  <th className="pb-2 pr-4 font-medium">Scenario</th>
+                  <th className="pb-2 pr-4 font-medium text-right">Turns</th>
+                  <th className="pb-2 pr-4 font-medium">Status</th>
+                  {spoilers && <th className="pb-2 pr-4 font-medium">Winner</th>}
+                  {spoilers && <th className="pb-2 pr-4 font-medium">Scores</th>}
+                  <th className="pb-2 font-medium"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {tournament.matches.map((spec) => {
+                  const summary = summaryByKey.get(spec.matchKey);
+                  const turns = summary?.turns ?? "?";
+                  const reason = summary?.reason ?? "unknown";
+                  const isLoading = loadingMatch === spec.matchKey;
+
+                  return (
+                    <tr key={spec.matchKey} className="border-b border-border/50">
+                      <td className="py-2 pr-4 font-mono text-muted-foreground">
+                        {spec.matchKey}
+                      </td>
+                      <td className="py-2 pr-4">{spec.agentIds.join(" vs ")}</td>
+                      <td className="py-2 pr-4">{spec.scenarioName}</td>
+                      <td className="py-2 pr-4 text-right">{turns}</td>
+                      <td className="py-2 pr-4">
+                        <Badge variant={reason === "completed" ? "success" : "secondary"}>
+                          {reason}
+                        </Badge>
+                      </td>
+
+                      {spoilers && (
+                        <td className="py-2 pr-4">
+                          {summary?.winner ? (
+                            <Badge variant="info">{summary.winner}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">draw</span>
+                          )}
+                        </td>
+                      )}
+
+                      {spoilers && (
+                        <td className="py-2 pr-4 font-mono">
+                          {summary
+                            ? Object.entries(summary.scores)
+                                .map(([id, s]) => `${id}: ${s}`)
+                                .join(", ")
+                            : "\u2014"}
+                        </td>
+                      )}
+
+                      <td className="py-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isLoading}
+                          onClick={() => void handleWatch(spec.matchKey)}
+                        >
+                          {isLoading ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Eye className="h-3 w-3" />
+                          )}
+                          Watch
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -837,162 +1143,278 @@ function ReplayViewer({
   onBack?: () => void;
 }) {
   const [spoilers, setSpoilers] = useState(false);
+  const [viewerMode, setViewerMode] = useState<ViewerMode>("spectator");
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const [filters, setFilters] = useState<EventFilters>(EMPTY_FILTERS);
 
-  const groups = useMemo(() => groupByTurn(events), [events]);
-  const selectedEvent = events[selectedIdx] ?? null;
+  // Compute redacted events based on current mode/spoiler settings
+  const redactedEvents = useMemo(
+    () =>
+      events.map((ev) =>
+        redactEvent(ev, { mode: viewerMode, revealSpoilers: spoilers }),
+      ),
+    [events, viewerMode, spoilers],
+  );
+
+  // Apply filters
+  const filteredRedacted = useMemo(() => {
+    return redactedEvents.filter((ev) => {
+      if (filters.turn !== null && ev.turn !== filters.turn) {
+        return false;
+      }
+      if (filters.agentId !== null && ev.agentId !== filters.agentId) {
+        return false;
+      }
+      if (filters.type !== null && ev.type !== filters.type) {
+        return false;
+      }
+      return true;
+    });
+  }, [redactedEvents, filters]);
+
+  const groups = useMemo(() => groupByTurn(filteredRedacted), [filteredRedacted]);
+  const selectedEvent = filteredRedacted[selectedIdx] ?? null;
 
   const currentTurn = selectedEvent?.turn ?? null;
   const turnNumbers = useMemo(() => {
     const turns = new Set<number>();
-    for (const ev of events) {if (ev.turn !== undefined) {turns.add(ev.turn);}}
+    for (const ev of events) {
+      if (ev.turn !== undefined) {
+        turns.add(ev.turn);
+      }
+    }
     return Array.from(turns).sort((a, b) => a - b);
   }, [events]);
 
   const jumpToTurn = useCallback(
     (turn: number) => {
-      const idx = events.findIndex((e) => e.turn === turn);
-      if (idx >= 0) {setSelectedIdx(idx);}
+      const idx = filteredRedacted.findIndex((e) => e.turn === turn);
+      if (idx >= 0) {
+        setSelectedIdx(idx);
+      }
     },
-    [events],
+    [filteredRedacted],
   );
 
+  // Clamp selectedIdx when filters change
+  useEffect(() => {
+    if (selectedIdx >= filteredRedacted.length) {
+      setSelectedIdx(Math.max(0, filteredRedacted.length - 1));
+    }
+  }, [filteredRedacted.length, selectedIdx]);
+
   const prevEvent = () => setSelectedIdx((i) => Math.max(0, i - 1));
-  const nextEvent = () => setSelectedIdx((i) => Math.min(events.length - 1, i + 1));
+  const nextEvent = () =>
+    setSelectedIdx((i) => Math.min(filteredRedacted.length - 1, i + 1));
   const firstEvent = () => setSelectedIdx(0);
-  const lastEvent = () => setSelectedIdx(events.length - 1);
+  const lastEvent = () => setSelectedIdx(filteredRedacted.length - 1);
+
+  // Derive if spoilers is effectively active (director mode forces it)
+  const effectiveSpoilers = spoilers || viewerMode === "director";
 
   return (
     <div className="flex h-[calc(100vh-theme(spacing.14)-theme(spacing.12))] flex-col gap-3">
-    <div className="flex items-center gap-3 rounded-md border border-border bg-card p-3">
-    {onBack && (
-      <Button variant="ghost" size="sm" onClick={onBack}>
-      <ArrowLeft className="h-4 w-4" />
-      Back to tournament
-      </Button>
-    )}
+      {/* Top bar */}
+      <div className="flex items-center gap-3 rounded-md border border-border bg-card p-3 flex-wrap">
+        {onBack && (
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4" />
+            Back to tournament
+          </Button>
+        )}
 
-    <div className="flex-1 min-w-0">
-    <p className="text-sm font-medium truncate">{filename}</p>
-    <p className="text-xs text-muted-foreground">
-    {events.length} events
-    {errors.length > 0 && <span className="text-warning"> · {errors.length} parse errors</span>}
-    </p>
-    </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{filename}</p>
+          <p className="text-xs text-muted-foreground">
+            {events.length} events
+            {filteredRedacted.length !== events.length && (
+              <span>
+                {" "}
+                ({filteredRedacted.length} shown)
+              </span>
+            )}
+            {errors.length > 0 && (
+              <span className="text-amber-400"> · {errors.length} parse errors</span>
+            )}
+          </p>
+        </div>
 
-    <div className="flex items-center gap-1">
-    <Button variant="ghost" size="icon" onClick={firstEvent} disabled={selectedIdx === 0}>
-    <ChevronsLeft className="h-4 w-4" />
-    </Button>
-    <Button variant="ghost" size="icon" onClick={prevEvent} disabled={selectedIdx === 0}>
-    <ChevronLeft className="h-4 w-4" />
-    </Button>
-    <span className="min-w-[4rem] text-center text-xs font-mono text-muted-foreground">
-    {selectedIdx + 1} / {events.length}
-    </span>
-    <Button variant="ghost" size="icon" onClick={nextEvent} disabled={selectedIdx === events.length - 1}>
-    <ChevronRight className="h-4 w-4" />
-    </Button>
-    <Button variant="ghost" size="icon" onClick={lastEvent} disabled={selectedIdx === events.length - 1}>
-    <ChevronsRight className="h-4 w-4" />
-    </Button>
-    </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={firstEvent}
+            disabled={selectedIdx === 0}
+          >
+            <ChevronsLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={prevEvent}
+            disabled={selectedIdx === 0}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="min-w-[4rem] text-center text-xs font-mono text-muted-foreground">
+            {filteredRedacted.length > 0 ? selectedIdx + 1 : 0} / {filteredRedacted.length}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={nextEvent}
+            disabled={selectedIdx === filteredRedacted.length - 1}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={lastEvent}
+            disabled={selectedIdx === filteredRedacted.length - 1}
+          >
+            <ChevronsRight className="h-4 w-4" />
+          </Button>
+        </div>
 
-    {turnNumbers.length > 0 && (
-      <div className="flex items-center gap-1">
-      <span className="text-xs text-muted-foreground">Turn:</span>
-      <select
-      value={currentTurn ?? ""}
-      onChange={(e) => {
-        const val = e.target.value;
-        if (val !== "") {jumpToTurn(Number(val));}
-      }}
-      className="h-8 rounded-md border border-border bg-card px-2 text-xs"
-      >
-      <option value="">—</option>
-      {turnNumbers.map((t) => (
-        <option key={t} value={t}>
-        {t}
-        </option>
-      ))}
-      </select>
+        {turnNumbers.length > 0 && (
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground">Turn:</span>
+            <select
+              value={currentTurn ?? ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val !== "") {
+                  jumpToTurn(Number(val));
+                }
+              }}
+              className="h-8 rounded-md border border-border bg-card px-2 text-xs"
+            >
+              <option value="">&mdash;</option>
+              {turnNumbers.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <ViewerModeSelector mode={viewerMode} onChange={setViewerMode} />
+
+        <Button
+          variant={effectiveSpoilers ? "destructive" : "outline"}
+          size="sm"
+          onClick={() => setSpoilers((s) => !s)}
+          disabled={viewerMode === "director"}
+        >
+          {effectiveSpoilers ? (
+            <Eye className="h-3 w-3" />
+          ) : (
+            <EyeOff className="h-3 w-3" />
+          )}
+          Spoilers {effectiveSpoilers ? "ON" : "OFF"}
+        </Button>
+
+        {!onBack && (
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        )}
       </div>
-    )}
 
-    <Button
-    variant={spoilers ? "destructive" : "outline"}
-    size="sm"
-    onClick={() => setSpoilers((s) => !s)}
-    >
-    {spoilers ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-    Spoilers {spoilers ? "ON" : "OFF"}
-    </Button>
+      {/* Spoiler warning banner */}
+      {effectiveSpoilers && (
+        <div className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-400">
+          <Eye className="h-3 w-3 shrink-0" />
+          <span>
+            Spoiler mode is active — scores, observations, and match details are visible.
+            {viewerMode === "director" && " Director mode always reveals all data."}
+          </span>
+        </div>
+      )}
 
-    {!onBack && (
-      <Button variant="ghost" size="icon" onClick={onClose}>
-      <X className="h-4 w-4" />
-      </Button>
-    )}
-    </div>
+      {/* Parse errors */}
+      {errors.length > 0 && (
+        <div className="flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-xs">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+          <div>
+            <p className="font-medium text-amber-400">Parse warnings ({errors.length})</p>
+            <ul className="mt-1 space-y-0.5 text-muted-foreground">
+              {errors.slice(0, 5).map((err, i) => (
+                <li key={i}>
+                  Line {err.line}: {err.message}
+                </li>
+              ))}
+              {errors.length > 5 && <li>... and {errors.length - 5} more</li>}
+            </ul>
+          </div>
+        </div>
+      )}
 
-    {errors.length > 0 && (
-      <div className="flex items-start gap-2 rounded-md border border-warning/50 bg-warning/10 p-3 text-xs">
-      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-      <div>
-      <p className="font-medium text-warning">Parse warnings ({errors.length})</p>
-      <ul className="mt-1 space-y-0.5 text-muted-foreground">
-      {errors.slice(0, 5).map((err, i) => (
-        <li key={i}>
-        Line {err.line}: {err.message}
-        </li>
-      ))}
-      {errors.length > 5 && <li>... and {errors.length - 5} more</li>}
-      </ul>
+      {/* Filters */}
+      <div className="flex items-center gap-3">
+        <ReplayFilterBar
+          events={events}
+          filters={filters}
+          onFiltersChange={setFilters}
+        />
+        <div className="flex-1" />
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <span>Ordered by seq</span>
+          <OrderingTooltip />
+        </div>
       </div>
-      </div>
-    )}
 
-    <div className="flex flex-1 gap-3 overflow-hidden">
-    <div className="w-72 shrink-0 overflow-y-auto rounded-md border border-border bg-card p-3">
-    <h2 className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-    Timeline
-    </h2>
-    <div className="space-y-4">
-    {groups.map((group, gi) => (
-      <div key={gi}>
-      <p className="mb-1 text-xs font-semibold text-muted-foreground">{group.label}</p>
-      <div className="space-y-1">
-      {group.events.map((ev) => {
-        const flatIdx = events.indexOf(ev);
-        return (
-          <EventCard
-          key={ev.seq}
-          event={ev}
-          isSelected={flatIdx === selectedIdx}
-          onClick={() => setSelectedIdx(flatIdx)}
-          spoilers={spoilers}
-          />
-        );
-      })}
-      </div>
-      </div>
-    ))}
-    </div>
-    </div>
+      {/* Main content */}
+      <div className="flex flex-1 gap-3 overflow-hidden">
+        {/* Timeline sidebar */}
+        <div className="w-72 shrink-0 overflow-y-auto rounded-md border border-border bg-card p-3">
+          <h2 className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Timeline
+          </h2>
+          {filteredRedacted.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No events match filters.</p>
+          ) : (
+            <div className="space-y-4">
+              {groups.map((group, gi) => (
+                <div key={gi}>
+                  <p className="mb-1 text-xs font-semibold text-muted-foreground">
+                    {group.label}
+                  </p>
+                  <div className="space-y-1">
+                    {group.events.map((ev) => {
+                      const flatIdx = filteredRedacted.indexOf(ev);
+                      return (
+                        <EventCard
+                          key={`${ev.seq}-${ev.type}`}
+                          event={ev}
+                          isSelected={flatIdx === selectedIdx}
+                          onClick={() => setSelectedIdx(flatIdx)}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-    <div className="flex flex-1 flex-col gap-3 overflow-hidden">
-    <div className="flex-1 overflow-y-auto rounded-md border border-border bg-card p-4">
-    <h2 className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-    Event Detail
-    </h2>
-    <EventDetail event={selectedEvent} spoilers={spoilers} />
-    </div>
+        {/* Detail + scoreboard */}
+        <div className="flex flex-1 flex-col gap-3 overflow-hidden">
+          <div className="flex-1 overflow-y-auto rounded-md border border-border bg-card p-4">
+            <h2 className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Event Detail
+            </h2>
+            <EventDetail event={selectedEvent} viewerMode={viewerMode} />
+          </div>
 
-    <div className="shrink-0">
-    <Scoreboard events={events} spoilers={spoilers} />
-    </div>
-    </div>
-    </div>
+          <div className="shrink-0">
+            <Scoreboard events={events} spoilers={effectiveSpoilers} />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1011,13 +1433,18 @@ export default function ReplayPage() {
       setState({ mode: "idle" });
       setLoadError(
         result.errors
-        .slice(0, 10)
-        .map((e) => `Line ${e.line}: ${e.message}`)
-        .join("\n"),
+          .slice(0, 10)
+          .map((e) => `Line ${e.line}: ${e.message}`)
+          .join("\n"),
       );
     } else {
       setLoadError(null);
-      setState({ mode: "single", events: result.events, errors: result.errors, filename });
+      setState({
+        mode: "single",
+        events: result.events,
+        errors: result.errors,
+        filename,
+      });
     }
   }, []);
 
@@ -1033,13 +1460,22 @@ export default function ReplayPage() {
       }
 
       try {
-        const { events, errors } = await loadMatchFromSource(state.data.source, matchKey);
+        const { events, errors } = await loadMatchFromSource(
+          state.data.source,
+          matchKey,
+        );
         if (events.length === 0) {
           setLoadError(`No valid events found in match ${matchKey}`);
           return;
         }
         setLoadError(null);
-        setState({ mode: "tournamentMatch", data: state.data, matchKey, events, errors });
+        setState({
+          mode: "tournamentMatch",
+          data: state.data,
+          matchKey,
+          events,
+          errors,
+        });
       } catch (err) {
         setLoadError(
           err instanceof Error
@@ -1054,18 +1490,21 @@ export default function ReplayPage() {
   if (state.mode === "idle") {
     return (
       <div className="space-y-4">
-      <FileDropZone onLoad={handleSingleLoad} onTournamentLoad={handleTournamentLoad} />
-      {loadError && (
-        <div className="mx-auto max-w-xl">
-        <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-        <div>
-        <p className="font-medium">Failed to parse replay</p>
-        <pre className="mt-1 text-xs whitespace-pre-wrap">{loadError}</pre>
-        </div>
-        </div>
-        </div>
-      )}
+        <FileDropZone
+          onLoad={handleSingleLoad}
+          onTournamentLoad={handleTournamentLoad}
+        />
+        {loadError && (
+          <div className="mx-auto max-w-xl">
+            <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <p className="font-medium">Failed to parse replay</p>
+                <pre className="mt-1 text-xs whitespace-pre-wrap">{loadError}</pre>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1073,13 +1512,13 @@ export default function ReplayPage() {
   if (state.mode === "single") {
     return (
       <ReplayViewer
-      events={state.events}
-      errors={state.errors}
-      filename={state.filename}
-      onClose={() => {
-        setLoadError(null);
-        setState({ mode: "idle" });
-      }}
+        events={state.events}
+        errors={state.errors}
+        filename={state.filename}
+        onClose={() => {
+          setLoadError(null);
+          setState({ mode: "idle" });
+        }}
       />
     );
   }
@@ -1087,22 +1526,22 @@ export default function ReplayPage() {
   if (state.mode === "tournament") {
     return (
       <div className="space-y-4">
-      <TournamentBrowser
-      data={state.data}
-      onSelectMatch={handleMatchSelect}
-      onClose={() => {
-        setLoadError(null);
-        setState({ mode: "idle" });
-      }}
-      />
-      {loadError && (
-        <div className="mx-auto max-w-2xl">
-        <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-        <p className="text-xs">{loadError}</p>
-        </div>
-        </div>
-      )}
+        <TournamentBrowser
+          data={state.data}
+          onSelectMatch={handleMatchSelect}
+          onClose={() => {
+            setLoadError(null);
+            setState({ mode: "idle" });
+          }}
+        />
+        {loadError && (
+          <div className="mx-auto max-w-2xl">
+            <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p className="text-xs">{loadError}</p>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1110,17 +1549,17 @@ export default function ReplayPage() {
   if (state.mode === "tournamentMatch") {
     return (
       <ReplayViewer
-      events={state.events}
-      errors={state.errors}
-      filename={`${state.matchKey} — match.jsonl`}
-      onClose={() => {
-        setLoadError(null);
-        setState({ mode: "idle" });
-      }}
-      onBack={() => {
-        setLoadError(null);
-        setState({ mode: "tournament", data: state.data });
-      }}
+        events={state.events}
+        errors={state.errors}
+        filename={`${state.matchKey} \u2014 match.jsonl`}
+        onClose={() => {
+          setLoadError(null);
+          setState({ mode: "idle" });
+        }}
+        onBack={() => {
+          setLoadError(null);
+          setState({ mode: "tournament", data: state.data });
+        }}
       />
     );
   }
