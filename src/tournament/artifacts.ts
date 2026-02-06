@@ -3,7 +3,66 @@ import { join } from "node:path";
 import { stableStringify, toStableJsonl } from "../core/json.js";
 import type { MatchEvent } from "../contract/types.js";
 import type { TournamentBundleV1 } from "../lib/replay/bundle.js";
-import type { MatchKey, TournamentResult } from "./types.js";
+import type { JsonValue } from "../contract/types.js";
+import type { MatchKey, MatchManifest, TournamentResult } from "./types.js";
+
+function resolveModeProfileId(modeProfile: JsonValue | undefined): string {
+  if (typeof modeProfile === "string") {
+    return modeProfile;
+  }
+  if (modeProfile && typeof modeProfile === "object" && !Array.isArray(modeProfile)) {
+    const record = modeProfile as Record<string, JsonValue>;
+    if (typeof record.id === "string") {
+      return record.id;
+    }
+    if (typeof record.name === "string") {
+      return record.name;
+    }
+  }
+  return "sandbox";
+}
+
+function buildMatchManifest(
+  result: TournamentResult,
+  matchKey: MatchKey,
+  matchId: string,
+  seed: number,
+  agentIds: string[],
+): MatchManifest {
+  const modeProfileId = resolveModeProfileId(result.tournament.modeProfile);
+  const scenarioId = result.tournament.scenarioName;
+  const harnessVersion = result.tournament.harnessVersion ?? null;
+
+  return {
+    matchId,
+    modeProfileId,
+    scenario: {
+      id: scenarioId,
+      version: null,
+      contractVersion: null,
+      contentHash: null,
+    },
+    agents: agentIds.map((id) => ({
+      id,
+      version: null,
+      contentHash: null,
+    })),
+    config: {
+      maxTurns: result.config.maxTurns,
+      seed,
+      seedDerivationInputs: {
+        tournamentSeed: result.tournament.tournamentSeed,
+        matchKey,
+      },
+    },
+    runner: {
+      name: "tournament-harness",
+      version: harnessVersion,
+      gitCommit: null,
+    },
+    createdAt: new Date().toISOString(),
+  };
+}
 
 function assertMatchLogs(
   matchKey: MatchKey,
@@ -41,6 +100,19 @@ export function writeTournamentArtifacts(result: TournamentResult, outDir: strin
       "utf-8",
     );
 
+    const manifest = buildMatchManifest(
+      result,
+      summary.matchKey,
+      summary.matchId,
+      summary.seed,
+      summary.agentIds,
+    );
+    writeFileSync(
+      join(matchDir, "match_manifest.json"),
+      stableStringify(manifest) + "\n",
+      "utf-8",
+    );
+
     assertMatchLogs(summary.matchKey, result.matchLogs);
     const events = result.matchLogs[summary.matchKey];
     writeFileSync(join(matchDir, "match.jsonl"), toStableJsonl(events), "utf-8");
@@ -54,9 +126,13 @@ export function buildTournamentBundle(result: TournamentResult): TournamentBundl
     assertMatchLogs(spec.matchKey, result.matchLogs);
     const events = result.matchLogs[spec.matchKey];
     const summary = summaryLookup.get(spec.matchKey);
+    const manifest = summary
+      ? buildMatchManifest(result, spec.matchKey, summary.matchId, summary.seed, summary.agentIds)
+      : undefined;
     return {
       matchKey: spec.matchKey,
       ...(summary ? { summary } : {}),
+      ...(manifest ? { manifest } : {}),
       jsonl: toStableJsonl(events),
     };
   });
