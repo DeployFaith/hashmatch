@@ -31,3 +31,12 @@ export { createRng, randomInt, deriveSeed } from "./core/rng.js";
 
 // Engine
 export { runMatch } from "./engine/runMatch.js";
+
+// Tournament
+export { runTournament } from "./tournament/runTournament.js";
+export type {
+  TournamentConfig,
+  MatchSummary,
+  StandingsRow,
+  TournamentResult,
+} from "./tournament/types.js";
