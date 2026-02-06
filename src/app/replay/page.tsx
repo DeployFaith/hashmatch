@@ -19,6 +19,7 @@ import {
   Info,
   ShieldAlert,
   Filter,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -31,6 +32,13 @@ import type { ReplayMoment } from "@/lib/replay/detectMoments";
 import { redactEvent } from "@/lib/replay/redaction";
 import type { ViewerMode, RedactedEvent } from "@/lib/replay/redaction";
 import { SAMPLE_JSONL } from "@/lib/replay/fixtures/sampleNumberGuess";
+import { parseCommentaryFile, getCommentaryAtIndex } from "@/lib/replay/commentary";
+import type {
+  CommentaryEntry,
+  CommentaryWarning,
+  CommentaryLoadStatus,
+  CommentarySeverity,
+} from "@/lib/replay/commentary";
 
 // ---------------------------------------------------------------------------
 // Known event types for the type filter
@@ -51,10 +59,10 @@ const KNOWN_EVENT_TYPES = [
 // Types
 // ---------------------------------------------------------------------------
 
-interface TurnGroup {
+interface TurnGroup<T extends RedactedEvent = RedactedEvent> {
   label: string;
   turn: number | null;
-  events: RedactedEvent[];
+  events: T[];
 }
 
 /** Shape of tournament.json written by the artifact writer. */
@@ -135,9 +143,9 @@ const EMPTY_FILTERS: EventFilters = { turn: null, agentId: null, type: null };
 // Helpers
 // ---------------------------------------------------------------------------
 
-function groupByTurn(events: RedactedEvent[]): TurnGroup[] {
-  const groups: TurnGroup[] = [];
-  let current: TurnGroup | null = null;
+function groupByTurn<T extends RedactedEvent>(events: T[]): TurnGroup<T>[] {
+  const groups: TurnGroup<T>[] = [];
+  let current: TurnGroup<T> | null = null;
 
   for (const ev of events) {
     const turn = ev.turn ?? null;
@@ -1128,6 +1136,163 @@ function TournamentBrowser({
 }
 
 // ---------------------------------------------------------------------------
+// Commentary severity styling
+// ---------------------------------------------------------------------------
+
+const severityStyles: Record<CommentarySeverity, string> = {
+  hype: "border-amber-500/40 bg-amber-500/5",
+  analysis: "border-blue-400/40 bg-blue-400/5",
+  ref: "border-purple-400/40 bg-purple-400/5",
+  info: "border-border bg-muted/20",
+};
+
+const severityBadgeVariant: Record<CommentarySeverity, "warning" | "info" | "secondary" | "default"> = {
+  hype: "warning",
+  analysis: "info",
+  ref: "secondary",
+  info: "default",
+};
+
+// ---------------------------------------------------------------------------
+// Commentary entry card
+// ---------------------------------------------------------------------------
+
+function CommentaryCard({ entry }: { entry: CommentaryEntry }) {
+  return (
+    <div
+      className={cn(
+        "rounded-md border px-3 py-2 text-xs",
+        severityStyles[entry.severity],
+      )}
+    >
+      <div className="flex items-center gap-1.5 mb-1">
+        <MessageSquare className="h-3 w-3 text-muted-foreground shrink-0" />
+        {entry.speaker && (
+          <span className="font-medium text-muted-foreground">{entry.speaker}</span>
+        )}
+        <Badge variant={severityBadgeVariant[entry.severity]} className="text-[9px] px-1 py-0">
+          {entry.severity}
+        </Badge>
+        <span className="text-[9px] text-muted-foreground/60 ml-auto">SHOW</span>
+      </div>
+      <p className="text-foreground/90 leading-relaxed">{entry.text}</p>
+      {entry.tags.length > 0 && (
+        <div className="flex gap-1 mt-1.5 flex-wrap">
+          {entry.tags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded bg-muted px-1 py-0 text-[9px] text-muted-foreground"
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Commentary panel
+// ---------------------------------------------------------------------------
+
+function CommentaryPanel({
+  entries,
+  loadStatus,
+  warnings,
+  onLoadFile,
+  onClear,
+}: {
+  entries: CommentaryEntry[];
+  loadStatus: CommentaryLoadStatus;
+  warnings: CommentaryWarning[];
+  onLoadFile: (file: File) => void;
+  onClear: () => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          Commentary
+        </h2>
+        <span className="text-[9px] text-muted-foreground/60 italic">show layer</span>
+      </div>
+
+      {loadStatus === "none" && (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">No commentary loaded.</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) {
+                onLoadFile(f);
+              }
+              e.target.value = "";
+            }}
+            className="hidden"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-xs"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <MessageSquare className="h-3 w-3" />
+            Load commentary.json
+          </Button>
+        </div>
+      )}
+
+      {loadStatus === "error" && (
+        <div className="space-y-2">
+          <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-2 text-xs text-destructive">
+            <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
+            <p>Failed to parse commentary file.</p>
+          </div>
+          <Button variant="outline" size="sm" className="w-full text-xs" onClick={onClear}>
+            Dismiss
+          </Button>
+        </div>
+      )}
+
+      {loadStatus === "loaded" && (
+        <>
+          {warnings.length > 0 && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">
+              <AlertCircle className="mt-0.5 h-3 w-3 shrink-0 text-amber-400" />
+              <p className="text-amber-400">
+                {warnings.length} commentary {warnings.length === 1 ? "entry was" : "entries were"}{" "}
+                ignored.
+              </p>
+            </div>
+          )}
+
+          {entries.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No commentary for this moment.</p>
+          ) : (
+            <div className="space-y-2">
+              {entries.map((entry) => (
+                <CommentaryCard key={entry.id} entry={entry} />
+              ))}
+            </div>
+          )}
+
+          <Button variant="ghost" size="sm" className="w-full text-xs" onClick={onClear}>
+            <X className="h-3 w-3" />
+            Remove commentary
+          </Button>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main viewer
 // ---------------------------------------------------------------------------
 
@@ -1149,6 +1314,44 @@ function ReplayViewer({
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [filters, setFilters] = useState<EventFilters>(EMPTY_FILTERS);
   const moments = useMemo(() => detectMoments(events), [events]);
+
+  // Commentary state
+  const [commentaryEntries, setCommentaryEntries] = useState<CommentaryEntry[]>([]);
+  const [commentaryLoadStatus, setCommentaryLoadStatus] = useState<CommentaryLoadStatus>("none");
+  const [commentaryWarnings, setCommentaryWarnings] = useState<CommentaryWarning[]>([]);
+
+  const loadCommentaryFromFile = useCallback(
+    (file: File) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result;
+        if (typeof text !== "string") {
+          setCommentaryLoadStatus("error");
+          return;
+        }
+        const result = parseCommentaryFile(text, moments, events.length);
+        if (result.entries.length === 0 && result.warnings.length > 0) {
+          setCommentaryLoadStatus("error");
+          setCommentaryWarnings(result.warnings);
+          return;
+        }
+        setCommentaryEntries(result.entries);
+        setCommentaryWarnings(result.warnings);
+        setCommentaryLoadStatus("loaded");
+      };
+      reader.onerror = () => {
+        setCommentaryLoadStatus("error");
+      };
+      reader.readAsText(file);
+    },
+    [moments, events.length],
+  );
+
+  const clearCommentary = useCallback(() => {
+    setCommentaryEntries([]);
+    setCommentaryWarnings([]);
+    setCommentaryLoadStatus("none");
+  }, []);
 
   // Compute redacted events based on current mode/spoiler settings
   const redactedEvents = useMemo(
@@ -1246,6 +1449,21 @@ function ReplayViewer({
 
   // Derive if spoilers is effectively active (director mode forces it)
   const effectiveSpoilers = spoilers || viewerMode === "director";
+
+  // Commentary entries visible at the current playhead position
+  const activeCommentary = useMemo(() => {
+    if (commentaryLoadStatus !== "loaded" || commentaryEntries.length === 0) {
+      return [];
+    }
+    const playheadIdx = selectedEvent?.originalIdx ?? 0;
+    return getCommentaryAtIndex(
+      commentaryEntries,
+      playheadIdx,
+      moments,
+      playheadIdx,
+      effectiveSpoilers,
+    );
+  }, [commentaryEntries, commentaryLoadStatus, selectedEvent?.originalIdx, moments, effectiveSpoilers]);
 
   return (
     <div className="flex h-[calc(100vh-theme(spacing.14)-theme(spacing.12))] flex-col gap-3">
@@ -1403,39 +1621,51 @@ function ReplayViewer({
 
       {/* Main content */}
       <div className="flex flex-1 gap-3 overflow-hidden">
-        {/* Moments sidebar */}
-        <div className="w-60 shrink-0 overflow-y-auto rounded-md border border-border bg-card p-3">
-          <h2 className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Moments
-          </h2>
-          {moments.length === 0 ? (
-            <p className="text-xs text-muted-foreground">
-              No moments detected for this replay yet.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {moments.map((moment) => {
-                const isActive = moment.id === activeMoment?.id;
-                return (
-                  <button
-                    key={moment.id}
-                    type="button"
-                    onClick={() => jumpToMoment(moment)}
-                    className={cn(
-                      "w-full rounded-md border border-transparent px-2 py-1.5 text-left text-xs transition",
-                      "hover:border-border hover:bg-muted/40",
-                      isActive && "border-primary/40 bg-primary/10 text-primary",
-                    )}
-                  >
-                    <p className="font-medium">{moment.label}</p>
-                    <p className="text-[0.7rem] text-muted-foreground">
-                      Events {moment.start_event_idx + 1}–{moment.end_event_idx + 1}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+        {/* Moments + Commentary sidebar */}
+        <div className="w-60 shrink-0 overflow-y-auto rounded-md border border-border bg-card p-3 space-y-4">
+          <div>
+            <h2 className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Moments
+            </h2>
+            {moments.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                No moments detected for this replay yet.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {moments.map((moment) => {
+                  const isActive = moment.id === activeMoment?.id;
+                  return (
+                    <button
+                      key={moment.id}
+                      type="button"
+                      onClick={() => jumpToMoment(moment)}
+                      className={cn(
+                        "w-full rounded-md border border-transparent px-2 py-1.5 text-left text-xs transition",
+                        "hover:border-border hover:bg-muted/40",
+                        isActive && "border-primary/40 bg-primary/10 text-primary",
+                      )}
+                    >
+                      <p className="font-medium">{moment.label}</p>
+                      <p className="text-[0.7rem] text-muted-foreground">
+                        Events {moment.start_event_idx + 1}–{moment.end_event_idx + 1}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-border pt-3">
+            <CommentaryPanel
+              entries={activeCommentary}
+              loadStatus={commentaryLoadStatus}
+              warnings={commentaryWarnings}
+              onLoadFile={loadCommentaryFromFile}
+              onClear={clearCommentary}
+            />
+          </div>
         </div>
 
         {/* Timeline sidebar */}
@@ -1471,13 +1701,31 @@ function ReplayViewer({
           )}
         </div>
 
-        {/* Detail + scoreboard */}
+        {/* Detail + commentary inline + scoreboard */}
         <div className="flex flex-1 flex-col gap-3 overflow-hidden">
           <div className="flex-1 overflow-y-auto rounded-md border border-border bg-card p-4">
             <h2 className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Event Detail
             </h2>
             <EventDetail event={selectedEvent} viewerMode={viewerMode} />
+
+            {/* Inline commentary for the current event */}
+            {activeCommentary.length > 0 && (
+              <div className="mt-4 border-t border-border pt-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <MessageSquare className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Commentary
+                  </span>
+                  <span className="text-[9px] text-muted-foreground/60 italic">show layer</span>
+                </div>
+                <div className="space-y-2">
+                  {activeCommentary.map((entry) => (
+                    <CommentaryCard key={entry.id} entry={entry} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="shrink-0">
