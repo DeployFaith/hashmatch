@@ -1,230 +1,227 @@
 # Scenario Design Guidelines
 
-This document defines how to design scenarios for Agent League.
+Scenarios are the “games” of Agent League.
 
-Scenarios are the content engine of the league. If the engine is the console, scenarios are the games. They must be:
+They must satisfy two often‑conflicting requirements:
 
-* **fun to watch** (UFC-for-Agents vibe)
-* **fair to compete in** (trustworthy)
-* **hard to exploit** (avoid degenerate strategies)
-* **replayable** (clear state transitions)
+* **Competitive quality:** measurable, fair, resistant to gaming
+* **Spectator quality:** understandable, full of turning points, watchable
 
-These guidelines aim to keep scenarios consistent and compatible with tournament integrity.
+This document defines how to design scenarios that are both.
 
-## 1. Scenario Principles
+## 1. Core Scenario Requirements
 
-1. **Clarity**
+A scenario must define:
 
-   * A spectator should understand what’s happening with minimal explanation.
+* observation model (what each agent sees)
+* action space
+* transition function (how actions change state)
+* scoring / win conditions
+* terminal conditions
+* max turns / time budget rules
 
-2. **Skill expression**
+A scenario should also define:
 
-   * Better agents should win more often, especially in sanctioned modes.
+* telemetry extraction expectations
+* what constitutes an “interesting moment”
 
-3. **Determinism friendly**
+## 2. Watchability Requirements (New)
 
-   * Any randomness must be seeded and explicit.
+Scenarios must be designed with a “reality TV” viewer in mind.
 
-4. **Anti-degeneracy**
+A scenario should produce:
 
-   * Design rules that prevent stalling, infinite loops, or “win by breaking the game.”
+* visible stakes
+* clear progress toward victory
+* frequent, understandable events
+* occasional high‑impact reversals
 
-5. **Observable turning points**
+If a scenario is impossible to follow without reading source code, it fails the spectator bar.
 
-   * There should be moments that feel like momentum shifts, reversals, or clutch plays.
+### 2.1 Make the State Legible
 
-## 2. Match Structure Patterns
+Spectator-facing state should have:
 
-### 2.1 Turns vs Simultaneous Actions
+* a few headline numbers (score, resources, objectives)
+* a clear notion of “who is ahead”
+* a short explanation of why an action mattered
 
-* Turn-based: easiest to log, replay, and explain.
-* Simultaneous: can be modeled as “submit actions” then “resolve” per turn.
+### 2.2 Make Turning Points Possible
 
-### 2.2 Termination Conditions
+Provide mechanisms that allow:
 
-Scenarios must end.
+* comebacks
+* reversals
+* punishable mistakes
 
-Typical termination options:
+Avoid “slow guaranteed grind” scenarios where the winner is decided early and nothing interesting happens.
 
-* max turns reached
-* goal achieved
-* elimination
-* resource depletion
+### 2.3 Avoid Boring Stalemates
 
-Avoid rules that allow endless stalling.
+Design to reduce:
 
-### 2.3 Comeback Potential
+* infinite loops
+* non-interacting strategies
+* dominant strategies that always win
 
-Too “snowbally” can be boring. Consider:
+## 3. Competitive Fairness & Anti‑Gaming
 
-* partial resets
-* risk/reward mechanics
-* limited resources that force decisions
+### 3.1 Symmetry
 
-## 3. Scoring Design
+If the scenario is meant to be symmetric:
 
-Scoring should align with what you want to reward.
+* ensure both agents have equivalent opportunities
+* ensure random elements are symmetric or seeded deterministically
 
-### 3.1 Common Scoring Models
+If the scenario has roles/sides:
 
-* **Win/Loss only:** simple but can hide nuance.
-* **Point accumulation:** more expressive.
-* **Multi-objective:** more realistic but harder to understand.
+* run mirrored matches and aggregate outcomes (for sanctioned play)
 
-### 3.2 Score Transparency
+### 3.2 Exploit Resistance
 
-For watchability, prefer:
+Scenarios should be robust against:
 
-* a scoreboard that updates meaningfully
-* clear mapping from actions → points
+* degenerate strategies exploiting the scoring function
+* exploiting undefined behavior
+* adversarial “log spam” or resource exhaustion
 
-### 3.3 Avoiding Score Exploits
+### 3.3 Clear Rules
 
-Watch for:
+Rules must be explicit in the contract:
 
-* farming points without progressing toward match end
-* “infinite value” loops
+* invalid actions must be handled deterministically
+* penalties must be predictable
 
-Add:
+## 4. Hidden Information (Supported)
 
-* diminishing returns
-* caps
-* time pressure
-
-## 4. Randomness
-
-Randomness can be fun but harms skill expression if uncontrolled.
-
-Rules:
-
-* all randomness must be seeded
-* randomness should be explainable
-
-In sanctioned modes, randomness should be near-zero unless the scenario depends on it.
-
-## 5. Symmetry vs Asymmetry
-
-### 5.1 Symmetric Scenarios
-
-Both agents have the same role/resources.
-
-* best for fairness
-* easier for tournaments
-
-### 5.2 Asymmetric Scenarios
-
-Different roles, hidden objectives, or uneven resources.
-
-* can create storylines
-* must be carefully balanced
-
-If roles differ, consider:
-
-* run “sides swapped” series
-* aggregate results across both sides
-
-## 6. Hidden Information (Secrets)
-
-Hidden-info scenarios are supported but must be handled safely.
-
-### 6.1 No Secret Leakage
-
-* `summarize(state)` must omit secrets.
-* `reveal(state)` can disclose secrets at match end.
-
-### 6.2 Observation Design
-
-`observe(state, agentId)` defines what the agent can know.
+Hidden information can make matches more interesting, but increases complexity.
 
 Guidelines:
 
-* keep observations small and meaningful
-* avoid giving everything away
-* avoid observations that unintentionally leak secrets
+* keep hidden info meaningful but not overwhelming
+* ensure a spectator-safe view exists
+* define reveal rules: live-safe summaries vs post-match reveal
 
-### 6.3 Spectator Policies
+Avoid leaking private observations through:
 
-The truth log may include private observations. A spectator viewer must not reveal them mid-match.
+* overly detailed public telemetry
+* event timings
+* indirect side-channel fields
 
-## 7. Action Space Design
+## 5. Telemetry and “Moment” Signals
 
-Actions should be:
+Each scenario should define telemetry that makes matches understandable.
 
-* expressive enough for strategy
-* constrained enough to validate and avoid “garbage”
+### 5.1 Required Telemetry (Recommended)
 
-### 7.1 Validation
+* final outcome and score
+* winner
+* score timeline or progress metric
+* invalid actions/errors
+* efficiency metric(s) relevant to the scenario
 
-`adjudicate` must validate inputs strictly.
+### 5.2 Moment Signals
 
-* invalid actions should be handled deterministically
-* define penalties (e.g., no-op, point loss)
+Scenarios should make it easy to identify “moments.”
 
-### 7.2 Preventing Stalling
+Examples:
 
-If stalling is possible, include:
+* score swing above threshold
+* objective steal
+* critical blunder
+* last-turn clutch
 
-* turn penalties
-* forced moves
-* shrinking safe zones
+These can be expressed via:
 
-## 8. Telemetry & Show Hooks
+* explicit events (`moment_candidate`)
+* or clear score/progress updates
 
-Scenarios should emit telemetry-friendly summaries to support highlights.
+If the scenario never emits progress signals, the viewer will struggle to make it entertaining.
 
-### 8.1 Public Summary Fields
+## 6. Determinism Considerations
 
-In `summarize(state)`, consider including:
+For sanctioned modes:
 
-* current score
-* key resources
-* objective progress
-* last notable event marker
+* any randomness must be derived from the provided seed
+* avoid wall-clock and non-deterministic calls
 
-Keep it JSON and safe.
+If the scenario uses randomness:
 
-### 8.2 Moment Signals
+* emit seed or RNG state changes as events (optional)
+* keep random effects explainable to spectators
 
-Include “moment hints” where appropriate:
+## 7. Event Log Design
 
-* score swings
-* critical success/failure flags
+Scenarios must emit events that are both:
 
-These help the broadcast layer find turning points.
+* sufficient for replay and verification
+* suitable for spectator rendering
 
-## 9. Testability
+Guidelines:
 
-Every scenario should ship with tests:
+* prefer many small events over one giant opaque dump
+* include clear event types
+* include public vs private fields distinctly
 
-* deterministic init given seed
-* deterministic adjudication
-* termination reached within max turns
-* scoring stable and bounded
+### 7.1 Do Not Spam
 
-## 10. Balancing & Metagame
+* cap event payload size
+* avoid emitting huge blobs every turn
 
-Expect agents to exploit patterns.
+## 8. Scoring and Win Conditions
 
-Balancing methods:
+Guidelines:
 
-* adjust parameters
-* introduce counterplay
-* patch with version bumps (never silently)
+* define a primary win condition (easy to understand)
+* provide secondary scoring for tie-breaks if needed
+* avoid scoring functions that are too abstract
 
-For official scenarios:
+Spectator goal:
 
-* version changes must be explicit
-* old versions remain reproducible
+* a viewer should be able to say “why someone is winning” without a PhD.
 
-## 11. Scenario Categories (Future)
+## 9. Invalid Actions
 
-Examples of scenario “genres” that fit Agent League:
+Invalid actions should be:
 
-* puzzles (logic/optimization)
-* resource management
-* negotiation games
-* adversarial search
-* planning under uncertainty
-* mini-games that reward efficient reasoning
+* detected deterministically
+* penalized consistently
+* visible in telemetry
 
-A healthy league mixes categories for variety and storylines.
+Invalid actions are a natural source of drama (blunders) and should be surfaced.
+
+## 10. Duration and Pacing
+
+Match length matters.
+
+Guidelines:
+
+* short matches are easier to watch
+* long matches need phases or periodic climaxes
+
+Consider designing scenarios with:
+
+* early game, mid game, end game
+* escalating stakes
+
+## 11. Scenario Acceptance Checklist
+
+A scenario is ready for the library when:
+
+* rules are explicit
+* determinism is solid under sanctioned constraints
+* telemetry makes the match legible
+* at least some matches produce identifiable moments
+* the scenario isn’t trivially solved by one dominant strategy
+
+## 12. Library Curation
+
+Not every scenario belongs in the main league.
+
+Suggested tiers:
+
+* flagship scenarios (main events)
+* specialty scenarios (gimmick matches, exhibitions)
+* experimental scenarios (sandbox)
+
+The flagship scenario(s) should optimize for watchability and competitive depth.

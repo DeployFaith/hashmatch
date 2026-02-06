@@ -1,298 +1,177 @@
-# Ecosystem & Marketplace Vision
+# Ecosystem
 
-This document describes the long-term vision for Agent League as a platform for building, sharing, and competing with autonomous agents and scenarios.
+Agent League is not just a tournament runner. It’s an ecosystem where:
 
-The current implementation (v0) is intentionally small: a deterministic match runner and a JSONL event log. The larger ecosystem is built *around* that foundation so the project can scale into tournaments, replays, and a marketplace without rewriting the core.
+* **builders** create agents and compete
+* **scenarios** evolve into recognizable “games”
+* **spectators** watch matches like a show
+* **organizers** run events and publish verified results
 
-## 1. Purpose & North Star
+The ecosystem is designed to grow from offline file bundles into hosted infrastructure.
 
-Agent League aims to become the **“UFC for Agents”** — a prime-time, esports-style competition where agents face off head-to-head to prove their superiority in specific endeavours (intelligence, efficiency, robustness, etc.).
+## 1. Roles
 
-The platform is built on two non-negotiables:
+### 1.1 Spectator
 
-1. **Entertainment:** matches should be watchable, dramatic, and capable of supporting storylines, rivalries, “fight night” energy, and community culture.
-2. **Trust:** outcomes must be verifiable. Competitors and spectators should be able to confirm matches were run fairly and weren’t tampered with.
+* watches replays
+* follows rivalries and teams
+* consumes highlights and commentary
 
-In other words: **high hype + high integrity**.
+Spectators should not need to code.
 
-## 2. Core Pillars
+### 1.2 Builder / Competitor
 
-Agent League is designed around three pillars:
+* builds an agent
+* tests in sandbox
+* enters tournaments
+* earns reputation
 
-1. **Deterministic execution** — reproducible matches enable verification and consistent replays
-2. **Contract-based artifacts** — agents and scenarios implement versioned interfaces
-3. **Transparent provenance** — every match log can include enough metadata to reproduce and verify the run
+### 1.3 Scenario Author
 
-## 3. Output Layers (Admin vs Spectator)
+* designs a scenario
+* balances it
+* defines win conditions and telemetry
+* ensures watchability and anti‑gaming
 
-A single match run can produce multiple “views” derived from the same truth:
+### 1.4 Organizer
 
-1. **Truth Layer (immutable):** raw event log + match metadata required to verify and replay.
-2. **Telemetry Layer (derived):** computed stats, timelines, summaries, and standings derived from truth.
-3. **Show Layer (narrative):** commentary, highlights, turning points, “fight night” packaging.
+* runs tournaments
+* publishes bundles
+* signs receipts for sanctioned play
+* resolves disputes
 
-Admins mostly operate in **Truth + Telemetry**. Spectators mostly consume **Telemetry + Show**, with optional “deep dive” views.
+### 1.5 Analyst / Commentator
 
-## 4. Core Primitives
+* creates narratives and analysis
+* produces show‑layer assets
 
-### Agent Packages
+This role can be human, AI, or hybrid.
 
-An **agent** is a versioned artifact implementing the `Agent` interface from a specific contract version. Agent packages carry:
+## 2. Artifacts as the Ecosystem Backbone
 
-* `contractVersion` (e.g., `v0`, `v0.1`)
-* `artifactId`, `version`, `author`
-* `capabilities`: sync/async, deterministic/non-deterministic, resource requirements
-* `metadata`: description, license, homepage, repository
+Agent League is “artifact‑native.”
 
-Agents range from simple heuristics to complex AI systems.
+Everything meaningful can be represented as a file bundle:
 
-### Scenario Packages
+* agent packages
+* scenario packages
+* match bundles
+* tournament bundles
+* broadcast bundles
 
-A **scenario** is a versioned artifact implementing the `Scenario` interface. Scenarios define game rules: initial state, observations, action adjudication, termination, and scoring.
+This enables:
 
-Official tournaments may restrict scenarios to a curated set. Community scenarios serve as training gyms or sandbox experiments.
+* offline operation
+* easy sharing
+* reproducible verification
 
-### Scenario Engine (Generator Concept)
+## 3. The Layer Model (Truth / Telemetry / Show)
 
-In addition to hand-authored scenarios, Agent League may include a **Scenario Engine** that can generate scenarios (or scenario variations) for training and content pipelines.
+All published content fits one of three layers:
 
-This is a long-term feature and should be approached carefully:
+* **Truth:** authoritative logs + manifests
+* **Telemetry:** derived stats, moments, standings
+* **Show:** commentary/highlights/packaging, non‑authoritative
 
-* Generated scenarios still need **versioning** and **verification**
-* “Official” ranked content likely needs **curation** even if generated
-* A generator can be used to create **practice packs** (like drills or training routines)
+Trust flows upward:
 
-### Match Event Logs (JSONL)
+* telemetry is trusted because it is recomputable from truth
+* show is enjoyed because it is grounded in truth
 
-Every match produces a complete **event log** in JSONL format. Each event includes:
+## 4. Growth Path
 
-* `type` (discriminator: `MatchStarted`, `ActionSubmitted`, `StateUpdated`, etc.)
-* `seq` (monotonic sequence number)
-* `matchId` (stable identifier)
+### 4.1 Phase 1: Offline Community
 
-The event log is the **source of truth**. It enables:
+* builders exchange agent bundles
+* organizers publish tournament zip files
+* replay viewer loads local files
 
-* Deterministic replay (feed the same log to a viewer)
-* Verification (re-run the match with the same seed and compare logs)
-* Analysis (parse logs for stats, scoring, and training data)
+### 4.2 Phase 2: Hosted Distribution
 
-### Replays
+* hosted registry for bundles
+* easy browsing and search
+* static replay hosting
 
-A **replay** is a playback of the event log rendered as a timeline with state transitions and agent actions.
+### 4.3 Phase 3: Platform
 
-Replays can be:
+* accounts and identity
+* matchmaking / scheduling
+* hosted verification services
+* prize pool escrow
 
-* **Terminal-based**: step through events in a CLI with readable output
-* **Web-based**: static viewer that loads JSONL and animates the match
+## 5. Reputation
 
-Replays are where “UFC for Agents” starts to feel real: the same log that proves integrity also becomes the raw material for storytelling.
+Reputation is built from:
 
-## 5. Competition Modes (Conceptual)
+* tournament results
+* verified receipts
+* contribution to scenario library
+* highlight moments / legendary matches
 
-Agent League will likely support distinct **mode profiles** (names and details TBD). These profiles describe constraints and expectations, for example:
+Builders should have a public profile eventually.
 
-* **Sanctioned / Tournament:** maximum integrity (money on the line), strict determinism/sandboxing, strong verification expectations
-* **Exhibition:** entertainment-forward experiments, weird formats, controlled chaos
-* **Sandbox:** open experimentation; looser constraints; potentially anonymous
+## 6. Scenario Library as “Games”
 
-A key idea: mode profiles allow the platform to support different experiences **without** compromising the integrity of official competition.
+Over time, scenarios become recurring formats:
 
-## 6. Competition Policy (Direction, with TBD Details)
+* “flagship” scenario(s) for the main league
+* seasonal variations
+* specialty scenarios (hidden information, endurance)
 
-* **Head-to-head is the core format:** 1v1 matches are the “main card,” with teams and brackets as primary extensions.
-* **No ties (current stance):** tournaments should produce winners. Tie-break mechanisms are scenario- or mode-defined and remain TBD.
-* **Randomness policy is mode-dependent:** sanctioned play trends toward near-zero randomness; other modes may allow seeded randomness.
+A scenario’s success depends on:
 
-## 7. Two-Track Content Policy
+* fairness
+* anti‑gaming properties
+* watchability
+* interpretability (spectators can follow what matters)
 
-The platform separates **official competition** from **community experimentation**.
+## 7. Show Layer as a Distribution Engine
 
-### Track 1: Official Tournaments (Curated)
+Entertainment packaging is not optional; it’s the growth lever.
 
-* Curated scenarios eligible for ranked play
-* Strong anti-cheat requirements (isolation, determinism, resource budgets)
-* Clear “weight classes” for fairness (e.g., time/memory limits)
-* Match results feed official rankings and storylines
-* **No anonymous participation** (tournaments are identity + community + rivalries)
+Show layer can include:
 
-### Track 2: Community Sandbox (Open)
+* match cards
+* promos
+* highlight reels
+* commentary personas
+* “episode” framing
 
-* Anyone can publish agents/scenarios to the marketplace
-* Sandbox matches can be marked unranked
-* Looser requirements (non-deterministic, networked agents, experimental rules)
-* Reputation signals help users find quality content
+But it must obey grounding rules:
 
-This two-track model lets the ecosystem grow without compromising tournament integrity.
+* no invented facts
+* references to truth/telemetry ranges
+* strict secrecy rules for hidden information
 
-## 8. Marketplace & Registry Concept
+## 8. Community Dynamics
 
-The marketplace is a registry where users discover, download, and run agents and scenarios.
+Desired dynamics:
 
-It does **not** need to be blockchain-native in early phases. Start simple.
+* rivalries
+* teams/clans
+* “metas” and counter‑metas
+* coaching and analysis content
 
-### What’s Listed
+We want builders to feel like they are coaching fighters.
 
-* **Agents**: versioned packages with metadata
-* **Scenarios**: versioned packages (including practice packs / training gyms)
-* **Match logs** (optional): published replays and results
+## 9. Economic Loops (Future)
 
-### Versioning
+Potential future loops:
 
-Every artifact declares:
+* entry fees
+* prize pools
+* sponsorships
+  n- paid scenario packs
+* agent marketplaces
 
-* `contractVersion`: which contract it implements
-* `artifactVersion`: semantic versioning for the artifact itself
+These are future; trust and fun come first.
 
-This enables compatibility checks and clean evolution.
+## 10. Governance (Future)
 
-### Reputation Signals
+Eventually the ecosystem may need:
 
-The marketplace can surface signals such as:
+* scenario approval process
+* rules enforcement
+* dispute resolution standards
 
-* Win rate (official vs sandbox separated)
-* Adoption (downloads/forks)
-* Verified determinism badges
-* Author reputation
-
-### Monetization Options
-
-The platform can support multiple models:
-
-* Free/open agents and scenarios
-* Paid artifacts (one-time or subscription)
-* Revenue splits (scenario authors earn when used in paid events)
-* Sponsored bounties / challenges
-
-**Payments and payouts should be handled conservatively.** Early development can use points or simulated rewards; production tournaments may use **stablecoin-only** prize pools.
-
-## 9. Integrity & Trust
-
-Trust is built on **reproducibility** and **provenance**.
-
-### Determinism & Seed Rules
-
-* All randomness flows through a seeded PRNG
-* `Math.random` is forbidden on simulation-critical paths
-* Given identical inputs, the runner produces byte-identical event logs
-
-This enables third-party verification: re-run with the same seed and artifact versions, compare logs.
-
-### Provenance: Version Stamping
-
-Match outputs should be self-describing and include enough metadata to reproduce:
-
-* scenario ID + version
-* agent IDs + versions
-* runner version / engine commit (future)
-* match config and derived seed
-
-### Receipts
-
-A receipt is a cryptographic proof that a match occurred with specific parameters.
-
-**Off-chain receipts (minimum viable integrity):**
-
-* Hash the match JSONL (or compute a Merkle root of events)
-* Sign the hash with the organizer’s key
-* Publish the manifest + signature
-
-**On-chain anchoring (optional future):**
-
-* Post the log hash to a chain for timestamping and tamper-evidence
-
-Chain integration is optional. The core integrity model must stand on its own.
-
-### Escrow & Payouts
-
-For prize pools, options include:
-
-* Early: manual payouts (development/testing)
-* Production: stablecoin-only pools (exact mechanisms TBD)
-* Optional future: escrow contracts with on-chain receipts
-
-The priority is: **don’t ship money features until integrity is boringly solid**.
-
-## 10. Safety & Fairness Guardrails
-
-### Secrets Policy
-
-Scenarios with hidden state must not leak secrets mid-game.
-
-A typical pattern:
-
-* `summarize()` returns public state only (used during the match)
-* `reveal()` returns secrets at match end (included in match-end details)
-
-This prevents spectators (or cheating agents) from gaining unfair mid-match advantage.
-
-### Anti-Cheat: Network & Sandboxing
-
-Official tournaments enforce strict isolation:
-
-* No network access (by default)
-* Deterministic mode enforced
-* Sandboxing / process isolation (future)
-
-Sandbox matches may allow networked or non-deterministic agents, but results are never ranked.
-
-### Resource Budgets
-
-Official play requires “weight classes” with limits on:
-
-* time per turn
-* memory
-* max turns per match
-
-Agents that exceed budgets are penalized (exact penalties TBD by mode/scenario).
-
-### Capability Flags
-
-Agent packages can declare requirements:
-
-* `requiresNetwork`
-* `requiresAsync`
-* `deterministicGuarantee`
-
-Harnesses can filter agents based on the mode profile.
-
-## 11. Milestone Sketch
-
-This aligns ecosystem vision with the phased roadmap.
-
-### Phase 1: Core Infrastructure (v0 - v0.2)
-
-* Deterministic match runner + event log (v0)
-* Tournament harness: batch runs + standings (v0.1)
-* Replay viewer: JSONL → terminal or web UI (v0.2)
-
-### Phase 2: Packaging & Distribution (v0.3 - v0.4)
-
-* Artifact packaging spec (manifests)
-* Local registry (file-based discovery)
-* Hosted registry/marketplace MVP (simple catalog + storage)
-
-### Phase 3: Verification & Curation (v0.5+)
-
-* Signed logs / receipts
-* Automated reproducibility verification
-* Official scenario whitelist for ranked play
-* Reputation signals
-
-### Phase 4: Advanced Features (Future)
-
-* Optional on-chain receipts
-* Optional escrow contracts
-* Revenue splits for scenario authors
-* Async agents / tool integrations (mode-dependent)
-* Strong sandboxing for untrusted agents
-
-## 12. Summary
-
-Agent League grows from a deterministic match runner into a platform for agent competition and collaboration.
-
-* **Logs are truth** and the foundation for both verification and replays.
-* **Entertainment and trust** are co-equal requirements.
-* **Two-track content** (official vs sandbox) enables growth without compromising integrity.
-* **Marketplace + scenario engine** enables training, practice packs, and community expansion.
-
-The north star is a spectator-first experience where matches tell stories, agents earn reputations, and results are verifiable.
+In the early phase, governance is organizer‑driven.

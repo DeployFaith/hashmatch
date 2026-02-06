@@ -1,67 +1,147 @@
-# Project Overview
+# Overview
 
-Agent League is a **contract-first, deterministic simulation core** for running matches between autonomous agents. It defines a small, stable contract (interfaces for agents, scenarios, and the match runner) and produces a complete event log (JSONL) as the source of truth for every match.
+Agent League is a competitive, spectator‑first league where autonomous agents compete head‑to‑head in scenarios.
 
-## North Star
+Think: **UFC for Agents**.
 
-**“UFC for Agents.”**
+It is built around two core requirements:
 
-Agent League aims to become a prime-time, esports-style competition where agents face off head-to-head in scenarios that test **intelligence, efficiency, and robustness**. The project has two non-negotiables:
+* **Entertainment**: matches must be watchable and exciting
+* **Trust**: outcomes must be verifiable and resistant to tampering
 
-* **Entertainment:** matches should be watchable, dramatic, and capable of supporting storylines, rivalries, and “fight night” energy.
-* **Trust:** outcomes must be verifiable—spectators and competitors should be able to confirm matches were run fairly and weren’t tampered with.
+The system is designed to work **offline first**: tournaments can be run and published as portable artifact bundles without servers or databases.
 
-## Core Concepts
+## 1. The Core Loop
 
-* **Contract v0** — A set of TypeScript interfaces (`Agent`, `Scenario`, `MatchRunnerConfig`) that define how agents and scenarios interact. Any agent or scenario that implements the contract can participate in a match.
-* **Deterministic Execution** — All randomness flows through a seeded PRNG. Given the same inputs (agents, scenario, config, seed), a match produces *identical* results every time.
-* **Event Log (Truth Layer)** — Every meaningful action and state transition is captured as a typed event. The event log is JSON-serializable and can be replayed, analyzed, audited, or streamed later.
-* **Scenario** — Defines the rules of a game: initial state, observations, action adjudication, termination, and scoring. Scenarios are pluggable — implement the `Scenario` interface and wire it into the runner.
-* **Agent** — A participant that receives observations and returns actions. Agents range from simple heuristics (binary search) to model-backed systems (future).
+1. A tournament harness runs matches between agents.
+2. Each match produces an authoritative event log (`match.jsonl`).
+3. Derived telemetry (summaries, moments) is computed.
+4. Optional show assets (commentary, highlights) are produced.
+5. The bundle is published.
+6. Spectators watch replays; builders iterate on agents.
 
-## Output Layers (Admin vs Spectator)
+## 2. The Three Output Layers
 
-Agent League treats match output as three layers derived from the same run:
+Agent League uses a layered output model:
 
-1. **Truth Layer (immutable):** the raw event log and match metadata required to verify and replay.
-2. **Telemetry Layer (derived):** computed stats, timelines, summaries, and standings derived from the truth layer.
-3. **Show Layer (narrative):** commentary, highlights, “turning points,” and other entertainment packaging.
+1. **Truth layer (authoritative)**
 
-Admins primarily operate in the **Truth + Telemetry** layers (running matches/tournaments, validating artifacts, publishing results). Spectators primarily consume **Telemetry + Show** layers (watching replays, highlights, analysis), with optional “deep dive” views.
+* deterministic event log + manifest
+* used for replay and verification
 
-## Modes (Conceptual)
+2. **Telemetry layer (derived)**
 
-The long-term product will likely support distinct **mode profiles** (names and details TBD), such as:
+* summaries, stats, standings, “moments”
+* recomputable from truth
 
-* **Sanctioned / Tournament:** strongest integrity requirements (e.g., money on the line).
-* **Exhibition:** entertainment-forward experiments and formats.
-* **Sandbox:** open community experimentation.
+3. **Show layer (non‑authoritative)**
 
-Mode profiles will define constraints like randomness policy, visibility rules, allowed tools, and dispute/verification expectations.
+* commentary, highlight scripts, packaging
+* may be generated, but must be grounded and labeled
 
-## Current State (v0)
+Key rule:
 
-* Contract interfaces defined in `src/contract/`.
-* Deterministic seeded PRNG in `src/core/rng.ts`.
-* Match runner in `src/engine/runMatch.ts`.
-* One demo scenario: **Number Guess** (`src/scenarios/numberGuess/`).
-* Two reference agents: random and baseline (binary search) in `src/agents/`.
-* CLI tool (`src/cli/run-demo.ts`) for running demos and producing JSONL output.
+* **Show is never the source of truth.**
 
-## Ecosystem & Marketplace (Vision)
+## 3. Main Components
 
-Agent League is designed to grow beyond a match runner into a platform for building, sharing, and competing with agents and scenarios. The long-term vision includes:
+### 3.1 Scenario
 
-* **Agent and scenario packages** — versioned artifacts implementing the contract, shared via a community registry
-* **Replay narratives** — event logs become watchable timelines (terminal or web UI) to make matches spectator-friendly
-* **Provenance and integrity** — match outputs include full version metadata (engine, scenario, agents, seed) to enable reproducibility and verification
-* **Leagues and tournaments** — bracketed events, standings, seasons, and fight cards
-* **Marketplace** — discover, download, and run community-contributed agents and scenarios; support for paid artifacts and tournament revenue splits
+A scenario defines:
 
-See **[ecosystem.md](./ecosystem.md)** for the full platform vision and phased rollout plan.
+* the environment
+* the rules
+* the scoring / win conditions
+* what observations an agent receives
 
-## Non-goals (v0)
+Scenarios must be fun to watch and measurable.
 
-* **No infrastructure**: no servers, databases, containers, or cloud services.
-* **No networking**: no HTTP APIs, WebSockets, or remote agent communication.
-* **No spectator UI (yet)**: the event log is designed to support future replay/playback, but no viewer exists in v0.
+### 3.2 Agent
+
+An agent is a competitor implementation that:
+
+* receives observations
+* decides actions
+* attempts to win
+
+Agents may be trained, hand‑crafted, or hybrid.
+
+### 3.3 Runner
+
+The runner executes the scenario and agents under a mode profile.
+
+It produces:
+
+* event logs
+* manifests
+* derived outputs
+
+### 3.4 Tournament Harness
+
+The harness runs batches of matches (brackets/round‑robin), produces standings, and writes portable output bundles.
+
+### 3.5 Replay Viewer
+
+The replay viewer renders the event log as a watchable timeline.
+
+It is structured as:
+
+* core playback engine
+* renderer plugins (terminal/web/future)
+
+### 3.6 Verification Tooling
+
+Verification tooling enables:
+
+* hash checks
+* receipt signature checks
+* optional full re‑runs for reproducibility
+
+## 4. Modes
+
+Mode profiles define competition “rule worlds” such as:
+
+* **Sanctioned (tournament):** strict determinism + receipts
+* **Exhibition:** entertainment experiments
+* **Sandbox:** open R&D
+
+Modes determine tool access, visibility rules, and integrity requirements.
+
+## 5. Spectator Experience
+
+The spectator bar is “reality TV” watchability.
+
+This implies:
+
+* playback that feels dynamic, not static
+* surfaced turning points (“moments”)
+* show packaging (cards, intros, highlights)
+* commentary that helps non‑coders follow the action
+
+Generated show assets are allowed only under strict grounding rules.
+
+## 6. Offline First
+
+Agent League is designed so the core can ship without infrastructure.
+
+Early distribution can be:
+
+* zip bundles of tournaments
+* static replay viewer hosting
+* manual fight night packaging
+
+Infrastructure (accounts, matchmaking, hosted verification, payments) comes later.
+
+## 7. What Success Looks Like
+
+Near term:
+
+* we can run reproducible tournaments
+* we can publish match packages
+* spectators can watch and understand matches
+
+Long term:
+
+* a thriving ecosystem of builders and fans
+* verified tournaments with prize pools
+* a recognizable brand with personalities and rivalries

@@ -1,171 +1,279 @@
-# Contract v0 Specification
+# Specification
 
-This document defines the **v0 contract** between agents, scenarios, and the match runner.
+This document is the high-level system specification for Agent League.
 
-The contract is intentionally small and stable. It is designed to support the product direction (“UFC for Agents”) by making matches:
+It is not an API reference. It defines the components, data flows, and the minimum contracts we need to build the harness + viewer + verification tooling.
 
-* **Deterministic** (reproducible results)
-* **Auditable** (the event log is the source of truth)
-* **Replayable** (future viewers can render matches from logs)
+## 0. Guiding Constraints
 
-Tournament rules, story packaging, payouts, and “prime time” presentation are built *around* this contract, not inside it.
+* Offline first (no servers/DB required for core loop)
+* Deterministic outputs for sanctioned modes
+* Portable artifact bundles
+* Spectator watchability is a requirement
+* Trust must be defensible (logs + provenance + receipts)
 
-## 1. Identifiers
+## 1. System Components
 
-| Type     | TS Alias           | Format                                                   |
-| -------- | ------------------ | -------------------------------------------------------- |
-| Agent ID | `AgentId` (string) | Freeform, unique per match                               |
-| Match ID | `MatchId` (string) | Generated from seeded RNG (`m_` + 12 alphanumeric chars) |
-| Seed     | `Seed` (number)    | 32-bit integer                                           |
+### 1.1 Agent
 
-## 2. Interfaces
+An Agent is a competitor implementation.
 
-### Agent
+Contractually, an agent:
 
-```typescript
-interface Agent<TObs, TAct> {
-  readonly id: AgentId;
-  init(config: AgentConfig): void;
-  act(observation: TObs, ctx: AgentContext): TAct;
-}
-```
+* receives an observation
+* returns an action
 
-* `init` is called once before the match begins with the agent's id and a dedicated seed.
-* `act` receives a scenario-specific observation and an `AgentContext` containing a per-agent seeded RNG, the current turn number, and the agent's id. Must return a scenario-specific action synchronously.
+Agents must follow the contract version declared in their manifest.
 
-### Scenario
+### 1.2 Scenario
 
-```typescript
-interface Scenario<TState, TObs, TAct> {
-  readonly name: string;
-  init(seed: Seed, agentIds: AgentId[]): TState;
-  observe(state: TState, agentId: AgentId): TObs;
-  adjudicate(state: TState, agentId: AgentId, action: TAct): AdjudicationResult<TState>;
-  isTerminal(state: TState): boolean;
-  score(state: TState): Record<AgentId, number>;
-  summarize(state: TState): JsonValue;
-  reveal?(state: TState): JsonValue;
-}
-```
+A Scenario defines:
 
-* `init` creates the initial game state from a seed and the list of participating agents.
-* `observe` derives a per-agent view of the state (may hide information).
-* `adjudicate` validates an action, applies it, and returns the new state plus feedback.
-* `isTerminal` returns true when the match should end.
-* `score` computes final scores keyed by agent id.
-* `summarize` returns a JSON-serializable snapshot for the event log. **Must not include hidden secrets** (see §9).
-* `reveal` *(optional)* returns scenario-specific secrets at match end. If provided, the runner includes the value in `MatchEnded.details`.
+* rules
+* observation model (public vs private)
+* action space
+* transition function
+* scoring/win conditions
 
-### MatchRunnerConfig
+Scenarios should also define:
 
-```typescript
-interface MatchRunnerConfig {
-  seed: Seed;
-  maxTurns: number;
-  matchId?: string;
-}
-```
+* telemetry extraction hooks
+* any tie-break mechanics (if applicable)
 
-## 3. Determinism Rules
+### 1.3 Runner
 
-1. All randomness MUST flow through `createRng(seed)` from `src/core/rng.ts`.
-2. `Math.random` is **forbidden** on any simulation-critical path.
-3. The master RNG is seeded from `config.seed`. Child seeds are derived deterministically for each agent and for the scenario.
-4. Agent turn order is stable: agents are iterated in the order they are passed to `runMatch`.
-5. Given identical `(seed, agents, scenario, maxTurns)`, `runMatch` MUST produce byte-identical event logs.
+Runner executes:
 
-## 4. Event Model
+* a scenario
+* two agents
+* a mode profile
 
-Every event extends `BaseEvent`:
+Runner responsibilities:
 
-```typescript
-interface BaseEvent {
-  type: string; // discriminator
-  seq: number; // 0-based, monotonically increasing
-  matchId: MatchId;
-}
-```
+* enforce the contract
+* enforce mode constraints (budgets/tools/visibility)
+* write the canonical event log
+* write match manifest metadata
 
-### Event Types
+### 1.4 Tournament Harness
 
-| Type                 | Additional Fields                              | Emitted When               |
-| -------------------- | ---------------------------------------------- | -------------------------- |
-| `MatchStarted`       | `seed`, `agentIds`, `scenarioName`, `maxTurns` | Match begins               |
-| `TurnStarted`        | `turn`                                         | Each turn begins           |
-| `ObservationEmitted` | `agentId`, `turn`, `observation`               | Agent is about to act      |
-| `ActionSubmitted`    | `agentId`, `turn`, `action`                    | Agent returns an action    |
-| `ActionAdjudicated`  | `agentId`, `turn`, `valid`, `feedback`         | Scenario judges the action |
-| `StateUpdated`       | `turn`, `summary`                              | End of each turn           |
-| `AgentError`         | `agentId`, `turn`, `message`                   | Agent throws during `act`  |
-| `MatchEnded`         | `reason`, `scores`, `turns`, `details?`        | Match finishes             |
+Harness responsibilities:
 
-### Serialization
+* select matchups
+* derive deterministic seeds
+* invoke runner for each match
+* compute standings
+* write tournament artifacts
 
-* Every event MUST be `JSON.stringify`-able.
-* No `undefined`, `NaN`, `Infinity`, or function values in events.
-* Observation, action, and feedback fields carry `JsonValue` payloads.
+### 1.5 Replay Viewer
 
-## 5. Match Lifecycle
+Viewer responsibilities:
 
-```
-1. Create master RNG from config.seed
-2. Generate matchId (or use config.matchId)
-3. Derive per-agent seeds → init each agent
-4. Derive scenario seed → init scenario state
-5. Emit MatchStarted
-6. LOOP while turn < maxTurns AND !isTerminal(state):
-   a. turn++
-   b. Emit TurnStarted
-   c. FOR each agent (stable order):
-      - observe(state, agentId) → emit ObservationEmitted
-      - agent.act(obs, ctx) → emit ActionSubmitted
-        (on error → emit AgentError, skip to next agent)
-      - scenario.adjudicate(state, agentId, action) → emit ActionAdjudicated
-      - update state
-   d. Emit StateUpdated
-7. Compute scores
-8. Call scenario.reveal(state) if defined → include as MatchEnded.details
-9. Emit MatchEnded (reason: "completed" | "maxTurnsReached")
-10. Return MatchResult
-```
+* parse truth artifacts (log + manifest)
+* compute derived telemetry
+* render timeline playback via renderer plugins
+* enforce visibility redactions
+* optionally load show assets (commentary/highlights)
 
-## 6. Scoring & Winners
+### 1.6 Verification Tooling
 
-Scoring is scenario-defined. The runner calls `scenario.score(state)` after the loop ends and includes the result in `MatchEnded`.
+Verifier responsibilities:
 
-**Important:** “Winner” semantics (tie-breaks, best-of series, sudden death, rematches, etc.) are tournament/mode policy. The v0 runner only outputs scores and match termination reason.
+* compute hashes
+* validate receipts
+* optionally reproduce matches
 
-## 7. Error Handling
+## 2. Artifact Layers
 
-* If `agent.act()` throws, the runner emits an `AgentError` event with the error message and skips that agent for the current turn. The scenario decides (via its own state) whether to penalize.
-* Invalid actions (adjudication returns `valid: false`) are logged via `ActionAdjudicated` with `valid: false`. The scenario controls the penalty.
-* The runner never crashes due to agent errors; it always reaches `MatchEnded`.
+All outputs are organized into layers:
 
-## 8. Non-goals (v0)
+1. **Truth layer**
 
-* Tournament brackets or multi-match orchestration (see tournament harness docs).
-* Async or streaming agent interfaces.
-* Network transport or remote agents.
-* Persistent storage or databases.
-* Spectator/replay UI (the event log is designed to power a viewer later).
-* Payments, buy-ins, prize pots, escrow, or payout mechanics.
+* authoritative
+* deterministic when mode requires
 
-## 9. Secrets & Visibility Policy
+2. **Telemetry layer**
 
-Scenarios with hidden state (e.g. a secret number) MUST NOT leak secrets through mid-game public summaries:
+* derived
+* recomputable from truth
 
-* `summarize()` must omit secret values. `StateUpdated.summary` is intended to be safe for live viewing.
-* `reveal()` is the designated place for disclosing secrets. The runner calls it once at match end and attaches the result to `MatchEnded.details`.
+3. **Show layer**
 
-Additional notes for hidden-information scenarios:
+* non-authoritative
+* used for entertainment
+* must be grounded and labeled
 
-* `observe()` may produce **asymmetric** per-agent observations. A future spectator viewer must be careful not to “leak” by showing all agents’ private observations live.
-* The v0 runner does not implement redaction or audience filtering; it emits events for truth/replay. Visibility rules are enforced at the viewer/publisher layer (future).
+## 3. Canonical Match Artifacts
 
-## 10. Forward-Compatible Extensions (Non-binding)
+Minimum match outputs:
 
-The following concepts are expected to appear later, but are not required in v0:
+* `match.jsonl` (truth)
+* `match_manifest.json` (truth)
 
-* **Mode profiles** (sanctioned vs exhibition vs sandbox) that define constraints like randomness policy, tool access, and visibility.
-* **Match manifests** that stamp versions (runner, scenario, agent artifacts) and seed derivation inputs for verification.
-* **Receipts** (hashes/signatures) over match outputs to strengthen trust for public tournaments.
+Recommended derived outputs:
+
+* `match_summary.json` (telemetry)
+* `moments.json` (telemetry)
+
+Optional show outputs:
+
+* `commentary.json`
+* `highlights.json`
+* `assets/*`
+
+## 4. Canonical Tournament Artifacts
+
+Minimum tournament outputs:
+
+* `tournament_manifest.json`
+* `standings.json`
+* per-match folders (match artifacts)
+
+Optional:
+
+* tournament receipt
+* fight card metadata
+
+## 5. Event Log Contract (JSONL)
+
+The event log is a sequence of JSON objects.
+
+### 5.1 Required Event Fields (Draft)
+
+* `event_idx` (monotonic)
+* `type` (string)
+* `turn` (integer, optional if event type is not turn-based)
+* `timestamp` (optional; avoid if determinism is required)
+* `payload` (object)
+
+### 5.2 Common Event Types (Illustrative)
+
+* `match_started`
+* `turn_started`
+* `observation_emitted` (may include public + private fields)
+* `action_submitted`
+* `action_invalid`
+* `state_updated`
+* `score_updated`
+* `match_ended`
+
+Scenarios may define additional event types.
+
+### 5.3 Private vs Public Fields
+
+Events may include both public and private information.
+
+The viewer must enforce visibility policy:
+
+* redact private fields for spectators during live playback
+* optionally reveal private fields post‑match
+
+## 6. Match Manifest Contract
+
+The match manifest describes everything needed to reproduce/verify the match.
+
+Minimum:
+
+* ids/versions for runner/scenario/agents
+* mode profile id
+* derived seed
+* config limits (maxTurns)
+
+Recommended:
+
+* content hashes for scenario/agent artifacts
+* seed derivation inputs
+
+## 7. Mode Profile Contract
+
+Mode profiles determine:
+
+* determinism requirements
+* tool access
+* resource budgets
+* visibility rules
+* verification requirements
+* show policy (generated assets allowed, grounding rules)
+
+Mode profiles must be explicit (avoid hidden defaults).
+
+## 8. Telemetry Contract
+
+Telemetry is derived from logs.
+
+Recommended telemetry outputs:
+
+* final outcome and score
+* winner
+* per-turn score timeline
+* invalid actions/errors
+* efficiency metrics (scenario-defined)
+
+Telemetry files must include enough context to be recomputable (e.g., references to event idx ranges).
+
+## 9. Moments Contract
+
+A moment is a flagged interesting segment.
+
+Recommended fields:
+
+* `id`
+* `label`
+* `start_event_idx`
+* `end_event_idx`
+* `signals` (why flagged)
+
+Moments should be computable deterministically from truth.
+
+## 10. Show Asset Contracts
+
+Show assets are non-authoritative but must be grounded.
+
+### 10.1 Commentary
+
+* entries should reference event idx / moment ids
+* must be labeled as show content
+
+### 10.2 Highlights
+
+* list of segments to show
+* references to moments/event idx
+
+### 10.3 Generated Visuals
+
+Allowed only under show policy.
+
+Rules:
+
+* must not invent facts
+* must not leak private info
+* must include grounding references
+
+## 11. Packaging
+
+Bundling conventions are defined in `artifact_packaging.md`.
+
+Key requirement:
+
+* truth artifacts are sufficient for verification
+* telemetry is convenience
+* show is optional
+
+## 12. Verification
+
+Verification conventions are defined in `integrity_and_verification.md`.
+
+The system must support:
+
+* hash checks
+* receipt validation
+* optional re-run reproduction
+
+## 13. Non‑Goals (For Now)
+
+* online platform features
+* live betting
+* on-chain settlement
+* real-time streaming infrastructure
+
+All of these are future layers on top of the offline c
