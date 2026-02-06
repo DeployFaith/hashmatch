@@ -10,7 +10,9 @@
     "test": "vitest run",
     "build": "tsc -p tsconfig.build.json",
     "demo": "npm run build && node dist/cli/run-demo.js",
-    "tournament": "npm run build && node dist/cli/run-tournament.js"
+    "tournament": "npm run build && node dist/cli/run-tournament.js",
+    "match": "npm run build && node dist/cli/run-match.js",
+    "replay": "npm run build && node dist/cli/replay-match.js"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
