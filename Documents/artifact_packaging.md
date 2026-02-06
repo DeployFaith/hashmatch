@@ -1,221 +1,206 @@
 # Artifact Packaging
 
-This document defines how Agent League packages **agents** and **scenarios** as versioned artifacts.
+This document defines how Agent League packages match/tournament outputs into portable bundles.
 
-Packaging is the bridge from:
+The goal is:
 
-* “a local demo in a repo”
+* everything can be copied as files
+* bundles are replayable offline
+* bundles support verification (hashes/receipts)
+* bundles support spectator broadcast packaging
 
-to:
+No servers required.
 
-* “an ecosystem where people install, share, and compete with artifacts”
+## 1. Packaging Principles
 
-This specification is intentionally **offline-first**. A hosted registry/marketplace can be built later on top of these formats.
+1. **Portable**
 
-## 1. Goals
+* a bundle should be a folder (or zip) you can move anywhere.
 
-* Make agents and scenarios distributable and versioned.
-* Enable compatibility checks against a contract version.
-* Support integrity and verification via content hashes.
-* Provide enough metadata for discovery and community reputation.
+2. **Self‑describing**
 
-## 2. Artifact Types
+* includes manifests that explain contents and versions.
 
-### 2.1 Agent Artifact
+3. **Layered**
 
-A packaged agent that implements the `Agent` interface for a specific contract version.
+* bundles may include truth, telemetry, and show artifacts.
 
-### 2.2 Scenario Artifact
+4. **Verifiable**
 
-A packaged scenario that implements the `Scenario` interface for a specific contract version.
+* truth artifacts can be hashed and signed.
 
-## 3. Directory Layout (Draft)
+5. **Composable**
 
-An artifact is a folder (or tar/zip archive) with:
+* tournament bundles contain match bundles.
 
-```
-<artifactRoot>/
-  manifest.json
-  dist/
-    index.js
-  assets/ (optional)
-  README.md (optional)
-  LICENSE (optional)
+## 2. Layer Classification
+
+Every file in a bundle should be classified as one of:
+
+* `truth` (authoritative)
+* `telemetry` (derived from truth)
+* `show` (non‑authoritative)
+
+This classification supports:
+
+* integrity/verification rules
+* spectator reveal/redaction rules
+* “generated content” labeling
+
+## 3. Match Bundle Layout
+
+Recommended folder layout:
+
+```text
+match_bundle/
+  match_manifest.json
+  match.jsonl
+  match_summary.json
+  moments.json            (optional, derived)
+  receipt.json            (optional, signed)
+  show/
+    commentary.json       (optional)
+    highlights.json       (optional)
+    assets/               (optional)
+      thumbnails/
+      overlays/
 ```
 
 Notes:
 
-* `dist/index.js` is the built entry point.
-* `assets/` can include scenario data files, images, etc.
-* The artifact must be loadable without network access in sanctioned modes.
+* `match.jsonl` + `match_manifest.json` are required for replay.
+* `match_summary.json` is recommended.
+* show artifacts are optional.
 
-## 4. Manifest Format
+## 4. Tournament Bundle Layout
 
-`manifest.json` is required.
+Recommended folder layout:
 
-### 4.1 Common Fields
-
-```json
-{
-  "artifactType": "agent" | "scenario",
-  "id": "string",
-  "version": "1.0.0",
-  "name": "Human readable name",
-  "description": "Short description",
-  "author": {
-    "name": "string",
-    "handle": "string",
-    "url": "string"
-  },
-  "license": "MIT",
-  "contractVersion": "v0",
-  "entry": "dist/index.js",
-  "tags": ["string"],
-  "capabilities": {
-    "deterministic": true,
-    "requiresNetwork": false,
-    "requiresTools": []
-  }
-}
+```text
+tournament_bundle/
+  tournament_manifest.json
+  standings.json
+  receipt.json                  (optional)
+  matches/
+    <matchId>/                  (match bundle folders)
+      ...
 ```
 
-### 4.2 Agent-Specific Fields
+## 5. Broadcast Bundle
 
-```json
-{
-  "agent": {
-    "observationSchema": "optional",
-    "actionSchema": "optional"
-  }
-}
+A broadcast bundle is a packaging variant optimized for spectators and distribution.
+
+It may be identical to match/tournament bundles, but adds:
+
+* `broadcast_manifest.json` to explicitly list contents and classification
+* `card.json` (optional) for fight night packaging
+
+Example:
+
+```text
+broadcast/
+  broadcast_manifest.json
+  card.json                     (optional)
+  truth/
+    match.jsonl
+    match_manifest.json
+  telemetry/
+    match_summary.json
+    moments.json
+  show/
+    commentary.json
+    highlights.json
+    assets/
 ```
 
-### 4.3 Scenario-Specific Fields
+The “split folders” approach is optional; classification can also be done by manifest alone.
 
-```json
-{
-  "scenario": {
-    "minPlayers": 2,
-    "maxPlayers": 2,
-    "supportsTeams": false,
-    "supportsHiddenInfo": true,
-    "telemetry": ["scoreTimeline", "errors"]
-  }
-}
-```
+## 6. Manifests
 
-Schema enforcement can be introduced later. Start with best-effort validation.
+### 6.1 Match Manifest
 
-## 5. Content Hashing
+The match manifest describes reproducibility inputs. (Defined in Integrity doc.)
 
-Artifacts should be hashable so that:
+### 6.2 Tournament Manifest
 
-* match manifests can reference exact bytes
-* receipts can bind outcomes to specific artifact versions
+The tournament manifest describes match list + seeds and harness version.
 
-### 5.1 Artifact Hash
+### 6.3 Broadcast Manifest (Recommended)
 
-Compute a stable hash of the artifact contents.
+`broadcast_manifest.json` should include:
 
-Rules:
+* `bundleId`
+* `bundleType: match | tournament`
+* `modeProfileId`
+* `createdBy` (organizer/harness)
 
-* exclude ephemeral files (`node_modules`, temp files)
-* normalize file ordering when hashing
+**Files list**
 
-Store the hash in:
+For each file:
 
-* match manifests (for verification)
-* registry catalogs (for integrity)
+* `path`
+* `class: truth | telemetry | show`
+* `contentHash` (optional early; recommended later)
+* `mediaType` (optional)
 
-## 6. Compatibility
+**Truth bundle hash** (optional but recommended)
 
-### 6.1 Contract Compatibility
+* `truthBundleHash` computed over the canonical truth files
 
-An artifact must declare its `contractVersion`.
+## 7. Hashing & Receipts
 
-The harness/runner must refuse to load artifacts with incompatible versions.
+Hashing and signing are defined in `integrity_and_verification.md`.
 
-### 6.2 Capability Compatibility (Mode Profiles)
+Packaging rules:
 
-Mode profiles restrict capabilities:
+* truth files should be hashed consistently (same algorithm)
+* receipt should bind at least `match.jsonl` + `match_manifest.json`
+* telemetry hashes are optional convenience
+* show artifacts should not be required to validate truth
 
-* sanctioned mode likely forbids `requiresNetwork: true`
-* exhibition may allow
-* sandbox may allow
+## 8. Versioning
 
-Artifacts must truthfully declare capability requirements.
+Bundles should include version stamps to prevent “it works on my machine” confusion.
 
-In early phases, this is enforced by policy + review; later, enforce via sandboxing.
+* harness version
+* runner version
+* scenario version
+* agent versions
+* contract version
 
-## 7. Loading Model
+## 9. Compression
 
-The local runtime loads artifacts by:
+Bundles may be distributed as:
 
-1. reading `manifest.json`
-2. verifying contract compatibility
-3. verifying capability compatibility (mode)
-4. importing `entry`
-5. instantiating the exported factory
+* folder
+* `.zip`
+* `.tar.gz`
 
-### 7.1 Export Convention (Draft)
+Do not assume a particular compression format in core tooling.
 
-Artifacts export a default factory:
+## 10. Registry Integration (Later)
 
-* Agent artifact exports `createAgent()`
-* Scenario artifact exports `createScenario()`
+A local registry can index bundles by:
 
-Exact conventions can be finalized later.
+* bundleId
+* scenario id
+* agent ids
+* mode profile
+* time
 
-## 8. Local Registry (Offline)
+Hosted registry is future work.
 
-A local registry is a directory of installed artifacts:
+## 11. Show‑Layer Rules
 
-```
-registry/
-  agents/
-    <id>@<version>/
-  scenarios/
-    <id>@<version>/
-```
+If show artifacts are included:
 
-A CLI can support:
+* label them non‑authoritative
+* ground claims to truth/telemetry (event ranges / moments)
+* obey visibility policies (do not leak secrets)
 
-* `install <path>`
-* `list agents|scenarios`
-* `validate <id>@<version>`
-* `hash <id>@<version>`
+## 12. v0 Success Criteria
 
-## 9. Hosted Registry / Marketplace (Future)
-
-A hosted registry can be built later by storing:
-
-* manifests
-* artifact archives
-* content hashes
-* reputation signals
-
-The packaging format should not assume any particular backend.
-
-## 10. Security Notes
-
-* Treat artifacts as untrusted code.
-* Sanctioned modes must eventually run artifacts in isolation (process/container sandbox).
-* Until sandboxing exists, sanctioned tournaments should rely on curated artifacts.
-
-## 11. Phased Plan
-
-### Phase A (v0.3)
-
-* define manifest format
-* package artifacts locally
-* local registry
-
-### Phase B (v0.4)
-
-* include artifact hashes in match manifests
-* signed receipts reference artifact hashes
-
-### Phase C (v0.5+)
-
-* hosted registry
-* marketplace features
+* match bundles replayable offline
+* tournament bundles reproducible and readable
+* broadcast bundles easy to publish
+* receipts can be added later without repacking everything

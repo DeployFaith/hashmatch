@@ -1,200 +1,258 @@
-# Tournament Harness v0 (Offline)
+# Tournament Harness v0
 
-This document specifies the **v0 tournament harness**: an offline tool that runs multiple matches deterministically and produces standings + artifacts.
+This document defines a minimal tournament harness that can run batches of Agent League matches **offline**, producing deterministic, portable artifacts.
 
-The harness is the step from “one demo match” to a “fight night card.” It does not introduce servers, databases, networking, or any on-chain logic.
+The harness is intentionally infrastructure‑free: no servers, no DB.
 
 ## 1. Goals
 
-### Primary goals
+* run tournaments (round‑robin or bracket)
+* produce deterministic match outputs
+* generate standings from match results
+* output artifacts that can be replayed and verified
+* support “fight card” metadata for spectator packaging
 
-1. **Batch orchestration:** run many matches across many agents/scenarios.
-2. **Determinism:** identical inputs produce identical outputs (including standings).
-3. **Artifacts:** produce a standard output layout for replays, summaries, and analysis.
-4. **Extensibility:** allow future “mode profiles” (sanctioned/exhibition/sandbox) without requiring decisions now.
-
-### Non-goals (v0)
-
-* No hosted league operations (no accounts, submissions, payments).
-* No sandboxing / process isolation (agents run in-process).
-* No anti-cheat beyond determinism and logging.
-* No spectator UI (though artifacts are designed for future viewers).
+Non‑goal (for v0): online matchmaking, identity services, payments.
 
 ## 2. Inputs
 
-The harness takes:
+### 2.1 Required
 
-* `tournamentSeed: Seed` — seed for deterministic scheduling and match seeding
-* `scenario: Scenario` — scenario instance (or scenario id if using registry later)
-* `agents: Agent[]` — list of agents participating
-* `format` — how matches are scheduled (round robin first)
-* `matchConfig` — maxTurns and other runner config defaults
+* scenario artifact (or reference to scenario package)
+* list of agents (artifact references)
+* mode profile id/name
 
-## 3. Deterministic Seeding
+### 2.2 Optional
 
-A tournament is deterministic if:
+* tournament metadata:
 
-* the schedule is deterministic
-* each match uses a deterministic derived seed
+  * title
+  * organizer
+  * fight card ordering (prelims/main card/main event)
+  * ruleset label
 
-### Seed derivation
+## 3. Determinism
 
-Define a pure function:
+The harness must be deterministic when the mode requires it.
 
-```
-deriveMatchSeed(tournamentSeed, matchKey) -> Seed
-```
+Rules:
 
-Where `matchKey` is a stable string that uniquely identifies the match (e.g., `"RR:agentA-vs-agentB:game1"`).
+* the tournament must have a single **tournament seed**
+* each match seed must be derived deterministically from:
 
-Implementation notes:
+  * tournament seed
+  * matchKey (stable string)
 
-* Use a stable hash (e.g., FNV-1a 32-bit) over `tournamentSeed + ":" + matchKey`.
-* Avoid non-deterministic sources (time, randomness, filesystem order).
+### 3.1 Match Key
 
-## 4. Scheduling Formats
+A matchKey must be stable across machines and runs.
 
-### 4.1 Round Robin (v0)
+Recommended format:
 
-Run every pair of agents exactly once (or twice, swapping “sides,” depending on scenario symmetry).
+* `roundIndex:agentAId:agentBId` for round‑robin
+* `bracketPath:agentAId:agentBId` for bracket
 
-Determinism requirements:
+Important:
 
-* Sort agents by stable key (id) OR preserve input order, but choose one and keep it consistent.
-* Enumerate all pairs in a stable order.
+* agent ordering must be canonical (sort by stable id) unless the scenario explicitly models sides.
 
-Output: a list of `MatchSpec` items.
+### 3.2 Seed Derivation
 
-### 4.2 Bracket Primitives (future)
+Use a hash‑based derivation:
 
-A single-elimination bracket requires:
+* `matchSeed = H(tournamentSeed || matchKey)`
 
-* seeding rules
-* advancement rules
-* tie-break rules
+If sides matter:
 
-These are explicitly out of scope for v0 but the artifact model should not prevent them.
+* derive `seedA` and `seedB` deterministically from matchSeed + agentId.
 
-## 5. MatchSpec & MatchResult
+The derived seed(s) must be written into `match_manifest.json`.
 
-### MatchSpec
+## 4. Output Structure
 
-```typescript
-type MatchSpec = {
-  matchKey: string;
-  seed: Seed;
-  scenarioName: string;
-  agentIds: AgentId[];
-  maxTurns: number;
-  // future: modeProfileId, rulesetId, sideAssignments
-};
-```
+A tournament run produces a folder.
 
-### MatchResult
-
-The harness consumes the runner’s `MatchResult`:
-
-* matchId
-* scores by agentId
-* reason (completed / maxTurnsReached)
-* output JSONL path (artifact)
-
-## 6. Artifact Layout
-
-A tournament run writes outputs to a directory:
-
-```
-out/
-  tournament.json
+```text
+tournament_run/
+  tournament_manifest.json
   standings.json
   matches/
-    <matchKey>/
+    <matchId>/
       match.jsonl
+      match_manifest.json
       match_summary.json
+      moments.json          (optional, derived)
+      commentary.json       (optional, show)
+      highlights.json       (optional, show)
 ```
 
+<<<<<<< Updated upstream
 Optionally, the CLI can emit a single-file **tournament bundle** via `--bundle-out <path>`. The bundle is a versioned JSON payload that embeds `tournament.json`, `standings.json`, each match summary, and the `match.jsonl` logs as strings so replay viewers can load a full tournament without relying on the File System Access API.
 
 ### tournament.json
+=======
+Notes:
+>>>>>>> Stashed changes
 
-Includes:
+* `match.jsonl` + `match_manifest.json` are the truth layer.
+* `match_summary.json` and `moments.json` are telemetry.
+* `commentary.json` and `highlights.json` are show.
 
-* tournamentSeed
-* scenarioName
-* list of agents
-* list of matches (specs)
+## 5. Tournament Manifest (Draft)
+
+`tournament_manifest.json` should include:
+
+* `tournamentId`
+* `title`
+* `modeProfileId`
+* `harnessVersion`
+* `createdAt` (optional; store outside deterministic hashes if needed)
+
+**Participants**
+
+* list of agents with:
+
+  * `agentId`
+  * `owner` (optional)
+  * `contentHash` (optional early)
+
+**Scenario**
+
+* scenario id/version
+* scenario contentHash (optional early)
+
+**Seed**
+
+* `tournamentSeed`
+* `seedDerivation` description
+
+**Matches**
+
+* list of match entries:
+
+  * `matchId`
+  * `matchKey`
+  * `seed`
+  * agent ids
+  * output path
+  * (optional) fight card slot metadata
+
+## 6. Match Manifest (Harness Responsibilities)
+
+The harness must write `match_manifest.json` per match.
+
+Minimum recommended:
+
+* `matchId`
+* `modeProfileId`
+* `scenario` id/version
+* agent ids + versions
+* derived match seed
 * harness version
 
-### standings.json
+Optional but strongly recommended:
 
-A derived table computed from match summaries. Contains:
+* `scenario.contentHash`
+* `agent.contentHash`
 
-* wins / losses
-* points scored
-* points conceded
-* optional efficiency metrics (future)
+## 7. Running a Match
 
-### match_summary.json
+For each match:
 
-Derived from the event log:
+1. load scenario
+2. load two agents
+3. initialize RNG with derived seed
+4. run until terminal condition (win/loss/timeout/maxTurns)
+5. write `match.jsonl`
+6. compute `match_summary.json`
+7. (optional) compute `moments.json`
 
-* matchId
-* matchKey
-* agentIds
-* scores
-* winner (if computed by harness policy)
-* termination reason
-* turns
+The harness should treat scenario/agent execution as a black box defined by the contract.
 
-**Note:** “Winner” may be derived by simple score comparison in v0. Future tournament policy may enforce “no ties” via best-of or tie-break rounds; that policy is TBD and should not be hard-coded into the v0 harness.
+## 8. Standings & Scoring
 
-## 7. Standings Computation
+Standings must be derived from match summaries.
 
-Standings are a deterministic reduction over match summaries.
+### 8.1 Default Scoring
 
-Suggested v0 scoring:
+* win = 1
+* loss = 0
+* tie = 0 (direction: no ties in sanctioned play)
 
-* Win: +1
-* Loss: +0
-* Tie: +0.5 (allowed only in harness v0 if scenario outputs equal scores)
+If a scenario supports points, also compute:
 
-**Product direction note:** The long-term stance is “no ties” for official tournaments, but the tie-break mechanism is intentionally TBD. The v0 harness may temporarily allow ties so the system can run end-to-end while tie-break policy is designed.
+* pointsFor
+* pointsAgainst
 
-## 8. Mode Profiles (Placeholder)
+### 8.2 Tie‑breaks for Standings
 
-The harness should accept an optional `modeProfile` object that may later control:
+Even with “no ties” inside matches, standings can tie.
 
-* randomness policy
-* time/memory budgets
-* tool/network access
-* visibility rules (spectator reveal)
-* dispute/receipt requirements
+Tie‑break policy should be declared in the tournament manifest.
 
-In v0, `modeProfile` may be a no-op, but reserving the concept prevents painful refactors later.
+Suggested order:
 
-## 9. Determinism Tests
+1. head‑to‑head
+2. point differential
+3. total points
+4. deterministic efficiency metrics
 
-The harness must ship with a determinism test suite:
+## 9. Fight Card Metadata (Spectator Packaging)
 
-1. Run a tournament twice with identical inputs.
-2. Ensure `tournament.json`, `standings.json`, and every `match.jsonl` are byte-identical.
+To support the “UFC for agents” vibe, the harness can optionally label matches with card slots.
 
-If output paths contain timestamps, determinism is broken. Avoid timestamps.
+Example:
 
-## 10. CLI (v0)
+* `card: prelims | main | main_event`
+* `orderIndex`
 
-A CLI entry point should:
+This is metadata only; it does not affect match execution.
 
-* accept `--seed`, `--maxTurns`, `--scenario`, `--agents`
-* run the tournament
-* write outputs to `out/` (or a user-provided dir)
-* print a concise summary
+## 10. Verification Hooks
 
-## 11. Future Extensions (Non-binding)
+### 10.1 Hashing
 
-* Single-elimination brackets
-* Best-of series
-* Scenario-defined tie-break mini-rounds
-* Signed receipts (hash + signature) over tournament artifacts
-* Registry integration (load agents/scenarios from local or hosted catalog)
-* Process isolation / sandboxing for untrusted agents
+The harness may compute hashes as part of output:
+
+* `logHash` for `match.jsonl`
+* `manifestHash` for `match_manifest.json`
+
+These hashes may be stored in:
+
+* `match_summary.json` (telemetry convenience)
+* or a dedicated `hashes.json`
+
+### 10.2 Receipts (Later)
+
+In v0, signatures are optional. The harness should leave space for a future `receipt.json`.
+
+## 11. Show‑Layer Hooks (Non‑Authoritative)
+
+The harness may optionally produce show artifacts after the match completes:
+
+* `moments.json` (telemetry)
+* `highlights.json` (show)
+* `commentary.json` (show)
+
+Constraints:
+
+* show artifacts must be labeled non‑authoritative
+* show content must reference event ranges / moments
+* show generation must not affect match execution
+
+## 12. Minimal CLI Interface (Illustrative)
+
+Examples (names TBD):
+
+* `run-tournament --scenario <path> --agents <dir> --mode sanctioned --seed <seed>`
+* `verify-tournament --path tournament_run/`
+
+CLI shape is flexible; artifact outputs are the important contract.
+
+## 13. v0 Success Criteria
+
+* deterministic tournament runs
+* stable file outputs
+* replays loadable by viewer
+* standings reproducible from match summaries
+* ready for receipts and registry work later
