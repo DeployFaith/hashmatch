@@ -13,6 +13,9 @@ import {
   EyeOff,
   Trophy,
   X,
+  FolderOpen,
+  ArrowLeft,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -31,6 +34,66 @@ interface TurnGroup {
   turn: number | null;
   events: ReplayEvent[];
 }
+
+/** Shape of tournament.json written by the artifact writer. */
+interface TournamentMeta {
+  tournamentSeed: number;
+  scenarioName: string;
+  agents: string[];
+  matches: Array<{
+    matchKey: string;
+    seed: number;
+    scenarioName: string;
+    agentIds: string[];
+    maxTurns: number;
+  }>;
+}
+
+/** Shape of each matches/<key>/match_summary.json. */
+interface MatchSummaryEntry {
+  matchId: string;
+  matchKey: string;
+  seed: number;
+  agentIds: string[];
+  scores: Record<string, number>;
+  winner: string | null;
+  turns: number;
+  reason: string;
+}
+
+/** Shape of each row in standings.json. */
+interface StandingsEntry {
+  agentId: string;
+  matches: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  points: number;
+  scoreFor: number;
+  scoreAgainst: number;
+  scoreDiff: number;
+}
+
+/** Loaded tournament data held in state. */
+interface TournamentData {
+  tournament: TournamentMeta;
+  standings: StandingsEntry[];
+  matchSummaries: MatchSummaryEntry[];
+  dirHandle: FileSystemDirectoryHandle;
+}
+
+/** Discriminated union for the page state machine. */
+type PageState =
+  | { mode: "idle" }
+  | { mode: "single"; events: ReplayEvent[]; errors: ParseError[]; filename: string }
+  | { mode: "tournament"; data: TournamentData }
+  | {
+      mode: "tournamentMatch";
+      data: TournamentData;
+      matchKey: string;
+      events: ReplayEvent[];
+      errors: ParseError[];
+    };
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -113,12 +176,94 @@ const typeColors: Record<string, string> = {
 };
 
 // ---------------------------------------------------------------------------
+// File System Access API helpers
+// ---------------------------------------------------------------------------
+
+function hasDirectoryPicker(): boolean {
+  return typeof window !== "undefined" && "showDirectoryPicker" in window;
+}
+
+async function pickDirectory(): Promise<FileSystemDirectoryHandle> {
+  // showDirectoryPicker may not be in all TS DOM type declarations
+  type WindowWithPicker = Window & {
+    showDirectoryPicker: () => Promise<FileSystemDirectoryHandle>;
+  };
+  return (window as unknown as WindowWithPicker).showDirectoryPicker();
+}
+
+/** Read a text file from a directory handle by path segments. */
+async function readTextFile(
+  dirHandle: FileSystemDirectoryHandle,
+  ...path: string[]
+): Promise<string> {
+  let current: FileSystemDirectoryHandle = dirHandle;
+  for (let i = 0; i < path.length - 1; i++) {
+    current = await current.getDirectoryHandle(path[i]);
+  }
+  const fileHandle = await current.getFileHandle(path[path.length - 1]);
+  const file = await fileHandle.getFile();
+  return file.text();
+}
+
+/** Parse a JSON file from a directory, returning a typed result. */
+async function readJsonFile<T>(
+  dirHandle: FileSystemDirectoryHandle,
+  ...path: string[]
+): Promise<T> {
+  const text = await readTextFile(dirHandle, ...path);
+  return JSON.parse(text) as T;
+}
+
+/** Load all tournament data from a directory handle. */
+async function loadTournamentDir(
+  dirHandle: FileSystemDirectoryHandle,
+): Promise<TournamentData> {
+  const tournament = await readJsonFile<TournamentMeta>(dirHandle, "tournament.json");
+  const standings = await readJsonFile<StandingsEntry[]>(dirHandle, "standings.json");
+
+  // Use the matches list from tournament.json to enumerate match summaries
+  const matchSummaries: MatchSummaryEntry[] = [];
+  for (const spec of tournament.matches) {
+    try {
+      const summary = await readJsonFile<MatchSummaryEntry>(
+        dirHandle,
+        "matches",
+        spec.matchKey,
+        "match_summary.json",
+      );
+      matchSummaries.push(summary);
+    } catch {
+      // Skip matches without a summary file
+    }
+  }
+
+  return { tournament, standings, matchSummaries, dirHandle };
+}
+
+/** Load a single match's JSONL from the tournament directory. */
+async function loadMatchFromDir(
+  dirHandle: FileSystemDirectoryHandle,
+  matchKey: string,
+): Promise<{ events: ReplayEvent[]; errors: ParseError[] }> {
+  const text = await readTextFile(dirHandle, "matches", matchKey, "match.jsonl");
+  return parseJsonl(text);
+}
+
+// ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function FileDropZone({ onLoad }: { onLoad: (text: string, filename: string) => void }) {
+function FileDropZone({
+  onLoad,
+  onTournamentLoad,
+}: {
+  onLoad: (text: string, filename: string) => void;
+  onTournamentLoad: (data: TournamentData) => void;
+}) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [tournamentLoading, setTournamentLoading] = useState(false);
+  const [tournamentError, setTournamentError] = useState<string | null>(null);
 
   const handleFile = useCallback(
     (file: File) => {
@@ -151,6 +296,28 @@ function FileDropZone({ onLoad }: { onLoad: (text: string, filename: string) => 
     const file = new File([blob], "sample-number-guess.jsonl", { type: "text/plain" });
     handleFile(file);
   }, [handleFile]);
+
+  const handleTournamentFolder = useCallback(async () => {
+    setTournamentError(null);
+    setTournamentLoading(true);
+    try {
+      const dirHandle = await pickDirectory();
+      const data = await loadTournamentDir(dirHandle);
+      onTournamentLoad(data);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        // User cancelled the picker
+      } else if (err instanceof Error) {
+        setTournamentError(err.message);
+      } else {
+        setTournamentError("Failed to load tournament folder");
+      }
+    } finally {
+      setTournamentLoading(false);
+    }
+  }, [onTournamentLoad]);
+
+  const directoryPickerAvailable = hasDirectoryPicker();
 
   return (
     <div className="mx-auto max-w-xl space-y-4">
@@ -208,6 +375,43 @@ function FileDropZone({ onLoad }: { onLoad: (text: string, filename: string) => 
             <FileText className="h-4 w-4" />
             Load sample replay (Number Guess)
           </Button>
+
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          {directoryPickerAvailable ? (
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={handleTournamentFolder}
+              disabled={tournamentLoading}
+            >
+              {tournamentLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FolderOpen className="h-4 w-4" />
+              )}
+              Load tournament folder
+            </Button>
+          ) : (
+            <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground text-center">
+              <p className="font-medium mb-1">Tournament folder loading unavailable</p>
+              <p>
+                The File System Access API is required. Use Chrome or Edge, or load a single match
+                JSONL file instead.
+              </p>
+            </div>
+          )}
+
+          {tournamentError && (
+            <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p className="text-xs">{tournamentError}</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -329,6 +533,208 @@ function EventDetail({ event, spoilers }: { event: ReplayEvent | null; spoilers:
 }
 
 // ---------------------------------------------------------------------------
+// Tournament browser
+// ---------------------------------------------------------------------------
+
+function TournamentBrowser({
+  data,
+  onSelectMatch,
+  onClose,
+}: {
+  data: TournamentData;
+  onSelectMatch: (matchKey: string) => void;
+  onClose: () => void;
+}) {
+  const [spoilers, setSpoilers] = useState(false);
+  const [loadingMatch, setLoadingMatch] = useState<string | null>(null);
+
+  const { tournament, standings, matchSummaries } = data;
+
+  // Build a lookup from matchKey → summary
+  const summaryByKey = useMemo(() => {
+    const map = new Map<string, MatchSummaryEntry>();
+    for (const s of matchSummaries) {
+      map.set(s.matchKey, s);
+    }
+    return map;
+  }, [matchSummaries]);
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center gap-3 rounded-md border border-border bg-card p-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium">
+            Tournament: {tournament.scenarioName}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Seed {tournament.tournamentSeed} · {tournament.agents.length} agents ·{" "}
+            {tournament.matches.length} matches
+          </p>
+        </div>
+
+        <Button
+          variant={spoilers ? "destructive" : "outline"}
+          size="sm"
+          onClick={() => setSpoilers((s) => !s)}
+        >
+          {spoilers ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+          Spoilers {spoilers ? "ON" : "OFF"}
+        </Button>
+
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Standings (only shown when spoilers ON) */}
+      {spoilers && standings.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Trophy className="h-4 w-4" />
+              Standings
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border text-left text-muted-foreground">
+                    <th className="pb-2 pr-4 font-medium">#</th>
+                    <th className="pb-2 pr-4 font-medium">Agent</th>
+                    <th className="pb-2 pr-4 font-medium text-right">Pts</th>
+                    <th className="pb-2 pr-4 font-medium text-right">W</th>
+                    <th className="pb-2 pr-4 font-medium text-right">D</th>
+                    <th className="pb-2 pr-4 font-medium text-right">L</th>
+                    <th className="pb-2 font-medium text-right">+/-</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {standings.map((row, i) => (
+                    <tr key={row.agentId} className="border-b border-border/50">
+                      <td className="py-1.5 pr-4 text-muted-foreground">{i + 1}</td>
+                      <td className="py-1.5 pr-4 font-medium">{row.agentId}</td>
+                      <td className="py-1.5 pr-4 text-right">
+                        <Badge variant="default">{row.points}</Badge>
+                      </td>
+                      <td className="py-1.5 pr-4 text-right">{row.wins}</td>
+                      <td className="py-1.5 pr-4 text-right">{row.draws}</td>
+                      <td className="py-1.5 pr-4 text-right">{row.losses}</td>
+                      <td className="py-1.5 text-right">
+                        <span className={row.scoreDiff > 0 ? "text-success" : "text-muted-foreground"}>
+                          {row.scoreDiff > 0 ? "+" : ""}
+                          {row.scoreDiff}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!spoilers && (
+        <p className="text-xs text-muted-foreground italic text-center">
+          Enable spoilers to reveal standings
+        </p>
+      )}
+
+      {/* Match list */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Matches</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border text-left text-muted-foreground">
+                  <th className="pb-2 pr-4 font-medium">Match</th>
+                  <th className="pb-2 pr-4 font-medium">Agents</th>
+                  <th className="pb-2 pr-4 font-medium">Scenario</th>
+                  <th className="pb-2 pr-4 font-medium text-right">Turns</th>
+                  <th className="pb-2 pr-4 font-medium">Status</th>
+                  {spoilers && <th className="pb-2 pr-4 font-medium">Winner</th>}
+                  {spoilers && <th className="pb-2 font-medium">Scores</th>}
+                  <th className="pb-2 font-medium"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {tournament.matches.map((spec) => {
+                  const summary = summaryByKey.get(spec.matchKey);
+                  const turns = summary?.turns ?? "?";
+                  const reason = summary?.reason ?? "unknown";
+                  const isLoading = loadingMatch === spec.matchKey;
+
+                  return (
+                    <tr key={spec.matchKey} className="border-b border-border/50">
+                      <td className="py-2 pr-4 font-mono text-muted-foreground">
+                        {spec.matchKey}
+                      </td>
+                      <td className="py-2 pr-4">
+                        {spec.agentIds.join(" vs ")}
+                      </td>
+                      <td className="py-2 pr-4">{spec.scenarioName}</td>
+                      <td className="py-2 pr-4 text-right">{turns}</td>
+                      <td className="py-2 pr-4">
+                        <Badge
+                          variant={reason === "completed" ? "success" : "secondary"}
+                        >
+                          {reason}
+                        </Badge>
+                      </td>
+                      {spoilers && (
+                        <td className="py-2 pr-4">
+                          {summary?.winner ? (
+                            <Badge variant="info">{summary.winner}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">draw</span>
+                          )}
+                        </td>
+                      )}
+                      {spoilers && (
+                        <td className="py-2 pr-4 font-mono">
+                          {summary
+                            ? Object.entries(summary.scores)
+                                .map(([id, s]) => `${id}: ${s}`)
+                                .join(", ")
+                            : "—"}
+                        </td>
+                      )}
+                      <td className="py-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isLoading}
+                          onClick={() => {
+                            setLoadingMatch(spec.matchKey);
+                            onSelectMatch(spec.matchKey);
+                          }}
+                        >
+                          {isLoading ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Eye className="h-3 w-3" />
+                          )}
+                          Watch
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main viewer
 // ---------------------------------------------------------------------------
 
@@ -337,11 +743,14 @@ function ReplayViewer({
   errors,
   filename,
   onClose,
+  onBack,
 }: {
   events: ReplayEvent[];
   errors: ParseError[];
   filename: string;
   onClose: () => void;
+  /** If provided, shows a "Back to tournament list" button. */
+  onBack?: () => void;
 }) {
   const [spoilers, setSpoilers] = useState(false);
   const [selectedIdx, setSelectedIdx] = useState(0);
@@ -382,6 +791,13 @@ function ReplayViewer({
     <div className="flex h-[calc(100vh-theme(spacing.14)-theme(spacing.12))] flex-col gap-3">
       {/* Header bar */}
       <div className="flex items-center gap-3 rounded-md border border-border bg-card p-3">
+        {onBack && (
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4" />
+            Back to tournament
+          </Button>
+        )}
+
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{filename}</p>
           <p className="text-xs text-muted-foreground">
@@ -455,9 +871,11 @@ function ReplayViewer({
           Spoilers {spoilers ? "ON" : "OFF"}
         </Button>
 
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
+        {!onBack && (
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       {/* Parse errors */}
@@ -533,34 +951,77 @@ function ReplayViewer({
 // ---------------------------------------------------------------------------
 
 export default function ReplayPage() {
-  const [loaded, setLoaded] = useState<{
-    events: ReplayEvent[];
-    errors: ParseError[];
-    filename: string;
-  } | null>(null);
+  const [state, setState] = useState<PageState>({ mode: "idle" });
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const handleLoad = useCallback((text: string, filename: string) => {
+  const handleSingleLoad = useCallback((text: string, filename: string) => {
     const result = parseJsonl(text);
-    setLoaded({ events: result.events, errors: result.errors, filename });
+    if (result.events.length === 0 && result.errors.length > 0) {
+      setState({ mode: "idle" });
+      setLoadError(
+        result.errors
+          .slice(0, 10)
+          .map((e) => `Line ${e.line}: ${e.message}`)
+          .join("\n"),
+      );
+    } else {
+      setLoadError(null);
+      setState({
+        mode: "single",
+        events: result.events,
+        errors: result.errors,
+        filename,
+      });
+    }
   }, []);
 
-  if (!loaded || loaded.events.length === 0) {
+  const handleTournamentLoad = useCallback((data: TournamentData) => {
+    setLoadError(null);
+    setState({ mode: "tournament", data });
+  }, []);
+
+  const handleMatchSelect = useCallback(
+    async (matchKey: string) => {
+      if (state.mode !== "tournament") {
+        return;
+      }
+      try {
+        const { events, errors } = await loadMatchFromDir(state.data.dirHandle, matchKey);
+        if (events.length === 0) {
+          setLoadError(`No valid events found in match ${matchKey}`);
+          return;
+        }
+        setLoadError(null);
+        setState({
+          mode: "tournamentMatch",
+          data: state.data,
+          matchKey,
+          events,
+          errors,
+        });
+      } catch (err) {
+        setLoadError(
+          err instanceof Error
+            ? `Failed to load match ${matchKey}: ${err.message}`
+            : `Failed to load match ${matchKey}`,
+        );
+      }
+    },
+    [state],
+  );
+
+  // Idle mode: show loaders
+  if (state.mode === "idle") {
     return (
       <div className="space-y-4">
-        <FileDropZone onLoad={handleLoad} />
-        {loaded && loaded.events.length === 0 && loaded.errors.length > 0 && (
+        <FileDropZone onLoad={handleSingleLoad} onTournamentLoad={handleTournamentLoad} />
+        {loadError && (
           <div className="mx-auto max-w-xl">
             <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               <div>
                 <p className="font-medium">Failed to parse replay</p>
-                <ul className="mt-1 text-xs space-y-0.5">
-                  {loaded.errors.slice(0, 10).map((err, i) => (
-                    <li key={i}>
-                      Line {err.line}: {err.message}
-                    </li>
-                  ))}
-                </ul>
+                <pre className="mt-1 text-xs whitespace-pre-wrap">{loadError}</pre>
               </div>
             </div>
           </div>
@@ -569,12 +1030,64 @@ export default function ReplayPage() {
     );
   }
 
-  return (
-    <ReplayViewer
-      events={loaded.events}
-      errors={loaded.errors}
-      filename={loaded.filename}
-      onClose={() => setLoaded(null)}
-    />
-  );
+  // Single JSONL mode
+  if (state.mode === "single") {
+    return (
+      <ReplayViewer
+        events={state.events}
+        errors={state.errors}
+        filename={state.filename}
+        onClose={() => {
+          setLoadError(null);
+          setState({ mode: "idle" });
+        }}
+      />
+    );
+  }
+
+  // Tournament browser mode
+  if (state.mode === "tournament") {
+    return (
+      <div className="space-y-4">
+        <TournamentBrowser
+          data={state.data}
+          onSelectMatch={handleMatchSelect}
+          onClose={() => {
+            setLoadError(null);
+            setState({ mode: "idle" });
+          }}
+        />
+        {loadError && (
+          <div className="mx-auto max-w-2xl">
+            <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p className="text-xs">{loadError}</p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Tournament match viewer mode
+  if (state.mode === "tournamentMatch") {
+    return (
+      <ReplayViewer
+        events={state.events}
+        errors={state.errors}
+        filename={`${state.matchKey} — match.jsonl`}
+        onClose={() => {
+          setLoadError(null);
+          setState({ mode: "idle" });
+        }}
+        onBack={() => {
+          setLoadError(null);
+          setState({ mode: "tournament", data: state.data });
+        }}
+      />
+    );
+  }
+
+  // Exhaustive check
+  return null;
 }
