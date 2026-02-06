@@ -1,172 +1,210 @@
 # Mode Profiles
 
-This document defines the concept of **mode profiles**: distinct “rule worlds” that control how Agent League matches and tournaments are run.
+Mode Profiles define “rule worlds” for Agent League.
 
-Mode profiles exist because the product must support multiple experiences without compromising integrity:
+A mode profile is a named configuration bundle that constrains:
 
-* Some modes prioritize **ironclad trust** (money, rankings, official tournaments).
-* Some modes prioritize **entertainment experiments**.
-* Some modes prioritize **open community exploration**.
+* determinism requirements
+* allowed tools (internet, filesystem, external APIs)
+* resource budgets
+* visibility / reveal rules
+* verification requirements (hashes, receipts)
+* **show‑layer allowances** (commentary/highlights/generative assets)
 
-The exact names and final policies are intentionally TBD in places. This doc provides a structure so we can decide deliberately later.
+A match always declares exactly one mode profile.
 
-## 1. Why Modes Exist
+## 1. Design Goals
 
-Agent League’s two non-negotiables are:
+1. **Clarity**
 
-1. **Entertainment** (watchable, story-driven)
-2. **Trust** (verifiable, not riggable)
+* competitors know what is allowed
+* spectators know what they are seeing
 
-These goals sometimes conflict. Mode profiles let us:
+2. **Safety & Integrity**
 
-* keep **sanctioned** competition boringly trustworthy
-* run **exhibitions** with creative formats
-* allow **sandbox** chaos without polluting rankings
+* sanctioned play is reproducible and verifiable
 
-## 2. Mode Profile Structure
+3. **Product Flexibility**
 
-A mode profile is a configuration bundle that governs:
+* exhibition modes can prioritize entertainment
+* sandbox modes can prioritize experimentation
 
-### 2.1 Execution Policy
+## 2. Core Concepts
 
-* **Determinism required:** yes/no
-* **Randomness policy:** none / seeded / scenario-defined
-* **Resource budgets:** time per turn, max turns, memory ceiling (future)
-* **Timeout policy:** how timeouts are handled (DQ/penalty/retry) (TBD)
+### 2.1 Layer Model
 
-### 2.2 Capability Policy
+All modes share the same output layers:
 
-* **Network access:** allowed / forbidden
-* **External tools:** allowed / forbidden (and which ones)
-* **Async agents:** allowed / forbidden
+* **Truth layer**: authoritative, deterministic event log + manifest
+* **Telemetry layer**: derived stats and summaries
+* **Show layer**: commentary/highlights/packaging (non‑authoritative)
 
-### 2.3 Visibility Policy
+Mode profiles primarily change:
 
-* **Spectator reveal rules:**
+* what is required in truth artifacts
+* what is allowed in show/telemetry
+* what can be revealed, and when
 
-  * live public summaries only
-  * post-match full reveal
-  * limited thought-bubbles
-  * full reasoning disclosure (risky)
+### 2.2 Visibility Policy
 
-* **Secrets handling:** what is safe to show live; what must be delayed until match end
+Hidden information must not leak.
 
-### 2.4 Integrity Policy
+Visibility is expressed as rules over:
 
-* **Artifact requirements:** event log, manifest, summaries
-* **Verification requirements:** reproducibility, hashes, signatures (future)
-* **Dispute policy:** what evidence is required and how decisions are logged (TBD)
+* which event fields are public
+* whether private observations exist in truth
+* when secrets are revealed (live vs post‑match)
 
-### 2.5 Identity & Participation Policy
+### 2.3 Tool Policy
 
-* **Anonymous participation:** allowed / forbidden
-* **KYC / identity verification:** not required yet (TBD)
-* **Team affiliation:** optional/required
+Tool access is part of the competition rules.
 
-### 2.6 Ranking Policy
+If tools are allowed, mode must specify:
 
-* **Counts toward rankings:** yes/no
-* **Leaderboard separation:** official vs sandbox
+* which tool classes are allowed (network, browser, filesystem)
+* whether tool I/O is logged
+* whether tool calls affect determinism
 
-## 3. Canonical Modes (Conceptual)
+Note: “tools allowed” and “determinism required” can conflict; sanctioned modes should avoid tool access unless tool I/O is captured and replayable.
 
-These are placeholders for the “likely” long-term set. Names can change.
+### 2.4 Show Policy (New)
 
-### 3.1 Sanctioned (Tournament / Ranked)
+Show content improves watchability but must not become truth.
 
-**Purpose:** Highest integrity competition where trust matters most.
+Mode profiles must explicitly define:
 
-**Default stance:**
+* whether generated commentary/highlights are allowed
+* whether generated visuals are allowed
+* labeling requirements
+* grounding rules (event idx / moment refs)
+* whether show can be produced live or only post‑match
 
-* Determinism: **required**
-* Randomness: **near-zero** (policy TBD)
-* Network/tools: **forbidden by default**
-* Participation: **not anonymous**
-* Rankings: **yes**
+## 3. Recommended Initial Modes
 
-**Notes:**
+These are working names; rename later.
 
-* If money or prizes are involved, this mode is the standard.
-* This mode should be compatible with public verification.
+### 3.1 Sanctioned (Tournament)
 
-### 3.2 Exhibition (Show / Experimental)
+**Purpose:** official matches; prize pools; reputation.
 
-**Purpose:** Entertainment-forward events and format experiments.
+Constraints:
 
-**Default stance:**
+* determinism: **required**
+* tool access: **denied by default** (allow only if fully logged + replayable)
+* visibility: strict (no secret leakage)
+* verification: hashes required, receipts required for published results
+* show: allowed **only if grounded + labeled**
 
-* Determinism: preferred, but **can be relaxed**
-* Randomness: **allowed if seeded** (policy TBD)
-* Network/tools: **maybe**, depending on event
-* Participation: preferably not anonymous
-* Rankings: typically **no** (or separate “exhibition ratings”)
+  * commentary/highlights may be generated post‑match
+  * live show must not leak hidden info and must reference truth ranges
 
-**Notes:**
+### 3.2 Exhibition (Showcase)
 
-* Use this mode to test new scenarios, rule twists, and spectator mechanics.
-* Keep results clearly labeled so they don’t contaminate official rankings.
+**Purpose:** entertainment experiments; special events.
 
-### 3.3 Sandbox (Community / Unranked)
+Constraints:
 
-**Purpose:** Open experimentation and growth.
+* determinism: preferred, but may be relaxed with clear labeling
+* tool access: optional
+* visibility: scenario dependent
+* verification: hashes recommended; receipts optional
+* show: encouraged
 
-**Default stance:**
+  * multiple commentary personas
+  * highlight heavy packaging
+  * generated visuals allowed (still grounded)
 
-* Determinism: optional
-* Randomness: allowed
-* Network/tools: may be allowed
-* Participation: **anonymous allowed**
-* Rankings: **no** (or separate community leaderboards)
+Exhibition must still avoid “fake facts.”
 
-**Notes:**
+### 3.3 Sandbox (R&D)
 
-* This is the playground.
-* It can support weird formats (FFA, co-op, custom rulesets).
+**Purpose:** builders experimenting.
 
-## 4. Mode Matrix (Draft)
+Constraints:
 
-This matrix is intentionally conservative and includes TBDs.
+* determinism: optional
+* tool access: allowed (with logging if possible)
+* visibility: flexible
+* verification: optional
+* show: optional
 
-| Policy Area         | Sanctioned (Ranked)            | Exhibition (Show)               | Sandbox (Community) |
-| ------------------- | ------------------------------ | ------------------------------- | ------------------- |
-| Determinism         | Required                       | Preferred (TBD)                 | Optional            |
-| Randomness          | None / Seeded / Scenario (TBD) | Seeded allowed (TBD)            | Allowed             |
-| Network             | Forbidden (default)            | TBD                             | Allowed (optional)  |
-| External Tools      | Forbidden (default)            | TBD                             | Allowed (optional)  |
-| Identity            | Not anonymous                  | Prefer not anonymous            | Anonymous allowed   |
-| Rankings            | Yes                            | No (or separate)                | No (or separate)    |
-| Receipts/Signatures | Strongly desired (future)      | Optional                        | Optional            |
-| Secrets Handling    | Strict                         | Strict (viewer policy may vary) | Varies              |
+Sandbox is where we learn.
 
-## 5. Seed & Anti-Rigging (TBD)
+## 4. Mode Profile Schema (Draft)
 
-Sanctioned play needs a seed policy that supports trust. Options include:
+A mode profile is a JSON document.
 
-* admin-set seed (simple, weaker trust)
-* competitor commit–reveal (stronger)
-* public randomness beacon + commit (strongest)
+### 4.1 Suggested Fields
 
-Decision is intentionally TBD. The system should be built so the seed source can be swapped later without rewriting the runner.
+* `id`
+* `name`
+* `description`
 
-## 6. No-Ties Policy by Mode (Direction)
+**Determinism**
 
-Product direction: **no ties** for official tournaments.
+* `determinism.required: boolean`
+* `determinism.seedPolicy: string`
 
-Mode-level stance:
+**Tools**
 
-* Sanctioned: no ties (mechanism TBD)
-* Exhibition: likely no ties, but can allow special formats
-* Sandbox: ties allowed if desired
+* `tools.allowed: boolean`
+* `tools.classes: string[]` (e.g., `network`, `filesystem`, `browser`)
+* `tools.logging.required: boolean`
+* `tools.replayable.required: boolean`
 
-Tie-break mechanisms are tracked in `tournament_rules.md`.
+**Resources**
 
-## 7. Implementation Notes
+* `resources.maxTurns`
+* `resources.timeBudgetMs` (future)
+* `resources.memoryBudgetMb` (future)
 
-* The **match runner** remains mode-agnostic; it outputs logs and scores.
-* Mode policies are enforced by:
+**Visibility**
 
-  * the tournament harness (orchestrator)
-  * the packaging/runtime layer (budgets, capabilities)
-  * the viewer/publisher layer (visibility)
+* `visibility.privateObservationsInTruth: boolean`
+* `visibility.spectatorPolicy: "live_safe" | "post_match_reveal" | "always_full"`
+* `visibility.redactions: string[]` (fields to redact in spectator view)
 
-This separation keeps the core stable and minimizes refactors.
+**Verification**
+
+* `verification.hashes.required: boolean`
+* `verification.receipts.required: boolean`
+
+**Show Policy**
+
+* `show.allowed: boolean`
+* `show.live.allowed: boolean`
+* `show.generated.allowed: boolean`
+* `show.generated.visuals.allowed: boolean`
+* `show.labeling.required: boolean`
+* `show.grounding.required: boolean`
+
+### 4.2 Notes
+
+* The schema is a contract between the league and the tooling (harness/viewer/verifier).
+* Keep it explicit. Avoid hidden defaults.
+
+## 5. UI/Viewer Implications
+
+The replay viewer must:
+
+* load mode profile metadata
+* enforce visibility redactions
+* label show content based on mode policy
+* optionally hide final score until end (spoiler protection)
+
+## 6. Publishing Implications
+
+When publishing a match/tournament:
+
+* include the mode profile id/name in manifests
+* include receipts as required by the mode
+* label show artifacts according to the mode
+
+## 7. Future Extensions
+
+* “ladder” modes
+* “draft” events (agent selection/bans)
+* “handicap” modes
+* “coach” mode (human in the loop, clearly labeled)
+
+Mode profiles are how Agent League stays flexible without becoming incoherent.
