@@ -1,4 +1,6 @@
-import { writeFileSync } from "node:fs";
+import { execSync } from "node:child_process";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { runMatch } from "../engine/runMatch.js";
 import { getScenarioFactory, getAgentFactory } from "../tournament/runTournament.js";
 
@@ -13,6 +15,11 @@ interface MatchCliArgs {
   out?: string;
   agentA: string;
   agentB: string;
+
+  // Opt-in provenance
+  emitProvenance: boolean;
+  engineCommit?: string;
+  engineVersion?: string;
 }
 
 function parseArgs(argv: string[]): MatchCliArgs {
@@ -22,6 +29,10 @@ function parseArgs(argv: string[]): MatchCliArgs {
   let out: string | undefined;
   let agentA = "random";
   let agentB = "baseline";
+
+  let emitProvenance = false;
+  let engineCommit: string | undefined;
+  let engineVersion: string | undefined;
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -37,10 +48,50 @@ function parseArgs(argv: string[]): MatchCliArgs {
       agentA = argv[++i];
     } else if (arg === "--agentB" && i + 1 < argv.length) {
       agentB = argv[++i];
+    } else if (arg === "--emit-provenance") {
+      emitProvenance = true;
+    } else if (arg === "--engine-commit" && i + 1 < argv.length) {
+      engineCommit = argv[++i];
+    } else if (arg === "--engine-version" && i + 1 < argv.length) {
+      engineVersion = argv[++i];
     }
   }
 
-  return { scenario, seed, turns, out, agentA, agentB };
+  return {
+    scenario,
+    seed,
+    turns,
+    out,
+    agentA,
+    agentB,
+    emitProvenance,
+    engineCommit,
+    engineVersion,
+  };
+}
+
+function tryReadEngineCommit(): string | undefined {
+  try {
+    const output = execSync("git rev-parse HEAD", {
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+    return output === "" ? undefined : output;
+  } catch {
+    return undefined;
+  }
+}
+
+function tryReadEngineVersion(): string | undefined {
+  try {
+    const packagePath = resolve(process.cwd(), "package.json");
+    const raw = readFileSync(packagePath, "utf-8");
+    const parsed = JSON.parse(raw) as { version?: string };
+    return typeof parsed.version === "string" ? parsed.version : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -81,14 +132,29 @@ function main(): void {
   const scenario = scenarioFactory();
   const agents = [agentAFactory(`${args.agentA}-0`), agentBFactory(`${args.agentB}-1`)];
 
+  // Opt-in provenance: only include if explicitly requested AND at least one field resolves.
+  let provenance:
+    | { engineCommit?: string; engineVersion?: string }
+    | undefined;
+
+  if (args.emitProvenance) {
+    const engineCommit = args.engineCommit ?? tryReadEngineCommit();
+    const engineVersion = args.engineVersion ?? tryReadEngineVersion();
+    if (engineCommit !== undefined || engineVersion !== undefined) {
+      provenance = { engineCommit, engineVersion };
+    }
+  }
+
   const result = runMatch(scenario, agents, {
     seed: args.seed,
     maxTurns: args.turns,
+    ...(provenance ? { provenance } : {}),
   });
 
   const lines = result.events.map((e) => JSON.stringify(e)).join("\n") + "\n";
 
   if (args.out) {
+    mkdirSync(dirname(args.out), { recursive: true });
     writeFileSync(args.out, lines, "utf-8");
     // eslint-disable-next-line no-console
     console.error(`Wrote ${result.events.length} events to ${args.out}`);
