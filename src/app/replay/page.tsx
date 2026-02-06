@@ -451,8 +451,20 @@ function FileDropZone({
     [onTournamentLoad],
   );
 
-  const directoryPickerAvailable = hasDirectoryPicker();
+  // IMPORTANT: don't feature-detect during render.
 
+  // This component is pre-rendered on the server, so `hasDirectoryPicker()` would
+
+  // return false on the server and true on the client, causing a hydration mismatch.
+
+  const [directoryPickerAvailable, setDirectoryPickerAvailable] = useState(false);
+
+
+  useEffect(() => {
+
+    setDirectoryPickerAvailable(hasDirectoryPicker());
+
+  }, []);
   // Set non-standard webkitdirectory / directory attributes imperatively
   // to avoid TypeScript errors with unknown JSX props.
   useEffect(() => {
