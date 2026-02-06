@@ -86,7 +86,7 @@ tournament_run/
       highlights.json       (optional, show)
 ```
 
-Optionally, the CLI can emit a single-file **tournament bundle** via `--bundle-out <path>`. The bundle is a versioned JSON payload that embeds `tournament.json`, `standings.json`, each match summary, and the `match.jsonl` logs as strings so replay viewers can load a full tournament without relying on the File System Access API.
+Optionally, the CLI can emit a single-file **tournament bundle** via `--bundle-out <path>`. The bundle is a versioned JSON payload that embeds `tournament_manifest.json`, `standings.json`, each match summary, and the `match.jsonl` logs as strings so replay viewers can load a full tournament without relying on the File System Access API.
 
 Notes:
 
@@ -171,27 +171,31 @@ Standings must be derived from match summaries.
 
 ### 8.1 Default Scoring
 
-* win = 1
+* win = 3
+* draw = 1
 * loss = 0
-* tie = 0 (direction: no ties in sanctioned play)
+
+This scoring model intentionally discourages draws by rewarding wins disproportionately.
 
 If a scenario supports points, also compute:
 
 * pointsFor
 * pointsAgainst
 
-### 8.2 Tie‑breaks for Standings
+### 8.2 Standings Ranking
 
-Even with “no ties” inside matches, standings can tie.
+**Primary sort key:** standings points (descending). Points are the primary ranking criterion, NOT a tie-breaker.
 
-Tie‑break policy should be declared in the tournament manifest.
+**Tie-breakers** (applied only when two or more agents have equal standings points):
 
-Suggested order:
+1. Head-to-head record
+2. Total score differential (pointsFor − pointsAgainst)
+3. Total points scored (`totalPointsScored` — the aggregate match score, i.e., pointsFor, NOT standings points)
+4. Deterministic seed-derived coinflip (last resort, prevents ambiguity)
 
-1. head‑to‑head
-2. point differential
-3. total points
-4. deterministic efficiency metrics
+> **Terminology note:** "Total points scored" (`totalPointsScored`) refers to the aggregate match-level score (pointsFor across all matches), not standings points. This label exists to prevent confusion between the two meanings of "points."
+
+The tie-break policy must be declared in the tournament manifest.
 
 ## 9. Fight Card Metadata (Spectator Packaging)
 
@@ -224,9 +228,10 @@ In v0, signatures are optional. The harness should leave space for a future `rec
 
 ## 11. Show‑Layer Hooks (Non‑Authoritative)
 
-The harness may optionally produce show artifacts after the match completes:
+The harness MAY produce `moments.json` using the shared moment detection library (e.g., `src/lib/replay/detectMoments.ts`). This is optional. If produced, it is a telemetry-layer artifact.
 
-* `moments.json` (telemetry)
+The harness may also optionally produce show artifacts after the match completes:
+
 * `highlights.json` (show)
 * `commentary.json` (show)
 
@@ -263,17 +268,17 @@ The v0 harness is **implemented** in `src/tournament/runTournament.ts` with arti
 
 * Round-robin tournament with deterministic FNV-1a32 seed derivation.
 * CLI at `src/cli/run-tournament.ts` with flags: `--seed`, `--rounds`, `--maxTurns`, `--scenario`, `--agents`, `--outDir`, `--bundle-out`.
-* Output folder: `tournament.json`, `standings.json`, `matches/<matchKey>/match.jsonl`, `matches/<matchKey>/match_summary.json`.
+* Output folder: `tournament_manifest.json`, `standings.json`, `matches/<matchKey>/match.jsonl`, `matches/<matchKey>/match_summary.json`.
 * Single-file tournament bundle via `--bundle-out`.
-* Standings with win=3 / draw=1 / loss=0 scoring, tie-break by points → scoreDiff → agentId.
+* Standings with win=3 / draw=1 / loss=0 scoring, sorted by points (primary), then tie-break by scoreDiff → totalPointsScored → agentId.
 
 ### Differences from this spec
 
 | Spec | Actual |
 |---|---|
-| Output named `tournament_manifest.json` | Named `tournament.json` |
+| Output named `tournament_manifest.json` | Transitioning: the harness dual-writes both `tournament.json` (legacy) and `tournament_manifest.json` (canonical) for one transitional release. `tournament.json` will be removed in the following release. |
 | Per-match `match_manifest.json` | Not produced (only `match_summary.json`) |
-| Default scoring: win=1, loss=0 (§8.1) | Scoring: win=3, draw=1, loss=0 |
+| Default scoring: win=3, draw=1, loss=0 (§8.1) | Scoring: win=3, draw=1, loss=0 ✅ aligned |
 | Bracket / single-elimination | Only round-robin |
 | `verify-tournament` CLI | Not implemented |
 | Fight card slot metadata (§9) | Not implemented |

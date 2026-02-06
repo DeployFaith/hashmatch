@@ -220,11 +220,11 @@ All spec documents are written and checked in under `Documents/`.
 
 **Gaps vs spec:**
 
-* Output file is `tournament.json`, not `tournament_manifest.json` as described in this doc.
+* Output file is transitioning from `tournament.json` to `tournament_manifest.json`. For one transitional release, the harness dual-writes both filenames; `tournament.json` will be deprecated and removed in the following release.
 * Per-match `match_manifest.json` is not produced (only `match_summary.json`).
 * Bracket/single-elimination formats are not implemented (round-robin only).
 * No `verify-tournament` CLI.
-* Scoring uses win=3 / draw=1 / loss=0 (this doc §8.1 says win=1 / loss=0).
+* Scoring: resolved — spec updated to match implementation (win=3 / draw=1 / loss=0).
 
 ### Milestone 2 — Replay Viewer MVP: ✅ Done
 

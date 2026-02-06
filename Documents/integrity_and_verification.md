@@ -146,6 +146,47 @@ If logs get large, compute a Merkle root over event hashes. This supports:
 
 This is optional; SHA-256 over the full file is fine early.
 
+### 5.4 Byte-Level Hashing Contract
+
+These rules ensure cross-platform portable verification.
+
+**General:**
+
+- Hash algorithm: SHA-256
+- Encoding: UTF-8, no BOM
+- Hashes are represented as lowercase hex strings prefixed with `sha256:`
+
+**Two hashing modes:**
+
+1. **File-bytes hashing** (used for `logHash`):
+   - Hash the raw bytes of the file as written to disk
+   - Never re-parse and re-serialize before hashing
+
+2. **ManifestCore hashing** (used for `manifestHash`):
+   - Remove excluded fields (e.g., `createdAt`) from the manifest object
+   - Serialize the remaining object using the project's stable JSON serializer
+   - Ensure the output ends with exactly one final `\n`
+   - Hash the resulting UTF-8 bytes
+   - This intentionally hashes a canonical serialization, NOT the file on disk
+
+**JSONL file contract (`match.jsonl`):**
+
+- Every line ends with `\n` (LF, 0x0A)
+- The file ends with a final `\n` (no content after the last newline)
+- No trailing spaces on any line
+- One JSON object per line, serialized by the stable serializer
+
+**JSON file contract (manifests, summaries):**
+
+- Written by the stable JSON serializer with deterministic key ordering
+- File ends with exactly one final `\n`
+
+**Integrity vs Authenticity:**
+
+- Hashes provide integrity: proof that nothing changed since publication
+- Hashes do NOT provide authenticity: they don't prove who published it
+- Authenticity requires signed receipts (future work)
+
 ## 6. Receipts (Signatures)
 
 A **receipt** is a signed statement that binds the published artifacts.

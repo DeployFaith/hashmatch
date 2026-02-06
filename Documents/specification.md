@@ -231,6 +231,8 @@ Recommended fields:
 
 Moments should be computable deterministically from truth.
 
+Moments may be computed by the viewer on-the-fly or loaded from a published `moments.json` file. If both are available, the published file takes precedence.
+
 ## 10. Show Asset Contracts
 
 Show assets are non-authoritative but must be grounded.
