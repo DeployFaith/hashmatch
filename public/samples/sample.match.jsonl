@@ -1,0 +1,6 @@
+{"type":"MatchStarted","seq":0,"matchId":"sample-match-001","seed":7,"agentIds":["alpha"],"scenarioName":"NumberGuessMini","maxTurns":1}
+{"type":"TurnStarted","seq":1,"matchId":"sample-match-001","turn":1}
+{"type":"ObservationEmitted","seq":2,"matchId":"sample-match-001","agentId":"alpha","turn":1,"observation":{"range":[1,5],"hint":"Pick a number between 1 and 5"}}
+{"type":"ActionSubmitted","seq":3,"matchId":"sample-match-001","agentId":"alpha","turn":1,"action":{"guess":3}}
+{"type":"ActionAdjudicated","seq":4,"matchId":"sample-match-001","agentId":"alpha","turn":1,"valid":true,"feedback":"correct"}
+{"type":"MatchEnded","seq":5,"matchId":"sample-match-001","reason":"completed","scores":{"alpha":1},"turns":1,"details":{"winner":"alpha","secret":3}}
