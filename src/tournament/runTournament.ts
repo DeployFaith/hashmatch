@@ -1,11 +1,17 @@
 import type { Agent, Scenario } from "../contract/interfaces.js";
-import type { AgentId, MatchEvent } from "../contract/types.js";
-import { createRng, deriveSeed } from "../core/rng.js";
+import type { AgentId, MatchEvent, Seed } from "../contract/types.js";
 import { runMatch } from "../engine/runMatch.js";
 import { createNumberGuessScenario } from "../scenarios/numberGuess/index.js";
 import { createRandomAgent } from "../agents/randomAgent.js";
 import { createBaselineAgent } from "../agents/baselineAgent.js";
-import type { MatchSummary, StandingsRow, TournamentConfig, TournamentResult } from "./types.js";
+import type {
+  MatchKey,
+  MatchSpec,
+  MatchSummary,
+  StandingsRow,
+  TournamentConfig,
+  TournamentResult,
+} from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Registries (v0.1 — built-in only)
@@ -52,6 +58,26 @@ const POINTS_DRAW = 1;
 const POINTS_LOSS = 0;
 
 // ---------------------------------------------------------------------------
+// Deterministic seeding
+// ---------------------------------------------------------------------------
+
+/** 32-bit FNV-1a hash. */
+function fnv1a32(input: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+/** Derive a deterministic match seed from tournament seed + match key. */
+export function deriveMatchSeed(tournamentSeed: Seed, matchKey: MatchKey): Seed {
+  const combined = `${tournamentSeed}:${matchKey}`;
+  return fnv1a32(combined);
+}
+
+// ---------------------------------------------------------------------------
 // Tournament runner
 // ---------------------------------------------------------------------------
 
@@ -61,7 +87,16 @@ const POINTS_LOSS = 0;
  * Deterministic: given the same config, produces identical results.
  */
 export function runTournament(config: TournamentConfig): TournamentResult {
-  const { seed, maxTurns, rounds, scenarioKey, agentKeys, includeEventLogs } = config;
+  const {
+    seed,
+    maxTurns,
+    rounds,
+    scenarioKey,
+    agentKeys,
+    includeEventLogs,
+    modeProfile,
+    harnessVersion,
+  } = config;
 
   // Validate
   const scenarioFactory = getScenarioFactory(scenarioKey);
@@ -70,20 +105,22 @@ export function runTournament(config: TournamentConfig): TournamentResult {
     factory: getAgentFactory(key),
   }));
 
-  const rng = createRng(seed);
   const matches: MatchSummary[] = [];
-  const matchLogs: Record<string, MatchEvent[]> = {};
+  const matchSpecs: MatchSpec[] = [];
+  const matchLogs: Record<MatchKey, MatchEvent[]> = {};
+  const agentIds = agentFactories.map((a, i) => `${a.key}-${i}`);
+  const scenarioName = scenarioFactory().name;
 
   // Round-robin: for every unordered pair (i, j) with i < j, play `rounds` matches
   for (let round = 0; round < rounds; round++) {
     for (let i = 0; i < agentFactories.length; i++) {
       for (let j = i + 1; j < agentFactories.length; j++) {
-        const matchSeed = deriveSeed(rng);
-        const scenario = scenarioFactory();
-
         // Stable competitor IDs (index-based, independent of seat order)
         const agentAId = `${agentFactories[i].key}-${i}`;
         const agentBId = `${agentFactories[j].key}-${j}`;
+        const matchKey = `RR:${agentAId}-vs-${agentBId}:round${round + 1}`;
+        const matchSeed = deriveMatchSeed(seed, matchKey);
+        const scenario = scenarioFactory();
 
         // Fresh agent instances per match (agents can be stateful)
         const agentA = agentFactories[i].factory(agentAId);
@@ -93,7 +130,6 @@ export function runTournament(config: TournamentConfig): TournamentResult {
         // incorporates round and pair indices so order alternates across rounds
         const swap = (round + i + j) % 2 === 1;
         const orderedAgents = swap ? [agentB, agentA] : [agentA, agentB];
-        const seats: [AgentId, AgentId] = [orderedAgents[0].id, orderedAgents[1].id];
 
         const result = runMatch(scenario, orderedAgents, {
           seed: matchSeed,
@@ -101,7 +137,7 @@ export function runTournament(config: TournamentConfig): TournamentResult {
         });
 
         if (includeEventLogs) {
-          matchLogs[result.matchId] = result.events;
+          matchLogs[matchKey] = result.events;
         }
 
         // Determine winner (uses stable IDs, independent of seat order)
@@ -117,27 +153,43 @@ export function runTournament(config: TournamentConfig): TournamentResult {
         const lastEvent = result.events[result.events.length - 1];
         const reason = lastEvent.type === "MatchEnded" ? lastEvent.reason : "unknown";
 
-        // agentIds reflects actual order passed to runMatch
         matches.push({
           matchId: result.matchId,
+          matchKey,
           seed: matchSeed,
-          agentIds: [orderedAgents[0].id, orderedAgents[1].id],
-          seats,
+          agentIds: [agentAId, agentBId],
           scores: result.scores,
           winner,
           turns: result.turns,
           reason,
         });
+
+        matchSpecs.push({
+          matchKey,
+          seed: matchSeed,
+          scenarioName,
+          agentIds: [agentAId, agentBId],
+          maxTurns,
+        });
       }
     }
   }
 
-  const standings = computeStandings(
-    agentFactories.map((a, i) => `${a.key}-${i}`),
-    matches,
-  );
+  const standings = computeStandings(agentIds, matches);
 
-  const tournamentResult: TournamentResult = { config, matches, standings };
+  const tournamentResult: TournamentResult = {
+    config,
+    tournament: {
+      tournamentSeed: seed,
+      scenarioName,
+      agents: agentIds,
+      matches: matchSpecs,
+      ...(modeProfile !== undefined && { modeProfile }),
+      ...(harnessVersion !== undefined && { harnessVersion }),
+    },
+    matchSummaries: matches,
+    standings,
+  };
   if (includeEventLogs) {
     tournamentResult.matchLogs = matchLogs;
   }

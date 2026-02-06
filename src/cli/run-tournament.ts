@@ -1,8 +1,8 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { runTournament } from "../tournament/runTournament.js";
-import type { TournamentConfig } from "../tournament/types.js";
-import type { StandingsRow } from "../tournament/types.js";
+import { writeTournamentArtifacts } from "../tournament/artifacts.js";
+import type { TournamentConfig, StandingsRow } from "../tournament/types.js";
 
 // ---------------------------------------------------------------------------
 // Arg parsing
@@ -14,8 +14,7 @@ interface CliArgs {
   maxTurns: number;
   scenario: string;
   agents: string[];
-  outDir?: string;
-  writeLogs: boolean;
+  outDir: string;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -24,8 +23,7 @@ function parseArgs(argv: string[]): CliArgs {
   let maxTurns = 20;
   let scenario = "numberGuess";
   let agents: string[] = ["random", "baseline"];
-  let outDir: string | undefined;
-  let writeLogs = false;
+  let outDir = "out";
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -39,14 +37,12 @@ function parseArgs(argv: string[]): CliArgs {
       scenario = argv[++i];
     } else if (arg === "--agents" && i + 1 < argv.length) {
       agents = argv[++i].split(",");
-    } else if (arg === "--outDir" && i + 1 < argv.length) {
+    } else if ((arg === "--outDir" || arg === "--out") && i + 1 < argv.length) {
       outDir = argv[++i];
-    } else if (arg === "--writeLogs") {
-      writeLogs = true;
     }
   }
 
-  return { seed, rounds, maxTurns, scenario, agents, outDir, writeLogs };
+  return { seed, rounds, maxTurns, scenario, agents, outDir };
 }
 
 // ---------------------------------------------------------------------------
@@ -90,6 +86,17 @@ function printStandings(rows: StandingsRow[]): void {
 // Main
 // ---------------------------------------------------------------------------
 
+function tryReadHarnessVersion(): string | undefined {
+  try {
+    const packagePath = resolve(process.cwd(), "package.json");
+    const raw = readFileSync(packagePath, "utf-8");
+    const parsed = JSON.parse(raw) as { version?: string };
+    return typeof parsed.version === "string" ? parsed.version : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function main(): void {
   const args = parseArgs(process.argv.slice(2));
 
@@ -99,13 +106,15 @@ function main(): void {
     process.exit(1);
   }
 
+  const harnessVersion = tryReadHarnessVersion();
   const config: TournamentConfig = {
     seed: args.seed,
     maxTurns: args.maxTurns,
     rounds: args.rounds,
     scenarioKey: args.scenario,
     agentKeys: args.agents,
-    ...(args.writeLogs && { includeEventLogs: true }),
+    includeEventLogs: true,
+    ...(harnessVersion && { harnessVersion }),
   };
 
   // eslint-disable-next-line no-console
@@ -119,35 +128,13 @@ function main(): void {
   const result = runTournament(config);
 
   // eslint-disable-next-line no-console
-  console.log(`Completed ${result.matches.length} matches.\n`);
+  console.log(`Completed ${result.matchSummaries.length} matches.\n`);
 
   printStandings(result.standings);
 
-  // Write output files if requested
-  if (args.outDir) {
-    mkdirSync(args.outDir, { recursive: true });
-    const summaryPath = join(args.outDir, "tournament.json");
-    // Write summary without event logs (those go into per-match JSONL files)
-    const summary = { config: result.config, matches: result.matches, standings: result.standings };
-    writeFileSync(summaryPath, JSON.stringify(summary, null, 2) + "\n", "utf-8");
-    // eslint-disable-next-line no-console
-    console.log(`\nWrote tournament summary to ${summaryPath}`);
-
-    if (args.writeLogs && result.matchLogs) {
-      const matchesDir = join(args.outDir, "matches");
-      mkdirSync(matchesDir, { recursive: true });
-      for (const m of result.matches) {
-        const events = result.matchLogs[m.matchId];
-        if (events) {
-          const logPath = join(matchesDir, `${m.matchId}.jsonl`);
-          const lines = events.map((e) => JSON.stringify(e)).join("\n") + "\n";
-          writeFileSync(logPath, lines, "utf-8");
-        }
-      }
-      // eslint-disable-next-line no-console
-      console.log(`Wrote ${result.matches.length} match logs to ${join(args.outDir, "matches")}`);
-    }
-  }
+  writeTournamentArtifacts(result, args.outDir);
+  // eslint-disable-next-line no-console
+  console.log(`\nWrote tournament artifacts to ${args.outDir}`);
 }
 
 main();

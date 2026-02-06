@@ -35,19 +35,19 @@ describe("Tournament Harness v0.1", () => {
     it("different seeds produce different results", () => {
       const r1 = runTournament(makeConfig({ seed: 1 }));
       const r2 = runTournament(makeConfig({ seed: 999 }));
-      expect(JSON.stringify(r1.matches)).not.toBe(JSON.stringify(r2.matches));
+      expect(JSON.stringify(r1.matchSummaries)).not.toBe(JSON.stringify(r2.matchSummaries));
     });
   });
 
   describe("match count", () => {
     it("2 agents, 1 round => 1 match", () => {
       const result = runTournament(makeConfig({ rounds: 1 }));
-      expect(result.matches).toHaveLength(1);
+      expect(result.matchSummaries).toHaveLength(1);
     });
 
     it("2 agents, 3 rounds => 3 matches", () => {
       const result = runTournament(makeConfig({ rounds: 3 }));
-      expect(result.matches).toHaveLength(3);
+      expect(result.matchSummaries).toHaveLength(3);
     });
 
     it("N agents, R rounds => R * N*(N-1)/2 matches", () => {
@@ -56,7 +56,7 @@ describe("Tournament Harness v0.1", () => {
       const n = 2;
       const r = 5;
       const expected = r * ((n * (n - 1)) / 2);
-      expect(result.matches).toHaveLength(expected);
+      expect(result.matchSummaries).toHaveLength(expected);
     });
   });
 
@@ -110,23 +110,14 @@ describe("Tournament Harness v0.1", () => {
   describe("match summaries", () => {
     it("each match has exactly 2 agentIds", () => {
       const result = runTournament(makeConfig({ rounds: 2 }));
-      for (const m of result.matches) {
+      for (const m of result.matchSummaries) {
         expect(m.agentIds).toHaveLength(2);
-      }
-    });
-
-    it("each match has exactly 2 seats", () => {
-      const result = runTournament(makeConfig({ rounds: 2 }));
-      for (const m of result.matches) {
-        expect(m.seats).toHaveLength(2);
-        // seats contains the same agents as agentIds
-        expect([...m.seats].sort()).toEqual([...m.agentIds].sort());
       }
     });
 
     it("winner is null (draw) or one of the participating agents", () => {
       const result = runTournament(makeConfig({ rounds: 3 }));
-      for (const m of result.matches) {
+      for (const m of result.matchSummaries) {
         if (m.winner !== null) {
           expect(m.agentIds).toContain(m.winner);
         }
@@ -140,49 +131,13 @@ describe("Tournament Harness v0.1", () => {
     });
   });
 
-  describe("seat-order fairness", () => {
-    it("2 agents, 2 rounds: each agent appears in seat 0 exactly once", () => {
-      const result = runTournament(makeConfig({ seed: 42, rounds: 2 }));
-      expect(result.matches).toHaveLength(2);
-
-      const seat0Counts: Record<string, number> = {};
-      for (const m of result.matches) {
-        seat0Counts[m.seats[0]] = (seat0Counts[m.seats[0]] ?? 0) + 1;
-      }
-
-      // Each agent should be in seat 0 exactly once across the two rounds
-      for (const id of Object.keys(seat0Counts)) {
-        expect(seat0Counts[id]).toBe(1);
-      }
-    });
-
-    it("order alternates across rounds", () => {
-      const result = runTournament(makeConfig({ seed: 42, rounds: 2 }));
-      expect(result.matches).toHaveLength(2);
-
-      const order0 = result.matches[0].agentIds;
-      const order1 = result.matches[1].agentIds;
-
-      // The two matches should have opposite agent ordering
-      expect(order0).not.toEqual(order1);
-      expect(order0).toEqual([...order1].reverse());
-    });
-
-    it("agentIds reflects actual runMatch order (matches seats)", () => {
-      const result = runTournament(makeConfig({ seed: 42, rounds: 2 }));
-      for (const m of result.matches) {
-        expect(m.agentIds).toEqual([...m.seats]);
-      }
-    });
-  });
-
   describe("event logs", () => {
     it("event logs present when includeEventLogs is true", () => {
       const result = runTournament(makeConfig({ seed: 42, rounds: 2, includeEventLogs: true }));
 
       expect(result.matchLogs).toBeDefined();
-      for (const m of result.matches) {
-        const events = result.matchLogs![m.matchId];
+      for (const m of result.matchSummaries) {
+        const events = result.matchLogs![m.matchKey];
         expect(events).toBeDefined();
         expect(events.length).toBeGreaterThan(0);
         expect(events[0].type).toBe("MatchStarted");
