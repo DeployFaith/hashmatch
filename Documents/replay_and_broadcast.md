@@ -101,11 +101,19 @@ Scenarios may provide additional derived stats, such as:
 
 These can be computed from events or provided via scenario-defined summary fields.
 
-## 4. Highlights & “Moments”
+## 4. Highlights & "Moments"
 
 Prime-time viewing needs turning points.
 
 A **moment** is a segment of the match identified as interesting.
+
+### Moment Production Rules
+
+- Moment detection logic lives in a shared library (e.g., `src/lib/replay/detectMoments.ts`)
+- The viewer always computes moments on-the-fly for immediate UX
+- The harness may optionally write `moments.json` as a published telemetry artifact
+- If `moments.json` exists in a loaded bundle, the viewer uses it instead of computing its own
+- Both harness and viewer use the same shared library, ensuring identical results
 
 ### 4.1 MVP Moment Heuristics
 
@@ -235,7 +243,7 @@ The replay viewer is at `/replay` and works entirely offline (no backend require
 
 1. **File picker / drag-and-drop:** Open `/replay`, then drag a `.jsonl` match log onto the drop zone or click "Choose file" to browse.
 2. **Sample replay:** Click "Load sample replay (Number Guess)" to load a bundled demo file instantly.
-3. **Tournament folder:** Click "Load tournament folder" (or "Upload tournament folder" on browsers without the File System Access API) to load an entire tournament output. The viewer reads `tournament.json`, `standings.json`, and per-match `match.jsonl` files.
+3. **Tournament folder:** Click "Load tournament folder" (or "Upload tournament folder" on browsers without the File System Access API) to load an entire tournament output. The viewer reads `tournament_manifest.json`, `standings.json`, and per-match `match.jsonl` files.
 
 A sample JSONL file is available at `public/samples/sample.match.jsonl` and `public/replays/number-guess-demo.jsonl`.
 

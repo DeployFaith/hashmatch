@@ -149,7 +149,7 @@ For each file:
 
 ## 7. Hashing & Receipts
 
-Hashing and signing are defined in `integrity_and_verification.md`.
+Hashing and signing are defined in `integrity_and_verification.md`. See `integrity_and_verification.md` §5.4 for byte-level hashing rules.
 
 Packaging rules:
 
