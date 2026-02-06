@@ -4,3 +4,4 @@ export { adaptReplayToViewModel, extractTurn } from "./adapter";
 export type { ReplayMeta, ReplayViewModel } from "./adapter";
 export { parseJsonl } from "./parseJsonl";
 export type { ReplayEvent, ParseJsonlResult } from "./parseJsonl";
+export type { TournamentBundleV1 } from "./bundle";
