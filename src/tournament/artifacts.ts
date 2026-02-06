@@ -1,12 +1,13 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { stableStringify, toStableJsonl } from "../core/json.js";
+import type { MatchEvent } from "../contract/types.js";
 import type { MatchKey, TournamentResult } from "./types.js";
 
 function assertMatchLogs(
   matchKey: MatchKey,
   matchLogs: TournamentResult["matchLogs"],
-): asserts matchLogs is Record<MatchKey, unknown[]> {
+): asserts matchLogs is Record<MatchKey, MatchEvent[]> {
   if (!matchLogs || !matchLogs[matchKey]) {
     throw new Error(`Missing event log for matchKey "${matchKey}"`);
   }
