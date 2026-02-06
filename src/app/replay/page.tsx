@@ -26,6 +26,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { parseJsonl } from "@/lib/replay/parseJsonl";
 import type { ReplayEvent, ParseError } from "@/lib/replay/parseJsonl";
+import { detectMoments } from "@/lib/replay/detectMoments";
+import type { ReplayMoment } from "@/lib/replay/detectMoments";
 import { redactEvent } from "@/lib/replay/redaction";
 import type { ViewerMode, RedactedEvent } from "@/lib/replay/redaction";
 import { SAMPLE_JSONL } from "@/lib/replay/fixtures/sampleNumberGuess";
@@ -1146,6 +1148,7 @@ function ReplayViewer({
   const [viewerMode, setViewerMode] = useState<ViewerMode>("spectator");
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [filters, setFilters] = useState<EventFilters>(EMPTY_FILTERS);
+  const moments = useMemo(() => detectMoments(events), [events]);
 
   // Compute redacted events based on current mode/spoiler settings
   const redactedEvents = useMemo(
@@ -1157,8 +1160,13 @@ function ReplayViewer({
   );
 
   // Apply filters
+  const indexedRedacted = useMemo(
+    () => redactedEvents.map((ev, originalIdx) => ({ ...ev, originalIdx })),
+    [redactedEvents],
+  );
+
   const filteredRedacted = useMemo(() => {
-    return redactedEvents.filter((ev) => {
+    return indexedRedacted.filter((ev) => {
       if (filters.turn !== null && ev.turn !== filters.turn) {
         return false;
       }
@@ -1170,7 +1178,7 @@ function ReplayViewer({
       }
       return true;
     });
-  }, [redactedEvents, filters]);
+  }, [indexedRedacted, filters]);
 
   const groups = useMemo(() => groupByTurn(filteredRedacted), [filteredRedacted]);
   const selectedEvent = filteredRedacted[selectedIdx] ?? null;
@@ -1208,6 +1216,33 @@ function ReplayViewer({
     setSelectedIdx((i) => Math.min(filteredRedacted.length - 1, i + 1));
   const firstEvent = () => setSelectedIdx(0);
   const lastEvent = () => setSelectedIdx(filteredRedacted.length - 1);
+  const activeMoment = useMemo(() => {
+    const activeIdx = selectedEvent?.originalIdx;
+    if (activeIdx === undefined) {
+      return null;
+    }
+    return (
+      moments.find(
+        (moment) =>
+          activeIdx >= moment.start_event_idx &&
+          activeIdx <= moment.end_event_idx,
+      ) ?? null
+    );
+  }, [moments, selectedEvent?.originalIdx]);
+
+  const jumpToMoment = useCallback(
+    (moment: ReplayMoment) => {
+      const idx = filteredRedacted.findIndex(
+        (ev) =>
+          ev.originalIdx >= moment.start_event_idx &&
+          ev.originalIdx <= moment.end_event_idx,
+      );
+      if (idx >= 0) {
+        setSelectedIdx(idx);
+      }
+    },
+    [filteredRedacted],
+  );
 
   // Derive if spoilers is effectively active (director mode forces it)
   const effectiveSpoilers = spoilers || viewerMode === "director";
@@ -1368,6 +1403,41 @@ function ReplayViewer({
 
       {/* Main content */}
       <div className="flex flex-1 gap-3 overflow-hidden">
+        {/* Moments sidebar */}
+        <div className="w-60 shrink-0 overflow-y-auto rounded-md border border-border bg-card p-3">
+          <h2 className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Moments
+          </h2>
+          {moments.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              No moments detected for this replay yet.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {moments.map((moment) => {
+                const isActive = moment.id === activeMoment?.id;
+                return (
+                  <button
+                    key={moment.id}
+                    type="button"
+                    onClick={() => jumpToMoment(moment)}
+                    className={cn(
+                      "w-full rounded-md border border-transparent px-2 py-1.5 text-left text-xs transition",
+                      "hover:border-border hover:bg-muted/40",
+                      isActive && "border-primary/40 bg-primary/10 text-primary",
+                    )}
+                  >
+                    <p className="font-medium">{moment.label}</p>
+                    <p className="text-[0.7rem] text-muted-foreground">
+                      Events {moment.start_event_idx + 1}–{moment.end_event_idx + 1}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* Timeline sidebar */}
         <div className="w-72 shrink-0 overflow-y-auto rounded-md border border-border bg-card p-3">
           <h2 className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
