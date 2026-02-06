@@ -64,4 +64,11 @@ export interface MatchRunnerConfig {
   seed: Seed;
   maxTurns: number;
   matchId?: string;
+  provenance?: MatchProvenance;
+}
+
+/** Optional provenance metadata stamped into MatchStarted. */
+export interface MatchProvenance {
+  engineCommit?: string;
+  engineVersion?: string;
 }

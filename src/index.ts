@@ -21,6 +21,7 @@ export type {
   Agent,
   Scenario,
   MatchRunnerConfig,
+  MatchProvenance,
   AgentContext,
   AgentConfig,
   AdjudicationResult,

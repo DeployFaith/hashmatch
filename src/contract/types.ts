@@ -29,6 +29,8 @@ export interface MatchStartedEvent extends BaseEvent {
   agentIds: AgentId[];
   scenarioName: string;
   maxTurns: number;
+  engineCommit?: string;
+  engineVersion?: string;
 }
 
 export interface TurnStartedEvent extends BaseEvent {

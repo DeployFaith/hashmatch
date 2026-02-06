@@ -80,7 +80,7 @@ interface BaseEvent {
 
 | Type                 | Additional Fields                              | Emitted When               |
 | -------------------- | ---------------------------------------------- | -------------------------- |
-| `MatchStarted`       | `seed`, `agentIds`, `scenarioName`, `maxTurns` | Match begins               |
+| `MatchStarted`       | `seed`, `agentIds`, `scenarioName`, `maxTurns`, `engineCommit?`, `engineVersion?` | Match begins |
 | `TurnStarted`        | `turn`                                         | Each turn begins           |
 | `ObservationEmitted` | `agentId`, `turn`, `observation`               | Agent is about to act      |
 | `ActionSubmitted`    | `agentId`, `turn`, `action`                    | Agent returns an action    |

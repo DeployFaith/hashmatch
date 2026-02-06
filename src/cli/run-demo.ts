@@ -1,4 +1,6 @@
-import { writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { execSync } from "node:child_process";
+import { dirname, resolve } from "node:path";
 import { runMatch } from "../engine/runMatch.js";
 import { createNumberGuessScenario } from "../scenarios/numberGuess/index.js";
 import { createRandomAgent } from "../agents/randomAgent.js";
@@ -33,8 +35,30 @@ function parseArgs(argv: string[]): CliArgs {
   return { seed, turns, out, scenario };
 }
 
+function loadEngineCommit(): string | undefined {
+  try {
+    const output = execSync("git rev-parse HEAD", { stdio: ["ignore", "pipe", "ignore"] });
+    return output.toString("utf-8").trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function loadEngineVersion(): string | undefined {
+  try {
+    const pkgPath = resolve(process.cwd(), "package.json");
+    const raw = readFileSync(pkgPath, "utf-8");
+    const parsed = JSON.parse(raw) as { version?: string };
+    return parsed.version;
+  } catch {
+    return undefined;
+  }
+}
+
 function main(): void {
   const args = parseArgs(process.argv.slice(2));
+  const defaultOut = resolve("public", "replays", "number-guess-demo.jsonl");
+  const outPath = args.out ? resolve(args.out) : defaultOut;
 
   if (args.scenario !== "numberGuess") {
     // eslint-disable-next-line no-console
@@ -48,17 +72,18 @@ function main(): void {
   const result = runMatch(scenario, agents, {
     seed: args.seed,
     maxTurns: args.turns,
+    provenance: {
+      engineCommit: loadEngineCommit(),
+      engineVersion: loadEngineVersion(),
+    },
   });
 
   const lines = result.events.map((e) => JSON.stringify(e)).join("\n") + "\n";
 
-  if (args.out) {
-    writeFileSync(args.out, lines, "utf-8");
-    // eslint-disable-next-line no-console
-    console.error(`Wrote ${result.events.length} events to ${args.out}`);
-  } else {
-    process.stdout.write(lines);
-  }
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, lines, "utf-8");
+  // eslint-disable-next-line no-console
+  console.error(`Wrote ${result.events.length} events to ${outPath}`);
 }
 
 main();

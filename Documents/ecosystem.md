@@ -154,10 +154,11 @@ Every `MatchStarted` event includes:
 * `agentIds`: participating agents
 * `scenarioName`: which scenario was used
 * `maxTurns`: match configuration
+* `engineCommit?`: optional git commit hash of the match runner
+* `engineVersion?`: optional version string for the engine package
 
 Future versions will add:
 
-* `engineCommit`: git commit hash of the match runner
 * `scenarioVersion`: version string for the scenario artifact
 * `agentVersions`: version strings for each agent
 
