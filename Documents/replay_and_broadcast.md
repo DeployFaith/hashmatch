@@ -111,17 +111,19 @@ A **moment** is a segment of the match identified as interesting.
 
 - Moment detection logic lives in a shared library (e.g., `src/lib/replay/detectMoments.ts`)
 - The viewer always computes moments on-the-fly for immediate UX
-- The harness may optionally write `moments.json` as a published telemetry artifact
+- The harness writes `moments.json` as a published telemetry artifact when moments are detected
 - If `moments.json` exists in a loaded bundle, the viewer uses it instead of computing its own
 - Both harness and viewer use the same shared library, ensuring identical results
+- `highlights.json` is a show-layer companion that is generated from moments and packaged alongside them
 
 ### 4.1 MVP Moment Heuristics
 
-* sudden score swing
-* critical error
-* near-win + reversal
-* last-turn win
-* invalid action that costs the match
+* score_swing
+* lead_change
+* comeback
+* blunder
+* clutch
+* close_call
 
 ### 4.2 Future Moment Scoring
 
@@ -181,7 +183,7 @@ Approaches:
 * store private observations in truth, but viewer redacts during playback
 * store private observations in a separate file
 
-Implementation can evolve; the key is: **donâ€™t leak mid-match**.
+Implementation can evolve; the key is: **donâ€™t leak mid-match**. ResourceRivals explicitly exercises this redaction/spoiler pipeline.
 
 ### 6.3 Spoiler Protection
 

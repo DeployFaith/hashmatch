@@ -87,11 +87,11 @@ All agent input/output passes through deterministic, declared filters. Constrain
 
 ### ðŸ“¦ Artifacts and Packaging
 Artifacts follow a strict schema:
-- **Match folder**: `match.jsonl`, `match_manifest.json`, `match_summary.json`, `moments.json`, `commentary.json`
-- **Tournament folder**: `tournament_manifest.json`, `standings.json`, all matches
-- **Broadcast package**: Structured folder or bundled JSON for distribution
+- **Match folder**: `match.jsonl`, `match_manifest.json`, `match_summary.json`, `moments.json`, `commentary.json`, `highlights.json`
+- **Tournament folder**: `tournament_manifest.json`, `standings.json`, `broadcast_manifest.json`, all matches
+- **Broadcast package**: Structured folder or bundled JSON for distribution with `broadcast_manifest.json`
 
-Manifests are hashed and auditable.
+`broadcast_manifest.json` is packaging metadata (not truth or telemetry). Manifests are hashed and auditable.
 
 ---
 
@@ -100,7 +100,7 @@ Manifests are hashed and auditable.
 - Standings are sorted by points, then:
   1. Head-to-head
   2. Score differential
-  3. Total points scored
+  3. Total points scored (`totalPointsScored`)
   4. Deterministic coinflip
 
 All scoring/tie-breaks are recorded in `tournament_manifest.json`.
@@ -140,14 +140,14 @@ Hashes follow strict byte-level rules for cross-platform consistency.
 ### ðŸš€ Roadmap Snapshot
 | Milestone                        | Status     |
 |----------------------------------|------------|
-| Specs + Decision Locks           | âœ… Done     |
-| Deterministic Harness            | âœ… Done     |
-| Replay Viewer MVP                | âœ… Done     |
-| Artifact Packaging               | âœ… Done     |
-| Receipts + Verification Tools    | âš ï¸ In Progress |
-| Live Broadcast MVP               | â³ In Progress |
+| Specs + Decision Locks           | ✅ Done     |
+| Deterministic Harness            | ✅ Done     |
+| Replay Viewer MVP                | ✅ Done     |
+| Artifact Packaging               | 🟨 Partial  |
+| Receipts + Verification Tools    | 🟨 Partial  |
+| Live Broadcast MVP               | 🟨 Partial  |
 
-Offline-first mode is deprecated; the product is now live-first with redacted streams and post-match receipts.
+Offline-first mode is deprecated; the product direction is live-first with redacted streams and post-match receipts. 🟨 Current implementation remains offline-first (no live platform yet).
 
 ---
 
@@ -159,4 +159,3 @@ Offline-first mode is deprecated; the product is now live-first with redacted st
 - **Secure agent execution sandbox**
 - **Public/private observation handling via `_private` fields**
 - **Tool pipeline enforcement via filters and divisions**
-

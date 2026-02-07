@@ -70,7 +70,7 @@ Notes:
 
 * `match.jsonl` + `match_manifest.json` are required for replay.
 * `match_summary.json` is recommended.
-* show artifacts are optional.
+* show artifacts are optional, and `highlights.json` always lives in the show layer.
 
 ## 4. Tournament Bundle Layout
 
@@ -92,7 +92,7 @@ A broadcast bundle is a packaging variant optimized for spectators and distribut
 
 It may be identical to match/tournament bundles, but adds:
 
-* `broadcast_manifest.json` to explicitly list contents and classification
+* `broadcast_manifest.json` to explicitly list contents and classification (implemented)
 * `card.json` (optional) for fight night packaging
 
 Example:
@@ -125,9 +125,9 @@ The match manifest describes reproducibility inputs. (Defined in Integrity doc.)
 
 The tournament manifest describes match list + seeds and harness version.
 
-### 6.3 Broadcast Manifest (Recommended)
+### 6.3 Broadcast Manifest (Implemented)
 
-`broadcast_manifest.json` should include:
+`broadcast_manifest.json` is implemented (see `src/core/broadcastManifest.ts`) and should include the fields below. It is a packaging artifact, not truth or telemetry.
 
 * `bundleId`
 * `bundleType: match | tournament`
