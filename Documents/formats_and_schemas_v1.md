@@ -39,7 +39,7 @@ Required fields:
 - `params` (validated by the game)
 
 Notes:
-- `params` MUST be validated by the Gameâ€™s schema.
+- `params` MUST be validated by the Game”™s schema.
 - Scenarios are safe to distribute and monetize as data packs.
 
 ## Match config
@@ -55,7 +55,7 @@ Required fields:
 - `agents` (agentId + role)
 - `formatRef` (formatId)
 - `divisionRef` (divisionId)
-- optional `handicapRef` (handicapId) â€” only when explicitly allowed
+- optional `handicapRef` (handicapId) ”” only when explicitly allowed
 
 Notes:
 - Match manifests should capture the effective, computed constraints.
@@ -77,7 +77,7 @@ Typical fields:
 
 ## Division (weight class)
 
-A Division defines the â€œcage rulesâ€ that apply equally to all competitors.
+A Division defines the “cage rules” that apply equally to all competitors.
 
 **File:** `division.json`
 
@@ -111,7 +111,7 @@ Typical fields:
 - `allowedContexts`: ranked / exhibition / training
 
 UI guidance:
-- Avoid the word â€œhandicapâ€ in viewer UI; present as sanctioned rule tweaks (e.g., â€œStamina Tax +10%â€).
+- Avoid the word “handicap” in viewer UI; present as sanctioned rule tweaks (e.g., “Stamina Tax +10%”).
 
 ## Artifacts (truth vs telemetry)
 
@@ -131,5 +131,5 @@ Match manifests should include:
 - sport refs: `formatId`, `divisionId`, optional `handicapId`
 - effective computed budgets/permissions (not just references)
 
-This prevents â€œsecret nerfsâ€ and supports verification across forks.
+This prevents “secret nerfs” and supports verification across forks.
 

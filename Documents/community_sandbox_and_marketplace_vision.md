@@ -90,7 +90,7 @@ Until then, the marketplace should emphasize data-only assets and curated offici
 
 ## Handler excitement (coaching loop)
 
-A â€œsportâ€ needs a training ecosystem:
+A “sport” needs a training ecosystem:
 
 * scrims + repeatable seeds
 * drill suites (comeback drills, endgame drills, tempo drills)

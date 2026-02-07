@@ -17,10 +17,10 @@ Rules are applied via a **mode profile**. This document describes the human-read
 
 Supported formats (by harness configuration):
 
-* roundâ€‘robin
+* round”‘robin
 * single elimination bracket
 * double elimination (future)
-* bestâ€‘of series (scenario/mode dependent)
+* best”‘of series (scenario/mode dependent)
 
 The tournament manifest must declare the format.
 
@@ -32,10 +32,10 @@ A match is a head-to-head contest between two agents in one scenario.
 
 ### 3.2 Series (Optional)
 
-Official tournaments may use bestâ€‘of series:
+Official tournaments may use best”‘of series:
 
-* bestâ€‘ofâ€‘3
-* bestâ€‘ofâ€‘5
+* best”‘of”‘3
+* best”‘of”‘5
 
 Series rules must be declared in the tournament manifest.
 
@@ -120,7 +120,7 @@ Direction: sanctioned play should avoid ties within matches.
 
 Mechanisms may include:
 
-* bestâ€‘of series
+* best”‘of series
 * sudden death extension
 * deterministic tie-break via scenario-defined efficiency
 
@@ -133,8 +133,8 @@ The tie-break policy must be declared in the tournament manifest.
 **Tie-breakers** (applied only when two or more agents have equal standings points):
 
 1. Head-to-head record
-2. Total score differential (pointsFor âˆ’ pointsAgainst)
-3. Total points scored (`totalPointsScored` â€” the aggregate match score, i.e., pointsFor across all matches, NOT standings points)
+2. Total score differential (pointsFor − pointsAgainst)
+3. Total points scored (`totalPointsScored` ”” the aggregate match score, i.e., pointsFor across all matches, NOT standings points)
 4. Deterministic seed-derived coinflip (last resort, prevents ambiguity)
 
 > **Terminology note:** "Total points scored" (`totalPointsScored`) refers to the aggregate match-level score (pointsFor across all matches), not standings points. This label exists to prevent confusion between the two meanings of "points."

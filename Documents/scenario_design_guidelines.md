@@ -1,8 +1,8 @@
 # Scenario Design Guidelines
 
-Scenarios are the â€œgamesâ€ of HashMatch.
+Scenarios are the “games” of HashMatch.
 
-They must satisfy two oftenâ€‘conflicting requirements:
+They must satisfy two often”‘conflicting requirements:
 
 * **Competitive quality:** measurable, fair, resistant to gaming
 * **Spectator quality:** understandable, full of turning points, watchable
@@ -23,18 +23,18 @@ A scenario must define:
 A scenario should also define:
 
 * telemetry extraction expectations
-* what constitutes an â€œinteresting momentâ€
+* what constitutes an “interesting moment”
 
 ## 2. Watchability Requirements (New)
 
-Scenarios must be designed with a â€œreality TVâ€ viewer in mind.
+Scenarios must be designed with a “reality TV” viewer in mind.
 
 A scenario should produce:
 
 * visible stakes
 * clear progress toward victory
 * frequent, understandable events
-* occasional highâ€‘impact reversals
+* occasional high”‘impact reversals
 
 If a scenario is impossible to follow without reading source code, it fails the spectator bar.
 
@@ -43,7 +43,7 @@ If a scenario is impossible to follow without reading source code, it fails the 
 Spectator-facing state should have:
 
 * a few headline numbers (score, resources, objectives)
-* a clear notion of â€œwho is aheadâ€
+* a clear notion of “who is ahead”
 * a short explanation of why an action mattered
 
 ### 2.2 Make Turning Points Possible
@@ -54,7 +54,7 @@ Provide mechanisms that allow:
 * reversals
 * punishable mistakes
 
-Avoid â€œslow guaranteed grindâ€ scenarios where the winner is decided early and nothing interesting happens.
+Avoid “slow guaranteed grind” scenarios where the winner is decided early and nothing interesting happens.
 
 ### 2.3 Avoid Boring Stalemates
 
@@ -64,7 +64,7 @@ Design to reduce:
 * non-interacting strategies
 * dominant strategies that always win
 
-## 3. Competitive Fairness & Antiâ€‘Gaming
+## 3. Competitive Fairness & Anti”‘Gaming
 
 ### 3.1 Symmetry
 
@@ -83,7 +83,7 @@ Scenarios should be robust against:
 
 * degenerate strategies exploiting the scoring function
 * exploiting undefined behavior
-* adversarial â€œlog spamâ€ or resource exhaustion
+* adversarial “log spam” or resource exhaustion
 
 ### 3.3 Clear Rules
 
@@ -108,7 +108,7 @@ Avoid leaking private observations through:
 * event timings
 * indirect side-channel fields
 
-## 5. Telemetry and â€œMomentâ€ Signals
+## 5. Telemetry and “Moment” Signals
 
 Each scenario should define telemetry that makes matches understandable.
 
@@ -122,7 +122,7 @@ Each scenario should define telemetry that makes matches understandable.
 
 ### 5.2 Moment Signals
 
-Scenarios should make it easy to identify â€œmoments.â€
+Scenarios should make it easy to identify “moments.”
 
 Examples:
 
@@ -178,7 +178,7 @@ Guidelines:
 
 Spectator goal:
 
-* a viewer should be able to say â€œwhy someone is winningâ€ without a PhD.
+* a viewer should be able to say “why someone is winning” without a PhD.
 
 ## 9. Invalid Actions
 
@@ -212,7 +212,7 @@ A scenario is ready for the library when:
 * determinism is solid under sanctioned constraints
 * telemetry makes the match legible
 * at least some matches produce identifiable moments
-* the scenario isnâ€™t trivially solved by one dominant strategy
+* the scenario isn”™t trivially solved by one dominant strategy
 
 ## 12. Library Curation
 

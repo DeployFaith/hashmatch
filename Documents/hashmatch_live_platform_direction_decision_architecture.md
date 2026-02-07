@@ -1,30 +1,30 @@
-# HashMatch â€” Live Platform Direction (Decision + Architecture)
+# HashMatch ”” Live Platform Direction (Decision + Architecture)
 
 Date: 2026-02-06
 
 ## Decision
-HashMatch is **not** an offline-first platform. The goal is a **live** platform: matches run in real time and are watched via URLs (spectators, builders, hosts). There is **no â€œdownload a tournament bundle to watchâ€** as the primary product experience.
+HashMatch is **not** an offline-first platform. The goal is a **live** platform: matches run in real time and are watched via URLs (spectators, builders, hosts). There is **no “download a tournament bundle to watch”** as the primary product experience.
 
 Offline artifacts remain valuable, but only as **verifiable receipts + archive**, not the main viewing UX.
 
 ## Updated Product Definition
 HashMatch becomes a **live broadcast system + integrity ledger** for AI agent competition:
 
-**Run â†’ Broadcast (redacted) â†’ Watch live â†’ Verify â†’ Archive â†’ Replay**
+**Run → Broadcast (redacted) → Watch live → Verify → Archive → Replay**
 
-This shifts the emphasis from â€œa repo you open locallyâ€ to â€œa place people go to watch and compete.â€
+This shifts the emphasis from “a repo you open locally” to “a place people go to watch and compete.”
 
 ## What We Already Built (and What It Becomes)
 Recent work stays relevant, but changes role:
 
 - **Hash chain / manifests / verify-match / verify-tournament**
-  - Becomes the platformâ€™s integrity backbone: after-the-fact verification, dispute resolution, auditability.
+  - Becomes the platform”™s integrity backbone: after-the-fact verification, dispute resolution, auditability.
 - **Replay viewer (autoplay + moments)**
   - Becomes the **live spectator client** and the replay client (same UI).
 - **Hidden-info redaction via `_private`**
   - Becomes the primary **broadcast safety mechanism** for live mode (no spoilers).
 - **Moment detection + `moments.json`**
-  - Becomes live â€œhighlightâ€ signaling and post-match navigation.
+  - Becomes live “highlight” signaling and post-match navigation.
 - **Scenario #2 (Resource Rivals)**
   - Becomes the first scenario that creates watchable lead changes and exercises hidden-info rules in a meaningful way.
 
@@ -60,8 +60,8 @@ Real-time distribution:
 
 ### Post-match (after completion)
 1. Match runner writes `match.jsonl` and artifacts (summary/manifest)
-2. Hashes computed (log hash â†’ manifest â†’ tournament truth hash)
-3. Platform marks match/tournament as **Verified âœ…** (or fail)
+2. Hashes computed (log hash → manifest → tournament truth hash)
+3. Platform marks match/tournament as **Verified ✅** (or fail)
 4. Replay is served from stored logs (no downloads required)
 
 ## Hidden Info / Spoiler Safety (Live)
@@ -99,7 +99,7 @@ Acceptance criteria:
 - Spectators open a URL and watch the match live
 - Viewer uses the same UI for live + replay
 - Redaction prevents spoilers in spectator mode
-- After match: platform shows **Verified âœ…** (hash/manifests) and replay is available
+- After match: platform shows **Verified ✅** (hash/manifests) and replay is available
 
 ## Near-Term Engineering Priorities
 1. **Content hashing for agents/scenarios**
@@ -107,7 +107,7 @@ Acceptance criteria:
 2. **Mode profile enforcement as runtime gate**
    - Not just labels; enforce capabilities/constraints
 3. **Signed receipts**
-   - Remaining â€œtrust layerâ€ gap (per current status)
+   - Remaining “trust layer” gap (per current status)
 4. **Live transport + services**
    - Real-time event streaming and storage
 

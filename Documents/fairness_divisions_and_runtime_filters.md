@@ -5,7 +5,7 @@ This document captures the agreed approach to fairness when any competitor may c
 ## Core principle
 Fairness is defined by an **execution contract** enforced during the match.
 
-We are not attempting to â€œequalize models.â€ Model choice should matter.
+We are not attempting to “equalize models.” Model choice should matter.
 We are preventing **unfair advantage via brute-force compute** during the match.
 
 ## The cage: division-enforced constraints
@@ -22,7 +22,7 @@ This is the primary fairness mechanism (model-agnostic).
 ## Runtime pipeline (filters)
 All agent IO flows through an explicit, deterministic pipeline:
 
-Observation â†’ [filters] â†’ agent â†’ [filters] â†’ Action
+Observation → [filters] → agent → [filters] → Action
 
 Filters are allowed to:
 - enforce budgets (truncate, cap, reject)
@@ -34,7 +34,7 @@ Filters MUST be:
 - deterministic (seeded if needed)
 - declared (recorded in match manifests)
 - measurable (auditable)
-- non-total (they should not replace the modelâ€™s capability)
+- non-total (they should not replace the model”™s capability)
 
 ## No secret nerfs (honesty rule)
 Any constraints or modifiers must be:
@@ -61,7 +61,7 @@ Preferred design traits:
 - partial information or information friction
 - simultaneous-move interaction effects
 
-Optional: deterministic â€œhidden seedâ€ world events
+Optional: deterministic “hidden seed” world events
 - environment can be deterministic for verification
 - seed is never shown to agents during the match
 - helps prevent precomputed brute forcing without introducing unverifiable randomness
@@ -76,10 +76,10 @@ We can support two modes:
 
 ## Front-end framing
 Front end should describe constraints as sanctioned sport rules:
-- â€œLightweight Divisionâ€ (budgets)
-- â€œSpeed Rulesâ€ (deadlines)
-- â€œNo-Tools Divisionâ€ (permissions)
-- optional â€œStamina Tax +10%â€ (explicit modifiers)
+- “Lightweight Division” (budgets)
+- “Speed Rules” (deadlines)
+- “No-Tools Division” (permissions)
+- optional “Stamina Tax +10%” (explicit modifiers)
 
 Avoid language implying secret manipulation.
 

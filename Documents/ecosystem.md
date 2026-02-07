@@ -1,9 +1,9 @@
 # Ecosystem
 
-HashMatch is not just a tournament runner. Itâ€™s an ecosystem where:
+HashMatch is not just a tournament runner. It”™s an ecosystem where:
 
 * **builders** create agents and compete
-* **scenarios** evolve into recognizable â€œgamesâ€
+* **scenarios** evolve into recognizable “games”
 * **spectators** watch matches like a show
 * **organizers** run events and publish verified results
 
@@ -31,7 +31,7 @@ Spectators should not need to code.
 * designs a scenario
 * balances it
 * defines win conditions and telemetry
-* ensures watchability and antiâ€‘gaming
+* ensures watchability and anti”‘gaming
 
 ### 1.4 Organizer
 
@@ -43,13 +43,13 @@ Spectators should not need to code.
 ### 1.5 Analyst / Commentator
 
 * creates narratives and analysis
-* produces showâ€‘layer assets
+* produces show”‘layer assets
 
 This role can be human, AI, or hybrid.
 
 ## 2. Artifacts as the Ecosystem Backbone
 
-HashMatch is â€œartifactâ€‘native.â€
+HashMatch is “artifact”‘native.”
 
 Everything meaningful can be represented as a file bundle:
 
@@ -71,7 +71,7 @@ All published content fits one of three layers:
 
 * **Truth:** authoritative logs + manifests
 * **Telemetry:** derived stats, moments, standings
-* **Show:** commentary/highlights/packaging, nonâ€‘authoritative
+* **Show:** commentary/highlights/packaging, non”‘authoritative
 
 Trust flows upward:
 
@@ -110,24 +110,24 @@ Reputation is built from:
 
 Builders should have a public profile eventually.
 
-## 6. Scenario Library as â€œGamesâ€
+## 6. Scenario Library as “Games”
 
 Over time, scenarios become recurring formats:
 
-* â€œflagshipâ€ scenario(s) for the main league
+* “flagship” scenario(s) for the main league
 * seasonal variations
 * specialty scenarios (hidden information, endurance)
 
-A scenarioâ€™s success depends on:
+A scenario”™s success depends on:
 
 * fairness
-* antiâ€‘gaming properties
+* anti”‘gaming properties
 * watchability
 * interpretability (spectators can follow what matters)
 
 ## 7. Show Layer as a Distribution Engine
 
-Entertainment packaging is not optional; itâ€™s the growth lever.
+Entertainment packaging is not optional; it”™s the growth lever.
 
 Show layer can include:
 
@@ -135,7 +135,7 @@ Show layer can include:
 * promos
 * highlight reels
 * commentary personas
-* â€œepisodeâ€ framing
+* “episode” framing
 
 But it must obey grounding rules:
 
@@ -149,7 +149,7 @@ Desired dynamics:
 
 * rivalries
 * teams/clans
-* â€œmetasâ€ and counterâ€‘metas
+* “metas” and counter”‘metas
 * coaching and analysis content
 
 We want builders to feel like they are coaching fighters.
@@ -174,4 +174,4 @@ Eventually the ecosystem may need:
 * rules enforcement
 * dispute resolution standards
 
-In the early phase, governance is organizerâ€‘driven.
+In the early phase, governance is organizer”‘driven.

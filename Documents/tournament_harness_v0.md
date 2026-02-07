@@ -2,17 +2,17 @@
 
 This document defines a minimal tournament harness that can run batches of HashMatch matches **offline**, producing deterministic, portable artifacts.
 
-The harness is intentionally infrastructureâ€‘free: no servers, no DB.
+The harness is intentionally infrastructure”‘free: no servers, no DB.
 
 ## 1. Goals
 
-* run tournaments (roundâ€‘robin or bracket)
+* run tournaments (round”‘robin or bracket)
 * produce deterministic match outputs
 * generate standings from match results
 * output artifacts that can be replayed and verified
-* support â€œfight cardâ€ metadata for spectator packaging
+* support “fight card” metadata for spectator packaging
 
-Nonâ€‘goal (for v0): online matchmaking, identity services, payments.
+Non”‘goal (for v0): online matchmaking, identity services, payments.
 
 ## 2. Inputs
 
@@ -49,7 +49,7 @@ A matchKey must be stable across machines and runs.
 
 Recommended format:
 
-* `roundIndex:agentAId:agentBId` for roundâ€‘robin
+* `roundIndex:agentAId:agentBId` for round”‘robin
 * `bracketPath:agentAId:agentBId` for bracket
 
 Important:
@@ -58,7 +58,7 @@ Important:
 
 ### 3.2 Seed Derivation
 
-Use a hashâ€‘based derivation:
+Use a hash”‘based derivation:
 
 * `matchSeed = H(tournamentSeed || matchKey)`
 
@@ -189,8 +189,8 @@ If a scenario supports points, also compute:
 **Tie-breakers** (applied only when two or more agents have equal standings points):
 
 1. Head-to-head record
-2. Total score differential (pointsFor âˆ’ pointsAgainst)
-3. Total points scored (`totalPointsScored` â€” the aggregate match score, i.e., pointsFor, NOT standings points)
+2. Total score differential (pointsFor − pointsAgainst)
+3. Total points scored (`totalPointsScored` ”” the aggregate match score, i.e., pointsFor, NOT standings points)
 4. Deterministic seed-derived coinflip (last resort, prevents ambiguity)
 
 > **Terminology note:** "Total points scored" (`totalPointsScored`) refers to the aggregate match-level score (pointsFor across all matches), not standings points. This label exists to prevent confusion between the two meanings of "points."
@@ -199,7 +199,7 @@ The tie-break policy must be declared in the tournament manifest.
 
 ## 9. Fight Card Metadata (Spectator Packaging)
 
-To support the â€œUFC for agentsâ€ vibe, the harness can optionally label matches with card slots.
+To support the “UFC for agents” vibe, the harness can optionally label matches with card slots.
 
 Example:
 
@@ -226,7 +226,7 @@ These hashes may be stored in:
 
 In v0, signatures are optional. The harness should leave space for a future `receipt.json`.
 
-## 11. Showâ€‘Layer Hooks (Nonâ€‘Authoritative)
+## 11. Show”‘Layer Hooks (Non”‘Authoritative)
 
 The harness writes `moments.json` using the shared moment detection library (e.g., `src/lib/replay/detectMoments.ts`) when moments are detected. This is a telemetry-layer artifact.
 
@@ -237,7 +237,7 @@ The harness also produces show artifacts after the match completes:
 
 Constraints:
 
-* show artifacts must be labeled nonâ€‘authoritative
+* show artifacts must be labeled non”‘authoritative
 * show content must reference event ranges / moments
 * show generation must not affect match execution
 
@@ -270,7 +270,7 @@ The v0 harness is **implemented** in `src/tournament/runTournament.ts` with arti
 * CLI at `src/cli/run-tournament.ts` with flags: `--seed`, `--rounds`, `--maxTurns`, `--scenario`, `--agents`, `--outDir`, `--bundle-out`.
 * Output folder: `tournament_manifest.json`, `standings.json`, `broadcast_manifest.json`, `matches/<matchKey>/match.jsonl`, `matches/<matchKey>/match_manifest.json`, `matches/<matchKey>/match_summary.json`.
 * Single-file tournament bundle via `--bundle-out`.
-* Standings with win=3 / draw=1 / loss=0 scoring, sorted by points (primary), then tie-break by scoreDiff â†’ totalPointsScored â†’ agentId.
+* Standings with win=3 / draw=1 / loss=0 scoring, sorted by points (primary), then tie-break by scoreDiff → totalPointsScored → agentId.
 * Per-match `moments.json` (when moments detected) and `highlights.json` (show) are produced alongside match artifacts.
 
 ### Differences from this spec
@@ -278,10 +278,10 @@ The v0 harness is **implemented** in `src/tournament/runTournament.ts` with arti
 | Spec | Actual |
 |---|---|
 | Output named `tournament_manifest.json` | Transitioning: the harness dual-writes both `tournament_manifest.json` (canonical) and legacy `tournament.json` for one transitional release. `tournament.json` will be removed in the following release. |
-| Per-match `match_manifest.json` | Produced by `writeTournamentArtifacts()` â€” aligned. |
-| Default scoring: win=3, draw=1, loss=0 (Â§8.1) | Scoring: win=3, draw=1, loss=0 âœ… aligned |
+| Per-match `match_manifest.json` | Produced by `writeTournamentArtifacts()` ”” aligned. |
+| Default scoring: win=3, draw=1, loss=0 (§8.1) | Scoring: win=3, draw=1, loss=0 ✅ aligned |
 | Bracket / single-elimination | Only round-robin |
 | `verify-tournament` CLI | Implemented in `src/cli/verify-tournament.ts` |
-| Fight card slot metadata (Â§9) | Not implemented |
-| `moments.json` / `commentary.json` / `highlights.json` auto-generation (Â§11) | `moments.json` and `highlights.json` are generated; `commentary.json` is still optional |
-| Hashing hooks (Â§10) | Implemented for `logHash`, `manifestHash`, and `truthBundleHash` |
+| Fight card slot metadata (§9) | Not implemented |
+| `moments.json` / `commentary.json` / `highlights.json` auto-generation (§11) | `moments.json` and `highlights.json` are generated; `commentary.json` is still optional |
+| Hashing hooks (§10) | Implemented for `logHash`, `manifestHash`, and `truthBundleHash` |

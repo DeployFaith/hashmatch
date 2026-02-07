@@ -1,4 +1,4 @@
-# HashMatch â€” Action Plan
+# HashMatch ”” Action Plan
 
 **Date:** 2026-02-06
 **Status:** Final (converged via adversarial review between Claude and ChatGPT)
@@ -29,11 +29,11 @@ Recommended resolution:
 | Artifact | Canonical Name | Notes |
 |----------|---------------|-------|
 | Tournament manifest | `tournament_manifest.json` | Current code dual-writes `tournament_manifest.json` (canonical) and legacy `tournament.json` for one release, then deprecates `tournament.json` |
-| Match manifest | `match_manifest.json` | Implemented â€” keep this name as canonical |
-| Match summary | `match_summary.json` | Already consistent â€” no change |
-| Standings | `standings.json` | Already consistent â€” no change |
+| Match manifest | `match_manifest.json` | Implemented ”” keep this name as canonical |
+| Match summary | `match_summary.json` | Already consistent ”” no change |
+| Standings | `standings.json` | Already consistent ”” no change |
 
-**Where to record:** `specification.md` Â§3â€“4 as the canonical artifact names. Update `tournament_harness_v0.md`, `artifact_packaging.md`, `roadmap.md` to match.
+**Where to record:** `specification.md` §3”“4 as the canonical artifact names. Update `tournament_harness_v0.md`, `artifact_packaging.md`, `roadmap.md` to match.
 
 ### Lock 2: Scoring Model
 
@@ -53,11 +53,11 @@ This is what the code already does. It rewards winning over drawing, which align
 
 1. Points
 2. Head-to-head record
-3. Total score differential (pointsFor âˆ’ pointsAgainst)
+3. Total score differential (pointsFor − pointsAgainst)
 4. Total points scored (`totalPointsScored`)
 5. Deterministic seed-derived coinflip (last resort, prevents ambiguity)
 
-**Where to record:** `tournament_rules.md` Â§8â€“9 as the single source of truth. Update `tournament_harness_v0.md` Â§8.1 to match (remove the outdated scoring text). Verify the code's tie-break implementation matches this order.
+**Where to record:** `tournament_rules.md` §8”“9 as the single source of truth. Update `tournament_harness_v0.md` §8.1 to match (remove the outdated scoring text). Verify the code's tie-break implementation matches this order.
 
 ### Lock 3: Hashing Rules
 
@@ -67,7 +67,7 @@ Recommended resolution:
 
 **General rules:**
 - Hash algorithm: SHA-256
-- Hash input: raw bytes of the file as written to disk â€” never parsed/re-serialized
+- Hash input: raw bytes of the file as written to disk ”” never parsed/re-serialized
 - Encoding: UTF-8, no BOM
 - Hashes are represented as lowercase hex strings
 
@@ -89,7 +89,7 @@ Recommended resolution:
 - `manifestHash` is computed over the canonical `manifestCore` bytes, not the full file
 - The full file is still written with all fields for human readability
 
-**Where to record:** New section in `integrity_and_verification.md` (Â§5 "Hashing Strategy" â€” expand with these byte-level rules). This section becomes the single reference for all hashing implementations.
+**Where to record:** New section in `integrity_and_verification.md` (§5 "Hashing Strategy" ”” expand with these byte-level rules). This section becomes the single reference for all hashing implementations.
 
 ### Lock 4: Moments Ownership
 
@@ -103,7 +103,7 @@ Recommended resolution:
 - If `moments.json` exists in a bundle, the viewer loads and displays it as "published telemetry" instead of computing its own
 - Both use the same library code, so results are identical
 
-**Where to record:** `replay_and_broadcast.md` Â§4, `specification.md` Â§9.
+**Where to record:** `replay_and_broadcast.md` §4, `specification.md` §9.
 
 ---
 
@@ -111,7 +111,7 @@ Recommended resolution:
 
 **Goal:** Every match produces verifiable provenance metadata. A third party can check that nothing was tampered with.
 
-### 1.1 â€” `match_manifest.json` Production
+### 1.1 ”” `match_manifest.json` Production
 
 **What:** The harness writes `match_manifest.json` alongside every `match.jsonl`.
 
@@ -147,7 +147,7 @@ agents[].contentHash
 - Terminate file with `\n`
 - This is a truth-layer artifact
 
-### 1.2 â€” `tournament_manifest.json` Production
+### 1.2 ”” `tournament_manifest.json` Production
 
 **What:** Confirm `tournament_manifest.json` as canonical and dual-write legacy `tournament.json` for one transitional release.
 
@@ -171,7 +171,7 @@ createdAt (excluded from hash scope)
 
 **Compatibility:** For one release, write both `tournament.json` (old name) and `tournament_manifest.json` (new name) with identical content. Then deprecate `tournament.json`.
 
-### 1.3 â€” SHA-256 Hashing
+### 1.3 ”” SHA-256 Hashing
 
 **What:** Compute and store hashes for truth artifacts.
 
@@ -193,7 +193,7 @@ createdAt (excluded from hash scope)
 **Optional per-tournament:**
 - `truthBundleHash`: SHA-256 over concatenated (sorted) per-match logHash values
 
-### 1.4 â€” `verify-match` CLI
+### 1.4 ”” `verify-match` CLI
 
 **What:** Minimal verification tool that recomputes hashes and checks them.
 
@@ -212,7 +212,7 @@ verify-match --path matches/round0-agentA-agentB/
 
 **Exit codes:** 0 = pass, 1 = fail, 2 = missing files
 
-### 1.5 â€” `verify-tournament` CLI
+### 1.5 ”” `verify-tournament` CLI
 
 **What:** Tournament-level verification that wraps per-match verification.
 
@@ -239,7 +239,7 @@ verify-tournament --path tournament_run/
 
 **Start condition:** Can begin as soon as `match_manifest.json` production lands (Phase 1.1). Does not need to wait for hashing or verification CLI.
 
-### 2.1 â€” Scenario Design
+### 2.1 ”” Scenario Design
 
 **Requirements:**
 - Multi-turn strategic interaction (not guessing)
@@ -261,14 +261,14 @@ verify-tournament --path tournament_run/
 - [ ] "Interesting moment" signals identified
 - [ ] Not trivially solved by one dominant strategy
 
-### 2.2 â€” Implementation
+### 2.2 ”” Implementation
 
 - Implement scenario contract (same interface as NumberGuess)
 - Implement at least 2 agents (random + one with basic strategy)
 - Write scenario-specific event types (viewer handles unknowns gracefully already)
 - Ensure private observations appear in `match.jsonl` with clear public/private field distinction
 
-### 2.3 â€” Validation (This Is the Real Point)
+### 2.3 ”” Validation (This Is the Real Point)
 
 Run the new scenario through the full pipeline and verify:
 
@@ -278,12 +278,12 @@ Run the new scenario through the full pipeline and verify:
 - [ ] Spoiler protection hides outcome until toggled
 - [ ] Event filtering works with new event types
 - [ ] Unknown event handling works for scenario-specific types
-- [ ] End-of-match reveal (`Scenario.reveal()` â†’ `MatchEnded.details`) includes hidden state
+- [ ] End-of-match reveal (`Scenario.reveal()` → `MatchEnded.details`) includes hidden state
 - [ ] Tournament round-robin works with the new scenario
 - [ ] Hashes and verification work with the new scenario's output
 - [ ] Moment detection finds something interesting (even if basic)
 
-**If any of these fail, it means the manifest schema or verification rules need adjustment â€” which is exactly why this runs before those formats harden.**
+**If any of these fail, it means the manifest schema or verification rules need adjustment ”” which is exactly why this runs before those formats harden.**
 
 ---
 
@@ -293,7 +293,7 @@ Run the new scenario through the full pipeline and verify:
 
 **Start condition:** After Phase 1.3 (hashing) lands and Scenario #2 is producing matches.
 
-### 3.1 â€” Moment Detection Heuristics
+### 3.1 ”” Moment Detection Heuristics
 
 **Upgrade `src/lib/replay/detectMoments.ts` to detect:**
 
@@ -308,7 +308,7 @@ Run the new scenario through the full pipeline and verify:
 
 **Implementation:** Same shared library, used by both viewer (on-the-fly) and harness (optional `moments.json` output).
 
-### 3.2 â€” Harness `moments.json` Output
+### 3.2 ”” Harness `moments.json` Output
 
 **What:** Optionally write `moments.json` as a telemetry artifact after each match.
 
@@ -326,7 +326,7 @@ Run the new scenario through the full pipeline and verify:
 }
 ```
 
-### 3.3 â€” Viewer Auto-Play (Optional)
+### 3.3 ”” Viewer Auto-Play (Optional)
 
 Add timed playback (play/pause with configurable speed) to the web viewer. Currently it's step-by-step scrubbing only. This is a polish item but it meaningfully changes the "watching" experience.
 
@@ -338,9 +338,9 @@ Add timed playback (play/pause with configurable speed) to the web viewer. Curre
 
 **Start condition:** After Phase 1 is complete and stable.
 
-### 4.1 â€” `broadcast_manifest.json`
+### 4.1 ”” `broadcast_manifest.json`
 
-Implement the manifest defined in `artifact_packaging.md` Â§6.3:
+Implement the manifest defined in `artifact_packaging.md` §6.3:
 
 ```json
 {
@@ -359,7 +359,7 @@ Implement the manifest defined in `artifact_packaging.md` Â§6.3:
 }
 ```
 
-### 4.2 â€” Bundle Validation CLI
+### 4.2 ”” Bundle Validation CLI
 
 ```
 validate-bundle --path broadcast/
@@ -367,7 +367,7 @@ validate-bundle --path broadcast/
 
 Checks: required files present, classification correct, hashes match if declared, no truth files missing.
 
-### 4.3 â€” Doc Reconciliation Pass
+### 4.3 ”” Doc Reconciliation Pass
 
 Update all 12 documents to reflect:
 - Canonical filenames (Lock 1)
@@ -376,7 +376,7 @@ Update all 12 documents to reflect:
 - Moments ownership (Lock 4)
 - Actual implementation status
 
-This should be a single, deliberate pass â€” not incremental drift fixes.
+This should be a single, deliberate pass ”” not incremental drift fixes.
 
 ---
 
@@ -384,7 +384,7 @@ This should be a single, deliberate pass â€” not incremental drift fixes.
 
 **Goal:** External builders can create agents and scenarios.
 
-### 5.1 â€” Agent Project Template
+### 5.1 ”” Agent Project Template
 
 A minimal starter repo/directory with:
 - Agent contract interface
@@ -392,15 +392,15 @@ A minimal starter repo/directory with:
 - Local test harness invocation example
 - README with "build your first agent" walkthrough
 
-### 5.2 â€” Scenario Authoring Guide
+### 5.2 ”” Scenario Authoring Guide
 
 A practical companion to `scenario_design_guidelines.md`:
 - Step-by-step "create a scenario" tutorial
 - NumberGuess as annotated example
 - Scenario #2 as annotated example (once complete)
-- Checklist from Â§11 of the guidelines, with concrete examples
+- Checklist from §11 of the guidelines, with concrete examples
 
-### 5.3 â€” Local Quickstart
+### 5.3 ”” Local Quickstart
 
 ```
 # Clone repo
@@ -410,7 +410,7 @@ npx run-demo
 # Run a tournament
 npx run-tournament --scenario numberGuess --agents ./agents --seed 42
 # View the replay
-npm run dev â†’ open /replay â†’ load tournament folder
+npm run dev → open /replay → load tournament folder
 ```
 
 ---
@@ -429,7 +429,7 @@ npm run dev â†’ open /replay â†’ load tournament folder
 
 ## Phase 7: Online Infrastructure (Future)
 
-Only after Phases 1â€“5 are solid and the offline loop is fun and trusted.
+Only after Phases 1”“5 are solid and the offline loop is fun and trusted.
 
 - Hosted bundle registry
 - Accounts and identity
@@ -443,23 +443,23 @@ Only after Phases 1â€“5 are solid and the offline loop is fun and trusted.
 ## Dependency Graph
 
 ```
-Phase 0: Decision Locks (BLOCKING â€” nothing else starts until these are recorded)
-    â”‚
-    â”œâ”€â”€ Phase 1.1: match_manifest.json
-    â”‚       â”‚
-    â”‚       â”œâ”€â”€ Phase 1.2: tournament_manifest.json
-    â”‚       â”‚
-    â”‚       â”œâ”€â”€ Phase 1.3: Hashing
-    â”‚       â”‚       â”‚
-    â”‚       â”‚       â”œâ”€â”€ Phase 1.4: verify-match CLI
-    â”‚       â”‚       â”‚       â”‚
-    â”‚       â”‚       â”‚       â””â”€â”€ Phase 1.5: verify-tournament CLI â”€â”€â”
-    â”‚       â”‚       â”‚                                               â”‚
-    â”‚       â”‚       â””â”€â”€ Phase 3: Watchability â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ â”‚ â”€â”€â†’ Phase 4: Packaging
-    â”‚       â”‚                                                       â”‚
-    â”‚       â””â”€â”€ Phase 2: Scenario #2 (PARALLEL) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-    â”‚
-    Phase 4 â”€â”€â†’ Phase 5: Developer On-Ramp â”€â”€â†’ Phase 6: Fight Night â”€â”€â†’ Phase 7: Online
+Phase 0: Decision Locks (BLOCKING ”” nothing else starts until these are recorded)
+    │
+    ├── Phase 1.1: match_manifest.json
+    │       │
+    │       ├── Phase 1.2: tournament_manifest.json
+    │       │
+    │       ├── Phase 1.3: Hashing
+    │       │       │
+    │       │       ├── Phase 1.4: verify-match CLI
+    │       │       │       │
+    │       │       │       └── Phase 1.5: verify-tournament CLI ───
+    │       │       │                                               │
+    │       │       └── Phase 3: Watchability ───────────────────── │ ──→ Phase 4: Packaging
+    │       │                                                       │
+    │       └── Phase 2: Scenario #2 (PARALLEL) ───────────────────┘
+    │
+    Phase 4 ──→ Phase 5: Developer On-Ramp ──→ Phase 6: Fight Night ──→ Phase 7: Online
 ```
 
 Key parallelism:

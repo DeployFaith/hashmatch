@@ -27,7 +27,7 @@ This doc intentionally avoids on-chain commitments. Crypto can come later; integ
 
 4. **Receipts prevent tampering**
 
-   * A log hash + signature makes â€œpost-hoc editsâ€ detectable.
+   * A log hash + signature makes “post-hoc edits” detectable.
 
 5. **Modes define required strength**
 
@@ -49,7 +49,7 @@ HashMatch can progressively raise trust without rewrites.
 ### Level 2: Signed receipts
 
 * Organizer signs a hash of the match artifacts and manifest.
-* Anyone can verify the log wasnâ€™t edited after publication.
+* Anyone can verify the log wasn”™t edited after publication.
 
 ### Level 3: Public anchoring (optional future)
 
@@ -64,7 +64,7 @@ A **match manifest** is a JSON document that describes everything required to re
 * `matchId`
 * `modeProfileId` (or name)
 * `tournamentId` (optional)
-* `createdAt` (optional; note: timestamps can break byte-identical outputs if included in deterministic artifactsâ€”store separately)
+* `createdAt` (optional; note: timestamps can break byte-identical outputs if included in deterministic artifacts””store separately)
 
 **Runner**
 
@@ -119,7 +119,7 @@ A tournament run should produce a **tournament manifest** that includes:
 
 * `tournamentId`
 * `tournamentSeed`
-* list of matches (matchKey â†’ derived seed)
+* list of matches (matchKey → derived seed)
 * list of participants (agents + owners)
 * harness version
 
@@ -257,7 +257,7 @@ Tournament verification is the same process at scale:
 For sanctioned play, seed source matters. Options:
 
 * **Admin-set seed** (simple, weaker trust)
-* **Commitâ€“reveal** (both competitors contribute entropy)
+* **Commit”“reveal** (both competitors contribute entropy)
 * **Public randomness beacon + commit** (strongest)
 
 This is intentionally TBD. The important requirement is: the final seed and its derivation inputs must be included in the manifest.
@@ -280,17 +280,17 @@ Dispute outcomes should be logged (who decided what, and why), ideally as signed
 * Avoid timestamps inside deterministic artifacts (they break byte-identical outputs). If needed, store them separately.
 * Avoid filesystem-order dependence when enumerating agents/matches.
 * Keep all inputs explicit in the manifest.
-* Treat â€œviewer outputâ€ as non-authoritative; the truth is the log.
+* Treat “viewer output” as non-authoritative; the truth is the log.
 
 ## 11. Phased Implementation Plan
 
-### Phase A (v0.1â€“v0.2)
+### Phase A (v0.1”“v0.2)
 
 * deterministic tournament harness outputs
 * match manifest with version stamping (basic)
 * log hashing
 
-### Phase B (v0.3â€“v0.4)
+### Phase B (v0.3”“v0.4)
 
 * packaged artifacts with content hashes
 * signed receipts

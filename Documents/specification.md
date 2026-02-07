@@ -146,7 +146,7 @@ Every event in `match.jsonl` must include:
 - `seq` (integer, monotonically increasing from 0)
 - `matchId` (string)
 
-Additional fields depend on event type; see Â§5.2.
+Additional fields depend on event type; see §5.2.
 
 > **Note:** The original draft used `event_idx` and `payload` as field names. The implemented contract uses `seq` as the sequence counter and places type-specific data as top-level fields (not nested under `payload`). No `timestamp` field is emitted (determinism requirement).
 
@@ -172,7 +172,7 @@ Events may include both public and private information.
 The viewer must enforce visibility policy:
 
 - redact private fields for spectators during live playback
-- optionally reveal private fields postâ€‘match
+- optionally reveal private fields post”‘match
 
 ### 5.4 `_private` Field-Level Redaction Convention
 
@@ -333,7 +333,7 @@ The system must support:
 - receipt validation
 - optional re-run reproduction
 
-## 13. Nonâ€‘Goals (For Now)
+## 13. Non”‘Goals (For Now)
 
 - online platform features
 - live betting

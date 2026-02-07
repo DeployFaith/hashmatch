@@ -17,7 +17,7 @@ No servers required.
 
 * a bundle should be a folder (or zip) you can move anywhere.
 
-2. **Selfâ€‘describing**
+2. **Self”‘describing**
 
 * includes manifests that explain contents and versions.
 
@@ -39,13 +39,13 @@ Every file in a bundle should be classified as one of:
 
 * `truth` (authoritative)
 * `telemetry` (derived from truth)
-* `show` (nonâ€‘authoritative)
+* `show` (non”‘authoritative)
 
 This classification supports:
 
 * integrity/verification rules
 * spectator reveal/redaction rules
-* â€œgenerated contentâ€ labeling
+* “generated content” labeling
 
 ## 3. Match Bundle Layout
 
@@ -113,7 +113,7 @@ broadcast/
     assets/
 ```
 
-The â€œsplit foldersâ€ approach is optional; classification can also be done by manifest alone.
+The “split folders” approach is optional; classification can also be done by manifest alone.
 
 ## 6. Manifests
 
@@ -149,7 +149,7 @@ For each file:
 
 ## 7. Hashing & Receipts
 
-Hashing and signing are defined in `integrity_and_verification.md`. See `integrity_and_verification.md` Â§5.4 for byte-level hashing rules.
+Hashing and signing are defined in `integrity_and_verification.md`. See `integrity_and_verification.md` §5.4 for byte-level hashing rules.
 
 Packaging rules:
 
@@ -160,7 +160,7 @@ Packaging rules:
 
 ## 8. Versioning
 
-Bundles should include version stamps to prevent â€œit works on my machineâ€ confusion.
+Bundles should include version stamps to prevent “it works on my machine” confusion.
 
 * harness version
 * runner version
@@ -190,11 +190,11 @@ A local registry can index bundles by:
 
 Hosted registry is future work.
 
-## 11. Showâ€‘Layer Rules
+## 11. Show”‘Layer Rules
 
 If show artifacts are included:
 
-* label them nonâ€‘authoritative
+* label them non”‘authoritative
 * ground claims to truth/telemetry (event ranges / moments)
 * obey visibility policies (do not leak secrets)
 

@@ -1,4 +1,4 @@
-# HashMatch â€” Execution Prompts (v4 â€” Final)
+# HashMatch ”” Execution Prompts (v4 ”” Final)
 
 **How to use this document:** Each section is a self-contained prompt for either **Claude Code** or **Codex**. Execute them in the order listed. Each prompt includes full context so the agent can work independently.
 
@@ -21,12 +21,12 @@ Every prompt in this pack operates under these rules:
 
 ---
 
-## Prompt 1 â€” Phase 0: Decision Locks
+## Prompt 1 ”” Phase 0: Decision Locks
 
 **Agent:** Claude Code
 **Branch:** `phase-0/decision-locks`
 **Depends on:** Nothing
-**Scope:** Edit spec documents only â€” no code changes
+**Scope:** Edit spec documents only ”” no code changes
 
 ```
 You are editing the design documents for HashMatch, a competitive league for autonomous agents ("UFC for Agents"). The project has a working tournament harness and replay viewer, but several spec documents contain internal contradictions that must be resolved before new code ships.
@@ -34,7 +34,7 @@ You are editing the design documents for HashMatch, a competitive league for aut
 RULES:
 - Do not rename or move files unless explicitly instructed.
 - If the repo structure differs from what this prompt assumes, stop and report the mismatch.
-- Make no code changes â€” this is a documentation-only task.
+- Make no code changes ”” this is a documentation-only task.
 - Commit all changes on branch `phase-0/decision-locks`.
 
 Your task: Record four "decision locks" into the spec documents. For each lock, update EVERY document listed so there is exactly one canonical answer with zero contradictions. Delete or update any text that conflicts.
@@ -45,28 +45,28 @@ The codebase dual-writes `tournament_manifest.json` (canonical) and legacy `tour
 
 - The canonical tournament manifest filename is `tournament_manifest.json`
 - The canonical per-match manifest filename is `match_manifest.json`
-- `match_summary.json` and `standings.json` are already consistent â€” no change
+- `match_summary.json` and `standings.json` are already consistent ”” no change
 
 Update ALL of these files (do not skip any):
-- `Documents/specification.md` Â§3â€“4: Make these the canonical artifact names
+- `Documents/specification.md` §3”“4: Make these the canonical artifact names
 - `Documents/tournament_harness_v0.md`: Update all references. Update the "Differences from this spec" table. Add a note that for one transitional release, the harness will dual-write both `tournament.json` and `tournament_manifest.json`, then deprecate `tournament.json`.
-- `Documents/artifact_packaging.md` Â§3â€“4: Verify filenames match, update if needed
+- `Documents/artifact_packaging.md` §3”“4: Verify filenames match, update if needed
 - `Documents/roadmap.md`: Update status tables and filename references
-- `Documents/integrity_and_verification.md` Â§3: Verify manifest filename references
-- `Documents/replay_and_broadcast.md` Â§2.3, Â§8: Verify filenames match
-- `Documents/tournament_rules.md` Â§11: Verify publishing requirements reference correct filenames
+- `Documents/integrity_and_verification.md` §3: Verify manifest filename references
+- `Documents/replay_and_broadcast.md` §2.3, §8: Verify filenames match
+- `Documents/tournament_rules.md` §11: Verify publishing requirements reference correct filenames
 
 ## Lock 2: Scoring Model
 
-The code uses win=3, draw=1, loss=0. But `Documents/tournament_harness_v0.md` Â§8.1 contains outdated scoring text. Resolve this:
+The code uses win=3, draw=1, loss=0. But `Documents/tournament_harness_v0.md` §8.1 contains outdated scoring text. Resolve this:
 
 - Canonical scoring: win=3, draw=1, loss=0
 - This aligns with the "discourage ties" product direction
 
 Standings sort: **points first** (the primary ranking key), then apply tie-breakers in this order when points are equal:
 1. Head-to-head record
-2. Total score differential (pointsFor âˆ’ pointsAgainst)
-3. Total points scored (`totalPointsScored`, i.e., pointsFor â€” the aggregate match score, NOT standings points)
+2. Total score differential (pointsFor − pointsAgainst)
+3. Total points scored (`totalPointsScored`, i.e., pointsFor ”” the aggregate match score, NOT standings points)
 4. Deterministic seed-derived coinflip (last resort, prevents ambiguity)
 
 IMPORTANT: "Points" is the primary sort key, NOT a tie-breaker. Tie-breakers only apply when two agents have equal points. Write this distinction clearly.
@@ -74,13 +74,13 @@ IMPORTANT: "Points" is the primary sort key, NOT a tie-breaker. Tie-breakers onl
 IMPORTANT: "Total points scored" means aggregate match score (pointsFor), NOT standings points. Use the label `totalPointsScored` to avoid ambiguity. Write this distinction clearly.
 
 Update these files:
-- `Documents/tournament_harness_v0.md` Â§8.1: Replace outdated scoring text with win=3/draw=1/loss=0. Add the tie-breaker order with clear framing.
-- `Documents/tournament_rules.md` Â§8â€“9: Make this the single source of truth for scoring and tie-breaks.
-- `Documents/roadmap.md`: Update the "Gaps vs spec" note about scoring to say "resolved â€” spec updated to match implementation (win=3/draw=1/loss=0)"
+- `Documents/tournament_harness_v0.md` §8.1: Replace outdated scoring text with win=3/draw=1/loss=0. Add the tie-breaker order with clear framing.
+- `Documents/tournament_rules.md` §8”“9: Make this the single source of truth for scoring and tie-breaks.
+- `Documents/roadmap.md`: Update the "Gaps vs spec" note about scoring to say "resolved ”” spec updated to match implementation (win=3/draw=1/loss=0)"
 
 ## Lock 3: Hashing Rules
 
-`Documents/integrity_and_verification.md` Â§5 describes hashing at a high level but lacks byte-level rules. Add a new subsection Â§5.4 titled "Byte-Level Hashing Contract" with these exact rules:
+`Documents/integrity_and_verification.md` §5 describes hashing at a high level but lacks byte-level rules. Add a new subsection §5.4 titled "Byte-Level Hashing Contract" with these exact rules:
 
 ```
 ### 5.4 Byte-Level Hashing Contract
@@ -121,13 +121,13 @@ These rules ensure cross-platform portable verification.
 - Authenticity requires signed receipts (future work)
 ```
 
-Also add a brief cross-reference from `Documents/artifact_packaging.md` Â§7: "See `integrity_and_verification.md` Â§5.4 for byte-level hashing rules."
+Also add a brief cross-reference from `Documents/artifact_packaging.md` §7: "See `integrity_and_verification.md` §5.4 for byte-level hashing rules."
 
 ## Lock 4: Moments Ownership
 
 The docs are ambiguous about whether the harness or the viewer produces `moments.json`. Resolve this:
 
-Update `Documents/replay_and_broadcast.md` Â§4 to add:
+Update `Documents/replay_and_broadcast.md` §4 to add:
 
 ```
 ### Moment Production Rules
@@ -139,16 +139,16 @@ Update `Documents/replay_and_broadcast.md` Â§4 to add:
 - Both harness and viewer use the same shared library, ensuring identical results
 ```
 
-Update `Documents/specification.md` Â§9 to add: "Moments may be computed by the viewer on-the-fly or loaded from a published `moments.json` file. If both are available, the published file takes precedence."
+Update `Documents/specification.md` §9 to add: "Moments may be computed by the viewer on-the-fly or loaded from a published `moments.json` file. If both are available, the published file takes precedence."
 
-Update `Documents/tournament_harness_v0.md` Â§11 to clarify: "The harness MAY produce `moments.json` using the shared moment detection library. This is optional. If produced, it is a telemetry-layer artifact."
+Update `Documents/tournament_harness_v0.md` §11 to clarify: "The harness MAY produce `moments.json` using the shared moment detection library. This is optional. If produced, it is a telemetry-layer artifact."
 
 ## Final check
 
 After all edits, read through EVERY modified document and confirm:
 - No remaining references to `tournament.json` as the canonical name (except the dual-write transition note)
 - No remaining references to outdated scoring text
-- Hashing rules appear in one place (integrity doc Â§5.4) with cross-references elsewhere
+- Hashing rules appear in one place (integrity doc §5.4) with cross-references elsewhere
 - Moments ownership is unambiguous
 - Tie-breaker language correctly frames points as primary sort key, not as a tie-breaker
 - "Total points scored" is clearly labeled as aggregate match score (pointsFor), not standings points
@@ -158,7 +158,7 @@ Commit message: "Lock decision contracts: filenames, scoring, hashing rules, mom
 
 ---
 
-## Prompt 2 â€” Phase 1.1â€“1.2: Manifest Production
+## Prompt 2 ”” Phase 1.1”“1.2: Manifest Production
 
 **Agent:** Codex
 **Branch:** `phase-1.1/match-manifests`
@@ -173,14 +173,14 @@ RULES:
 - If the repo structure differs from what this prompt assumes, stop and report the mismatch.
 - All changes on branch `phase-1.1/match-manifests`.
 - Definition of done: `npm test`, `npm run lint`, `npm run typecheck` pass. Include one sample tournament run output for inspection.
-- Preserve all existing behavior â€” existing tests must pass, existing CLI flags must work, existing output formats must not change.
+- Preserve all existing behavior ”” existing tests must pass, existing CLI flags must work, existing output formats must not change.
 
 ## Context: Existing Code
 
-- `src/core/json.ts` â€” stable JSON serializer (deterministic key ordering). Use this for ALL manifest writes.
-- `src/core/rng.ts` â€” seeded PRNG (Mulberry32) and `deriveMatchSeed()` using FNV-1a32.
-- `src/tournament/artifacts.ts` â€” contains `writeTournamentArtifacts()` and `writeTournamentBundle()`.
-- `src/cli/run-tournament.ts` â€” CLI with flags: `--seed`, `--rounds`, `--maxTurns`, `--scenario`, `--agents`, `--outDir`, `--bundle-out`.
+- `src/core/json.ts` ”” stable JSON serializer (deterministic key ordering). Use this for ALL manifest writes.
+- `src/core/rng.ts` ”” seeded PRNG (Mulberry32) and `deriveMatchSeed()` using FNV-1a32.
+- `src/tournament/artifacts.ts` ”” contains `writeTournamentArtifacts()` and `writeTournamentBundle()`.
+- `src/cli/run-tournament.ts` ”” CLI with flags: `--seed`, `--rounds`, `--maxTurns`, `--scenario`, `--agents`, `--outDir`, `--bundle-out`.
 - The CLI may support optional provenance flags (`--engineCommit`, `--engineVersion`). Use whatever provenance fields the CLI currently supports; do NOT add new CLI flags.
 
 ## Task 1: Define manifest types
@@ -261,7 +261,7 @@ In the artifact-writing flow (likely `src/tournament/artifacts.ts`):
 - After each match completes and `match.jsonl` is written, also write `match_manifest.json` in the same match directory.
 - Populate all fields from data already available in the harness.
 - Use the stable JSON serializer from `src/core/json.ts`.
-- Ensure the output ends with exactly one final `\n`. Check whether the stable serializer already appends `\n` â€” if it does, do not append another. If it does not, append exactly one.
+- Ensure the output ends with exactly one final `\n`. Check whether the stable serializer already appends `\n` ”” if it does, do not append another. If it does not, append exactly one.
 - Set `createdAt` to `new Date().toISOString()`.
 
 ## Task 3: Write tournament_manifest.json
@@ -278,7 +278,7 @@ After all matches complete, write `tournament_manifest.json` alongside `standing
 
 ## Task 4: Update the single-file tournament bundle
 
-If `--bundle-out` is used, the bundle should embed the new `tournament_manifest.json` content and per-match `match_manifest.json` content alongside existing data. Preserve the existing bundle schema â€” only add new keys, do not rename existing ones.
+If `--bundle-out` is used, the bundle should embed the new `tournament_manifest.json` content and per-match `match_manifest.json` content alongside existing data. Preserve the existing bundle schema ”” only add new keys, do not rename existing ones.
 
 ## Task 5: Tests
 
@@ -301,7 +301,7 @@ If `--bundle-out` is used, the bundle should embed the new `tournament_manifest.
 
 ---
 
-## Prompt 3 â€” Phase 1.3: SHA-256 Hashing
+## Prompt 3 ”” Phase 1.3: SHA-256 Hashing
 
 **Agent:** Codex
 **Branch:** `phase-1.3/hashing`
@@ -320,21 +320,21 @@ RULES:
 
 ## Context
 
-- `src/core/json.ts` â€” stable JSON serializer. Check whether its output already ends with `\n`.
-- `src/tournament/artifacts.ts` â€” writes all output files
+- `src/core/json.ts` ”” stable JSON serializer. Check whether its output already ends with `\n`.
+- `src/tournament/artifacts.ts` ”” writes all output files
 - `match_manifest.json` exists per match (from previous work) with a `createdAt` field excluded from hash scope
 - `match_summary.json` exists per match
 - `tournament_manifest.json` exists (from previous work) with a `createdAt` field
-- Node.js `crypto` module is available â€” no external deps needed
+- Node.js `crypto` module is available ”” no external deps needed
 
 ## Two distinct hashing modes
 
-1. **`logHash`** â€” file-bytes hashing:
+1. **`logHash`** ”” file-bytes hashing:
    - Read raw bytes of `match.jsonl` from disk
    - Compute SHA-256 of those exact bytes
    - Never re-parse or re-serialize
 
-2. **`manifestHash`** â€” manifestCore hashing:
+2. **`manifestHash`** ”” manifestCore hashing:
    - Take the match manifest OBJECT (as used when writing the file)
    - Remove `createdAt` (and any future excluded fields)
    - Serialize using the stable JSON serializer
@@ -351,7 +351,7 @@ Create `src/core/hash.ts`:
 ```typescript
 import { createHash } from 'crypto';
 import { readFile } from 'fs/promises';
-// Import the stable serializer from src/core/json.ts â€” use whatever it actually exports
+// Import the stable serializer from src/core/json.ts ”” use whatever it actually exports
 
 /**
  * SHA-256 hash of raw bytes. Returns "sha256:" + lowercase hex.
@@ -394,7 +394,7 @@ Adapt import names to match what `src/core/json.ts` actually exports.
 In `src/tournament/artifacts.ts`, AFTER writing `match.jsonl` and `match_manifest.json` to disk:
 
 1. `logHash = await hashFile(path/to/match.jsonl)`
-2. `manifestHash = hashManifestCore(matchManifestObject)` â€” use the in-memory manifest object that was used to write the file, not re-read from disk
+2. `manifestHash = hashManifestCore(matchManifestObject)` ”” use the in-memory manifest object that was used to write the file, not re-read from disk
 3. Add a `hashes` field to `match_summary.json`:
 
 ```json
@@ -415,27 +415,27 @@ After all matches complete and all per-match hashes are computed:
 - Collect all `logHash` string values
 - Sort lexicographically
 - Concatenate into a single string (no separator)
-- SHA-256 hash that string â†’ `truthBundleHash`
+- SHA-256 hash that string → `truthBundleHash`
 - Add `truthBundleHash` to the tournament manifest
 
 IMPORTANT: When rewriting `tournament_manifest.json` to add `truthBundleHash`, parse the existing file and PRESERVE the original `createdAt` value. Do not mint a new timestamp. Re-serialize with the stable serializer and ensure exactly one trailing `\n`. Also update the dual-write `tournament.json` with the same content.
 
 ## Task 4: Tests
 
-- Same `match.jsonl` â†’ same `logHash` (determinism)
+- Same `match.jsonl` → same `logHash` (determinism)
 - Changing `createdAt` in manifest does NOT change `manifestHash`
 - Changing any OTHER manifest field DOES change `manifestHash`
 - Hash format: regex `^sha256:[a-f0-9]{64}$`
 - `match_summary.json` contains `hashes.logHash` and `hashes.manifestHash` after tournament run
 - `tournament_manifest.json` contains `truthBundleHash` after tournament run
-- `truthBundleHash` is deterministic (same tournament â†’ same hash)
+- `truthBundleHash` is deterministic (same tournament → same hash)
 - Files end with exactly one `\n`
 - All existing tests still pass
 ```
 
 ---
 
-## Prompt 4 â€” Phase 1.4: verify-match CLI
+## Prompt 4 ”” Phase 1.4: verify-match CLI
 
 **Agent:** Codex
 **Branch:** `phase-1.4/verify-match`
@@ -455,9 +455,9 @@ RULES:
 ## Context
 
 The harness writes per-match directories containing:
-- `match.jsonl` â€” truth log
-- `match_manifest.json` â€” truth manifest
-- `match_summary.json` â€” telemetry, includes `hashes: { logHash, manifestHash }`
+- `match.jsonl` ”” truth log
+- `match_manifest.json` ”” truth manifest
+- `match_summary.json` ”” telemetry, includes `hashes: { logHash, manifestHash }`
 
 Hashing utilities are in `src/core/hash.ts` (`hashFile`, `hashManifestCore`).
 
@@ -478,38 +478,38 @@ npx tsx src/cli/verify-match.ts --path matches/round0-agentA-agentB/
    - `match_summary.json`
    If any missing, report which ones and exit code 2.
 
-2. Read stored hashes from `match_summary.json` â†’ `hashes.logHash` and `hashes.manifestHash`.
+2. Read stored hashes from `match_summary.json` → `hashes.logHash` and `hashes.manifestHash`.
    If `hashes` field doesn't exist, report and exit code 2.
 
 3. Recompute:
-   - `logHash`: `await hashFile("match.jsonl")` â€” raw bytes on disk
+   - `logHash`: `await hashFile("match.jsonl")` ”” raw bytes on disk
    - `manifestHash`: parse `match_manifest.json` into an object, run `hashManifestCore()` on it
 
 4. Compare recomputed to stored.
 
 5. Structured results to **stdout**. Internal errors to **stderr**.
 
-**Output â€” pass:**
+**Output ”” pass:**
 ```
 verify-match: matches/round0-agentA-agentB/
-  match.jsonl          âœ“ exists
-  match_manifest.json  âœ“ exists
-  match_summary.json   âœ“ exists
-  logHash              âœ“ PASS (sha256:abc123...)
-  manifestHash         âœ“ PASS (sha256:def456...)
+  match.jsonl          ✓ exists
+  match_manifest.json  ✓ exists
+  match_summary.json   ✓ exists
+  logHash              ✓ PASS (sha256:abc123...)
+  manifestHash         ✓ PASS (sha256:def456...)
 RESULT: PASS
 ```
 
-**Output â€” fail:**
+**Output ”” fail:**
 ```
 verify-match: matches/round0-agentA-agentB/
-  match.jsonl          âœ“ exists
-  match_manifest.json  âœ“ exists
-  match_summary.json   âœ“ exists
-  logHash              âœ— FAIL
+  match.jsonl          ✓ exists
+  match_manifest.json  ✓ exists
+  match_summary.json   ✓ exists
+  logHash              ✗ FAIL
     expected: sha256:abc123...
     actual:   sha256:xyz789...
-  manifestHash         âœ“ PASS (sha256:def456...)
+  manifestHash         ✓ PASS (sha256:def456...)
 RESULT: FAIL
 ```
 
@@ -522,18 +522,18 @@ RESULT: FAIL
 
 ## Tests
 
-- Run a match, verify-match â†’ exit 0
-- Append a byte to `match.jsonl` â†’ exit 1, logHash FAIL
-- Change a non-createdAt field in `match_manifest.json` â†’ exit 1, manifestHash FAIL
-- Change ONLY `createdAt` in `match_manifest.json` â†’ exit 0 (createdAt excluded)
-- Delete `match_manifest.json` â†’ exit 2
-- Remove `hashes` from `match_summary.json` â†’ exit 2
+- Run a match, verify-match → exit 0
+- Append a byte to `match.jsonl` → exit 1, logHash FAIL
+- Change a non-createdAt field in `match_manifest.json` → exit 1, manifestHash FAIL
+- Change ONLY `createdAt` in `match_manifest.json` → exit 0 (createdAt excluded)
+- Delete `match_manifest.json` → exit 2
+- Remove `hashes` from `match_summary.json` → exit 2
 - All existing tests still pass
 ```
 
 ---
 
-## Prompt 5 â€” Phase 1.5: verify-tournament CLI
+## Prompt 5 ”” Phase 1.5: verify-tournament CLI
 
 **Agent:** Codex
 **Branch:** `phase-1.5/verify-tournament`
@@ -575,7 +575,7 @@ npx tsx src/cli/verify-tournament.ts --path tournament_run/
    - `tournament_manifest.json` (required)
    - `standings.json` (required)
    - `matches/` directory with at least one match subdirectory
-   Missing â†’ exit 2.
+   Missing → exit 2.
 
 2. **Per-match verification:** For each match directory under `matches/`, call the imported verify-match functions directly. Do NOT shell out.
 
@@ -587,24 +587,24 @@ npx tsx src/cli/verify-tournament.ts --path tournament_run/
    - PASS if identical, FAIL if different
 
 4. **truthBundleHash check (if present):**
-   - If `tournament_manifest.json` contains `truthBundleHash`, recompute (sorted logHash concatenation â†’ SHA-256) and compare
+   - If `tournament_manifest.json` contains `truthBundleHash`, recompute (sorted logHash concatenation → SHA-256) and compare
 
 **Output (stdout):**
 ```
 verify-tournament: tournament_run/
-  tournament_manifest.json  âœ“ exists
-  standings.json            âœ“ exists
+  tournament_manifest.json  ✓ exists
+  standings.json            ✓ exists
   matches: 6 found
 
-  match round0-agentA-agentB  âœ“ PASS
-  match round0-agentA-agentC  âœ“ PASS
-  match round0-agentB-agentC  âœ“ PASS
-  match round1-agentA-agentB  âœ“ PASS
-  match round1-agentA-agentC  âœ“ PASS
-  match round1-agentB-agentC  âœ“ PASS
+  match round0-agentA-agentB  ✓ PASS
+  match round0-agentA-agentC  ✓ PASS
+  match round0-agentB-agentC  ✓ PASS
+  match round1-agentA-agentB  ✓ PASS
+  match round1-agentA-agentC  ✓ PASS
+  match round1-agentB-agentC  ✓ PASS
 
-  standings recomputation     âœ“ PASS
-  truthBundleHash             âœ“ PASS
+  standings recomputation     ✓ PASS
+  truthBundleHash             ✓ PASS
 
 RESULT: PASS (6/6 matches, standings confirmed)
 ```
@@ -613,20 +613,20 @@ RESULT: PASS (6/6 matches, standings confirmed)
 
 ## Tests
 
-- Full tournament â†’ verify-tournament â†’ PASS
-- Tamper with one match's `match.jsonl` â†’ that match FAIL, overall FAIL
-- Tamper with `standings.json` â†’ standings recomputation FAIL
-- Delete a match directory â†’ structural error (exit 2)
+- Full tournament → verify-tournament → PASS
+- Tamper with one match's `match.jsonl` → that match FAIL, overall FAIL
+- Tamper with `standings.json` → standings recomputation FAIL
+- Delete a match directory → structural error (exit 2)
 - All existing tests still pass
 ```
 
 ---
 
-## Prompt 6 â€” Phase 2: Scenario #2 (Resource Rivals)
+## Prompt 6 ”” Phase 2: Scenario #2 (Resource Rivals)
 
 **Agent:** Codex
 **Branch:** `phase-2/resource-rivals`
-**Depends on:** Prompt 2 (manifests exist). **Can run in PARALLEL with Prompts 4â€“5.**
+**Depends on:** Prompt 2 (manifests exist). **Can run in PARALLEL with Prompts 4”“5.**
 **Scope:** New scenario, new agents, validation
 
 ```
@@ -653,13 +653,13 @@ A resource-management bidding game with hidden information.
 
 **Setup:**
 - Two agents start with equal resources (e.g., 100 points each)
-- 10â€“15 contested objectives, presented one at a time
-- Each objective has a publicly known value (5â€“20 points, generated by seeded RNG)
+- 10”“15 contested objectives, presented one at a time
+- Each objective has a publicly known value (5”“20 points, generated by seeded RNG)
 - At least one "jackpot" objective worth significantly more than average
 
 **Per turn:**
 - Both agents see: objective value, objectives remaining, their OWN captured score (public)
-- Both agents see: their OWN remaining resources (PRIVATE â€” this is the hidden info)
+- Both agents see: their OWN remaining resources (PRIVATE ”” this is the hidden info)
 - Each agent submits a bid (integer, 0 to remaining resources)
 - Higher bid wins the objective's value
 - Both agents lose their bid regardless
@@ -693,7 +693,7 @@ IMPORTANT: `ActionAdjudicated` MUST include `valid: boolean` per agent. This is 
 
 Study NumberGuess and follow the same contract/interface:
 - Constructor takes seeded RNG from `src/core/rng.ts`
-- ALL randomness via provided RNG â€” no `Math.random()`, no `Date.now()`
+- ALL randomness via provided RNG ”” no `Math.random()`, no `Date.now()`
 - `Scenario.reveal()` returns hidden state for `MatchEnded.details`
 - Invalid actions caught deterministically
 - Follow whatever scenario registration/discovery pattern NumberGuess uses
@@ -729,7 +729,7 @@ npx tsx src/cli/run-tournament.ts --scenario resourceRivals --agents ./src/agent
 
 ---
 
-## Prompt 7 â€” Phase 3: Moment Detection Upgrade
+## Prompt 7 ”” Phase 3: Moment Detection Upgrade
 
 **Agent:** Codex
 **Branch:** `phase-3/moment-heuristics`
@@ -748,8 +748,8 @@ RULES:
 
 ## Context
 
-- `src/lib/replay/detectMoments.ts` â€” current implementation, turn boundaries only
-- `src/app/replay/page.tsx` â€” web viewer, loads and displays moments
+- `src/lib/replay/detectMoments.ts` ”” current implementation, turn boundaries only
+- `src/app/replay/page.tsx` ”” web viewer, loads and displays moments
 - ResourceRivals scenario emits `ActionAdjudicated` events with `valid: boolean`
 
 ## Task 1: Implement heuristic detectors
@@ -800,23 +800,23 @@ In web viewer:
 
 ## Tests
 
-- Synthetic log with score swing â†’ detected
-- Log with `valid: false` â†’ "Blunder" detected
-- Log with lead change â†’ detected
-- Last-turn decider â†’ "Clutch" detected
-- Determinism: same input â†’ same output
-- Run on ResourceRivals matches â†’ at least some moments found
+- Synthetic log with score swing → detected
+- Log with `valid: false` → "Blunder" detected
+- Log with lead change → detected
+- Last-turn decider → "Clutch" detected
+- Determinism: same input → same output
+- Run on ResourceRivals matches → at least some moments found
 - All existing tests pass
 ```
 
 ---
 
-## Prompt 8 â€” Doc Reconciliation
+## Prompt 8 ”” Doc Reconciliation
 
 **Agent:** Claude Code
 **Branch:** `phase-4/doc-reconciliation`
-**Depends on:** All of Prompts 1â€“7 complete
-**Scope:** Documentation only â€” no code changes
+**Depends on:** All of Prompts 1”“7 complete
+**Scope:** Documentation only ”” no code changes
 
 ```
 You are doing a final reconciliation pass on all 12 design documents for HashMatch.
@@ -824,9 +824,9 @@ You are doing a final reconciliation pass on all 12 design documents for HashMat
 RULES:
 - Do not rename or move files unless explicitly instructed.
 - If the repo structure differs from what this prompt assumes, stop and report the mismatch.
-- Make NO code changes â€” documentation only.
+- Make NO code changes ”” documentation only.
 - Do NOT change any normative rules or design decisions.
-- If docs disagree with code on a design rule, mark as ðŸŸ¨ and note the discrepancy rather than rewriting the rule.
+- If docs disagree with code on a design rule, mark as 🟨 and note the discrepancy rather than rewriting the rule.
 - All changes on branch `phase-4/doc-reconciliation`.
 
 ## What has been implemented
@@ -841,17 +841,17 @@ RULES:
 
 ## Update these documents
 
-1. `Documents/roadmap.md` â€” "Current Status":
+1. `Documents/roadmap.md` ”” "Current Status":
    - Milestone 1 gaps resolved (manifests, scoring, filenames)
    - Milestone 2 moments upgraded
-   - Milestone 3 partial â†’ mostly done (manifests, hashing, verification)
+   - Milestone 3 partial → mostly done (manifests, hashing, verification)
    - Milestone 4 partial (verify CLIs exist, no receipts)
    - Scenario library: add ResourceRivals
 
-2. `Documents/tournament_harness_v0.md` Â§14:
+2. `Documents/tournament_harness_v0.md` §14:
    - Update "Differences from this spec" table
 
-3. `Documents/integrity_and_verification.md` Â§12:
+3. `Documents/integrity_and_verification.md` §12:
    - Phase A: manifests + hashing implemented
    - Phase B: verification CLI exists, no receipts
 
@@ -863,7 +863,7 @@ RULES:
 
 ## Rules
 
-- Emoji: âœ… done, ðŸŸ¨ partial, â¬œ not started
+- Emoji: ✅ done, 🟨 partial, ✬ not started
 - Conservative: only update what actually changed
 - No remaining references to `tournament.json` as canonical (except dual-write note)
 - No remaining references to outdated scoring text
@@ -878,15 +878,15 @@ Commit message: "Reconcile docs with implementation: trust foundation + scenario
 
 | Order | Prompt | Agent | Branch | Depends On | Parallel? |
 |-------|--------|-------|--------|------------|-----------|
-| 1 | Decision Locks | Claude Code | `phase-0/decision-locks` | â€” | â€” |
-| 2 | Manifests | Codex | `phase-1.1/match-manifests` | #1 | â€” |
-| 3 | Hashing | Codex | `phase-1.3/hashing` | #2 | â€” |
-| 4 | verify-match | Codex | `phase-1.4/verify-match` | #3 | â€” |
-| 5 | verify-tournament | Codex | `phase-1.5/verify-tournament` | #4 | âœ… parallel with #6 |
-| 6 | Scenario #2 | Codex | `phase-2/resource-rivals` | #2 | âœ… parallel with #4â€“5 |
-| 7 | Moments Upgrade | Codex | `phase-3/moment-heuristics` | #6 | â€” |
-| 8 | Doc Reconciliation | Claude Code | `phase-4/doc-reconciliation` | all above | â€” |
+| 1 | Decision Locks | Claude Code | `phase-0/decision-locks` | ”” | ”” |
+| 2 | Manifests | Codex | `phase-1.1/match-manifests` | #1 | ”” |
+| 3 | Hashing | Codex | `phase-1.3/hashing` | #2 | ”” |
+| 4 | verify-match | Codex | `phase-1.4/verify-match` | #3 | ”” |
+| 5 | verify-tournament | Codex | `phase-1.5/verify-tournament` | #4 | ✅ parallel with #6 |
+| 6 | Scenario #2 | Codex | `phase-2/resource-rivals` | #2 | ✅ parallel with #4”“5 |
+| 7 | Moments Upgrade | Codex | `phase-3/moment-heuristics` | #6 | ”” |
+| 8 | Doc Reconciliation | Claude Code | `phase-4/doc-reconciliation` | all above | ”” |
 
-**Critical path:** 1 â†’ 2 â†’ 3 â†’ 4 (sequential, each depends on the last)
-**Parallel track:** 6 starts after 2, runs alongside 3â€“5
+**Critical path:** 1 → 2 → 3 → 4 (sequential, each depends on the last)
+**Parallel track:** 6 starts after 2, runs alongside 3”“5
 **Final pass:** 8 runs after everything else lands

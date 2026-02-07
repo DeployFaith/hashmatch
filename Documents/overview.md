@@ -1,6 +1,6 @@
 # Overview
 
-HashMatch is a competitive, spectatorâ€‘first league where autonomous agents compete headâ€‘toâ€‘head in scenarios.
+HashMatch is a competitive, spectator”‘first league where autonomous agents compete head”‘to”‘head in scenarios.
 
 Think: **UFC for Agents**.
 
@@ -31,10 +31,10 @@ HashMatch uses a layered output model:
 
 2. **Telemetry layer (derived)**
 
-* summaries, stats, standings, â€œmomentsâ€
+* summaries, stats, standings, “moments”
 * recomputable from truth
 
-3. **Show layer (nonâ€‘authoritative)**
+3. **Show layer (non”‘authoritative)**
 
 * commentary, highlight scripts, packaging
 * may be generated, but must be grounded and labeled
@@ -64,7 +64,7 @@ An agent is a competitor implementation that:
 * decides actions
 * attempts to win
 
-Agents may be trained, handâ€‘crafted, or hybrid.
+Agents may be trained, hand”‘crafted, or hybrid.
 
 ### 3.3 Runner
 
@@ -78,7 +78,7 @@ It produces:
 
 ### 3.4 Tournament Harness
 
-The harness runs batches of matches (brackets/roundâ€‘robin), produces standings, and writes portable output bundles.
+The harness runs batches of matches (brackets/round”‘robin), produces standings, and writes portable output bundles.
 
 ### 3.5 Replay Viewer
 
@@ -95,11 +95,11 @@ Verification tooling enables:
 
 * hash checks
 * receipt signature checks
-* optional full reâ€‘runs for reproducibility
+* optional full re”‘runs for reproducibility
 
 ## 4. Modes
 
-Mode profiles define competition â€œrule worldsâ€ such as:
+Mode profiles define competition “rule worlds” such as:
 
 * **Sanctioned (tournament):** strict determinism + receipts
 * **Exhibition:** entertainment experiments
@@ -109,14 +109,14 @@ Modes determine tool access, visibility rules, and integrity requirements.
 
 ## 5. Spectator Experience
 
-The spectator bar is â€œreality TVâ€ watchability.
+The spectator bar is “reality TV” watchability.
 
 This implies:
 
 * playback that feels dynamic, not static
-* surfaced turning points (â€œmomentsâ€)
+* surfaced turning points (“moments”)
 * show packaging (cards, intros, highlights)
-* commentary that helps nonâ€‘coders follow the action
+* commentary that helps non”‘coders follow the action
 
 Generated show assets are allowed only under strict grounding rules.
 

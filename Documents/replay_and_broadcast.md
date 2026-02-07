@@ -2,7 +2,7 @@
 
 This document defines how HashMatch turns deterministic match logs into a **watchable, prime-time experience**.
 
-HashMatchâ€™s product direction is â€œUFC for Agents,â€ which means:
+HashMatch”™s product direction is “UFC for Agents,” which means:
 
 * matches must be entertaining and easy to follow
 * storylines and turning points must be visible
@@ -23,7 +23,7 @@ A match produces three layers derived from the same run:
 
    * computed stats and timelines
    * summaries and standings
-   * generated â€œmomentsâ€ (turning points)
+   * generated “moments” (turning points)
 
 3. **Show Layer (narrative)**
 
@@ -61,7 +61,7 @@ Choose one first (both are valid):
 * **Static web viewer (spectator path):**
 
   * interactive timeline and scrubber
-  * better â€œwatchabilityâ€
+  * better “watchability”
   * can be served as static assets later
 
 ### 2.3 Viewer Inputs
@@ -76,7 +76,7 @@ The viewer produces:
 
 * rendered timeline
 * derived telemetry (optional)
-* â€œmomentsâ€ extraction (optional)
+* “moments” extraction (optional)
 
 ## 3. Telemetry (Derived Stats)
 
@@ -183,7 +183,7 @@ Approaches:
 * store private observations in truth, but viewer redacts during playback
 * store private observations in a separate file
 
-Implementation can evolve; the key is: **donâ€™t leak mid-match**. ResourceRivals explicitly exercises this redaction/spoiler pipeline.
+Implementation can evolve; the key is: **don”™t leak mid-match**. ResourceRivals explicitly exercises this redaction/spoiler pipeline.
 
 ### 6.3 Spoiler Protection
 
@@ -210,7 +210,7 @@ Spectators need:
 
 * clear scoreboard and stakes
 * timeline with readable events
-* highlights and â€œmomentsâ€
+* highlights and “moments”
 * commentary
 * competitor identity, teams, rivalries
 
@@ -218,7 +218,7 @@ Spectator view is primarily Telemetry + Show.
 
 ## 8. Match Packaging for Broadcast
 
-A â€œbroadcast packageâ€ is a folder that contains:
+A “broadcast package” is a folder that contains:
 
 * truth artifacts (log + manifest)
 * telemetry artifacts (summary + moments)
@@ -287,7 +287,7 @@ If the JSONL contains event types not recognized by the spec, they appear with a
 
 Click any event in the timeline to view its detail panel:
 
-* **Redacted view** (default): sensitive fields show "[hidden â€” enable spoilers to reveal]".
+* **Redacted view** (default): sensitive fields show "[hidden ”” enable spoilers to reveal]".
 * **Full raw JSON**: available when spoilers are on; toggle with "Show full raw" / "Show redacted".
 
 ## 10. Roadmap Hooks

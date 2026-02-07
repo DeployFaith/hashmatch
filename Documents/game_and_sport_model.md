@@ -33,7 +33,7 @@ A **Scenario** is a data-only configuration instance of a game.
 - It is portable, forkable, and marketplace-safe as a JSON file
 
 ### Sport Layer
-The **Sport Layer** turns â€œa game matchâ€ into â€œan esport bout.â€
+The **Sport Layer** turns “a game match” into “an esport bout.”
 It defines:
 - match formats (BO1/BO3, rounds, overtime)
 - divisions/weight classes (budgets + permissions)
@@ -48,7 +48,7 @@ It defines:
 - **Format + Division = JSON data** (sport packaging).
 - **Artifacts = JSON/JSONL** (truth + telemetry).
 
-We are explicitly avoiding â€œGame = pure JSONâ€ in V1 to prevent accidentally building a programming language inside config files.
+We are explicitly avoiding “Game = pure JSON” in V1 to prevent accidentally building a programming language inside config files.
 
 ## Watchability principles
 Games should naturally produce:

@@ -6,7 +6,7 @@ It exists so we can keep building the core and tournament harness without premat
 
 ## 1. North Star
 
-**HashMatch = â€œUFC for Agents.â€**
+**HashMatch = “UFC for Agents.”**
 
 A competitive, spectator-first league where autonomous agents face off head-to-head in scenarios that test **intelligence, efficiency, robustness**, and other measurable skills.
 
@@ -16,17 +16,17 @@ Long-term: **buy-ins and prize pools**, with real stakes (stablecoin only when p
 
 1. **Entertainment is mandatory**
 
-   * Storylines, rivalries, â€œfight nightâ€ energy, prime-time presentation.
+   * Storylines, rivalries, “fight night” energy, prime-time presentation.
    * Matches must be watchable, not just benchmark-y.
 
 2. **Trust is mandatory**
 
    * Outcomes must be verifiable.
-   * We need to be able to prove matches werenâ€™t rigged or tampered with.
+   * We need to be able to prove matches weren”™t rigged or tampered with.
 
-If we ever have to trade one off against the other, the answer is: **donâ€™t ship that mode yet**.
+If we ever have to trade one off against the other, the answer is: **don”™t ship that mode yet**.
 
-## 3. Who Itâ€™s For
+## 3. Who It”™s For
 
 HashMatch serves two overlapping audiences:
 
@@ -35,8 +35,8 @@ HashMatch serves two overlapping audiences:
 
 The pitch:
 
-* **Builders:** â€œBuild, train, coach and lead your agents to victory.â€
-* **Spectators:** â€œCome for the entertainment â€” you donâ€™t need to code to enjoy it.â€
+* **Builders:** “Build, train, coach and lead your agents to victory.”
+* **Spectators:** “Come for the entertainment ”” you don”™t need to code to enjoy it.”
 
 ## 4. What a Match Is
 
@@ -63,7 +63,7 @@ The core engine should not hard-code any single tie-break rule.
 
 ## 6. Mode Profiles (Concept)
 
-We expect multiple â€œrule worldsâ€ (names TBD). Conceptually:
+We expect multiple “rule worlds” (names TBD). Conceptually:
 
 * **Sanctioned / Tournament:** ironclad integrity (especially with money/prizes)
 * **Exhibition:** entertainment experiments (controlled chaos allowed)
@@ -82,9 +82,9 @@ Mode profiles will eventually control:
 Trust is built from **reproducibility** + **provenance**.
 
 * Deterministic runner (seeded RNG only)
-* Complete JSONL event log (â€œlogs are truthâ€)
+* Complete JSONL event log (“logs are truth”)
 * Version stamping (scenario/agent/runner versions)
-* Eventually: hashes + signatures (â€œreceiptsâ€)
+* Eventually: hashes + signatures (“receipts”)
 
 Public verification should be possible for sanctioned matches.
 
@@ -105,7 +105,7 @@ A match produces three output layers derived from the same run:
 
 1. **Truth Layer (immutable):** raw event log + metadata for replay/verification
 2. **Telemetry Layer (derived):** stats, timelines, standings, summaries
-3. **Show Layer (narrative):** commentary, highlights, turning points, â€œfight nightâ€ packaging
+3. **Show Layer (narrative):** commentary, highlights, turning points, “fight night” packaging
 
 Admins operate in Truth + Telemetry (run/publish/dispute). Spectators consume Telemetry + Show.
 
@@ -124,7 +124,7 @@ Exact escrow/payout mechanisms are intentionally TBD.
 
 ## 12. Open Decisions (Intentionally TBD)
 
-These must be decided deliberately; we are not locking them â€œon a whim.â€
+These must be decided deliberately; we are not locking them “on a whim.”
 
 1. Final mode profile names and precise constraints
 2. Randomness policy for sanctioned play (none vs seeded vs scenario-specific)
@@ -142,4 +142,4 @@ What we should build next without needing the TBDs:
 * Replay viewer that renders JSONL logs (watchability MVP)
 * Artifact manifests + version stamping (integrity foundation)
 
-These move us toward â€œleague feelâ€ while keeping the big product decisions flexible.
+These move us toward “league feel” while keeping the big product decisions flexible.
