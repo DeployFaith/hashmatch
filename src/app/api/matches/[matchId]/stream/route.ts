@@ -61,18 +61,24 @@ function serializeSseEvent({
 const closedSseControllers = new WeakSet<ReadableStreamDefaultController<Uint8Array>>();
 
 function closeStream(ctx: StreamContext): void {
-  if (closedSseControllers.has(ctx.controller)) return;
+  if (closedSseControllers.has(ctx.controller)) {
+    return;
+  }
   closedSseControllers.add(ctx.controller);
   try {
-    ctx.closeStream(ctx);
+    ctx.controller.close();
   } catch {
     // ignore
   }
 }
 
 function enqueueEvent(ctx: StreamContext, event: string, data: unknown, id?: string | number): void {
-  if (ctx.signal.aborted) return;
-  if (closedSseControllers.has(ctx.controller)) return;
+  if (ctx.signal.aborted) {
+    return;
+  }
+  if (closedSseControllers.has(ctx.controller)) {
+    return;
+  }
   try {
     ctx.controller.enqueue(ctx.encoder.encode(serializeSseEvent({ event, data, id })));
   } catch (err: any) {
