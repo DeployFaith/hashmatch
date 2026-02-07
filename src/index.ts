@@ -47,3 +47,12 @@ export type {
 
 export { generateHeistScenario, HEIST_PRESETS } from "./games/heist/generator.js";
 export { generateDescription, generatePreview } from "./games/heist/preview.js";
+
+export type {
+  AgentAdapter,
+  GatewayActionResponse,
+  GatewayConfig,
+  GatewayObservationRequest,
+  GatewayTimeoutEvent,
+  GatewayTranscriptEntry,
+} from "./gateway/types.js";
