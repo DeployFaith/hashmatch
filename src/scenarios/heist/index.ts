@@ -210,8 +210,8 @@ export function createHeistScenario(
             roomId,
             doorId: door.id,
             locked: door.locked ?? false,
-            requiredItem: door.requiredItem,
             passable: isDoorPassable(door, inventorySet),
+            ...(door.requiredItem !== undefined && { requiredItem: door.requiredItem }),
           };
         });
 

@@ -1,6 +1,7 @@
 import type { Agent, AgentContext, MatchRunnerConfig, Scenario } from "../contract/interfaces.js";
 import type { AgentId, JsonValue, MatchEvent, MatchResult } from "../contract/types.js";
 import { createRng, deriveSeed } from "../core/rng.js";
+import { combineHeistRuns } from "./heistCompetitive.js";
 import { generateMatchId } from "./matchId.js";
 
 /** Append a partial event (sans seq/matchId) to the event list. */
@@ -19,7 +20,7 @@ function emit(
  *
  * Pure computation — no I/O. The caller decides what to do with the events.
  */
-export function runMatch<TState, TObs, TAct>(
+function runMatchStandard<TState, TObs, TAct>(
   scenario: Scenario<TState, TObs, TAct>,
   agents: Agent<TObs, TAct>[],
   config: MatchRunnerConfig,
@@ -138,4 +139,25 @@ export function runMatch<TState, TObs, TAct>(
   });
 
   return { matchId, seed: config.seed, scores, events, turns: turn };
+}
+
+export function runMatch<TState, TObs, TAct>(
+  scenario: Scenario<TState, TObs, TAct>,
+  agents: Agent<TObs, TAct>[],
+  config: MatchRunnerConfig,
+): MatchResult {
+  const isHeistCompetitive = scenario.name === "Heist" && agents.length === 2;
+  if (!isHeistCompetitive) {
+    return runMatchStandard(scenario, agents, config);
+  }
+
+  const [agentA, agentB] = agents;
+  const resultA = runMatchStandard(scenario, [agentA], config);
+  const matchId = config.matchId ?? resultA.matchId;
+  const resultB = runMatchStandard(scenario, [agentB], { ...config, matchId });
+
+  return combineHeistRuns(scenario.name, { ...config, matchId }, [agentA.id, agentB.id], [
+    { agentId: agentA.id, result: resultA },
+    { agentId: agentB.id, result: resultB },
+  ]);
 }

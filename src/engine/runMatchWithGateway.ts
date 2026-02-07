@@ -4,6 +4,7 @@ import { createRng, deriveSeed } from "../core/rng.js";
 import { createLocalAdapter } from "../gateway/localAdapter.js";
 import type { GatewayObservationRequest } from "../gateway/types.js";
 import type { GatewayRuntimeConfig } from "../gateway/runtime.js";
+import { combineHeistRuns } from "./heistCompetitive.js";
 import { generateMatchId } from "./matchId.js";
 
 function emit(
@@ -48,7 +49,21 @@ function buildObservationRequest<TObs>(
   };
 }
 
-export async function runMatchWithGateway<TState, TObs, TAct>(
+function scopeGatewayForAgent(
+  gateway: GatewayRuntimeConfig,
+  agentId: AgentId,
+): GatewayRuntimeConfig {
+  if (gateway.mode !== "http" || !gateway.adapters) {
+    return gateway;
+  }
+  const adapter = gateway.adapters.get(agentId);
+  if (!adapter) {
+    throw new Error(`Missing gateway adapter for agent \"${agentId}\"`);
+  }
+  return { ...gateway, adapters: new Map([[agentId, adapter]]) };
+}
+
+async function runMatchWithGatewayStandard<TState, TObs, TAct>(
   scenario: Scenario<TState, TObs, TAct>,
   agents: Agent<TObs, TAct>[],
   config: MatchRunnerConfig,
@@ -214,4 +229,36 @@ export async function runMatchWithGateway<TState, TObs, TAct>(
   }
 
   return { matchId, seed: config.seed, scores, events, turns: turn };
+}
+
+export async function runMatchWithGateway<TState, TObs, TAct>(
+  scenario: Scenario<TState, TObs, TAct>,
+  agents: Agent<TObs, TAct>[],
+  config: MatchRunnerConfig,
+  gateway: GatewayRuntimeConfig,
+): Promise<MatchResult> {
+  const isHeistCompetitive = scenario.name === "Heist" && agents.length === 2;
+  if (!isHeistCompetitive) {
+    return runMatchWithGatewayStandard(scenario, agents, config, gateway);
+  }
+
+  const [agentA, agentB] = agents;
+  const resultA = await runMatchWithGatewayStandard(
+    scenario,
+    [agentA],
+    config,
+    scopeGatewayForAgent(gateway, agentA.id),
+  );
+  const matchId = config.matchId ?? resultA.matchId;
+  const resultB = await runMatchWithGatewayStandard(
+    scenario,
+    [agentB],
+    { ...config, matchId },
+    scopeGatewayForAgent(gateway, agentB.id),
+  );
+
+  return combineHeistRuns(scenario.name, { ...config, matchId }, [agentA.id, agentB.id], [
+    { agentId: agentA.id, result: resultA },
+    { agentId: agentB.id, result: resultB },
+  ]);
 }
