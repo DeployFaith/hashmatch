@@ -29,3 +29,11 @@ export {
   validateHeistScenarioParams,
   assertHeistScenarioParams,
 } from "./games/heist/types.js";
+
+export type {
+  HeistValidationCode,
+  ValidationError,
+  ValidationResult,
+} from "./games/heist/validation.js";
+
+export { validateHeistScenario } from "./games/heist/validator.js";
