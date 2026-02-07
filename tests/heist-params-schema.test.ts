@@ -132,7 +132,8 @@ describe("HeistScenarioParamsSchema", () => {
   });
 
   it("rejects missing required fields", () => {
-    const { rules, ...missingRules } = minimalParams;
+    const { rules: _rules, ...missingRules } = minimalParams;
+    void _rules;
     const result = validateHeistScenarioParams(missingRules);
     expect(result.ok).toBe(false);
   });
