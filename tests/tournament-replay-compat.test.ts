@@ -20,13 +20,13 @@ function makeConfig(overrides: Partial<TournamentConfig> = {}): TournamentConfig
 }
 
 describe("Tournament replay artifact compatibility", () => {
-  it("writes replay artifacts that parse cleanly with the viewer parser", () => {
+  it("writes replay artifacts that parse cleanly with the viewer parser", async () => {
     const config = makeConfig();
     const outDir = mkdtempSync(join(tmpdir(), "agent-league-replay-compat-"));
 
     try {
       const result = runTournament(config);
-      writeTournamentArtifacts(result, outDir);
+      await writeTournamentArtifacts(result, outDir);
 
       const tournamentPath = join(outDir, "tournament.json");
       const standingsPath = join(outDir, "standings.json");
