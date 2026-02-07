@@ -86,3 +86,154 @@ export function createFileEventSource(text: string): MatchEventSource {
     close: () => {},
   };
 }
+
+// ---------------------------------------------------------------------------
+// LiveEventSource
+// ---------------------------------------------------------------------------
+
+function coerceReplayEvent(raw: unknown): ReplayEvent | null {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    return null;
+  }
+  const obj = raw as Record<string, unknown>;
+  if (typeof obj.type !== "string" || typeof obj.seq !== "number" || typeof obj.matchId !== "string") {
+    return null;
+  }
+  return {
+    type: obj.type,
+    seq: obj.seq,
+    matchId: obj.matchId,
+    turn: typeof obj.turn === "number" ? obj.turn : undefined,
+    agentId: typeof obj.agentId === "string" ? obj.agentId : undefined,
+    raw: obj,
+  };
+}
+
+function parseErrorMessage(data: string | undefined): string {
+  if (!data) {
+    return "Live stream error.";
+  }
+  try {
+    const parsed = JSON.parse(data) as { message?: unknown };
+    if (typeof parsed.message === "string" && parsed.message.trim() !== "") {
+      return parsed.message;
+    }
+  } catch {
+    // Ignore JSON parsing failure.
+  }
+  return data;
+}
+
+export function createLiveEventSource(matchId: string): MatchEventSource {
+  const listeners = new Set<() => void>();
+  let events: ReplayEvent[] = [];
+  let errors: ParseError[] = [];
+  let status: EventSourceStatus = "loading";
+  let snapshot: MatchEventSourceSnapshot = Object.freeze({
+    events,
+    errors,
+    status,
+  });
+  let closed = false;
+
+  const source = new EventSource(`/api/matches/${matchId}/stream`);
+
+  const notify = () => {
+    if (closed) {
+      return;
+    }
+    snapshot = Object.freeze({
+      events: [...events],
+      errors: [...errors],
+      status,
+    });
+    listeners.forEach((listener) => listener());
+  };
+
+  const pushError = (message: string) => {
+    errors = [...errors, { line: 0, message }];
+  };
+
+  source.addEventListener("match_event", (evt) => {
+    if (closed) {
+      return;
+    }
+    const message = evt as MessageEvent<string>;
+    try {
+      const parsed = JSON.parse(message.data);
+      const event = coerceReplayEvent(parsed);
+      if (!event) {
+        pushError("Invalid match_event payload.");
+        notify();
+        return;
+      }
+      events = [...events, event];
+      notify();
+    } catch {
+      pushError("Failed to parse match_event payload.");
+      notify();
+    }
+  });
+
+  source.addEventListener("match_end", (evt) => {
+    if (closed) {
+      return;
+    }
+    const message = evt as MessageEvent<string>;
+    if (message.data) {
+      try {
+        JSON.parse(message.data);
+      } catch {
+        pushError("Failed to parse match_end payload.");
+      }
+    }
+    status = "complete";
+    notify();
+    source.close();
+    closed = true;
+  });
+
+  source.addEventListener("error", (evt) => {
+    if (closed) {
+      return;
+    }
+    if (evt instanceof MessageEvent) {
+      pushError(parseErrorMessage(evt.data));
+      status = "error";
+      notify();
+      source.close();
+      closed = true;
+    }
+  });
+
+  source.onerror = () => {
+    if (closed) {
+      return;
+    }
+    if (source.readyState === EventSource.CLOSED) {
+      pushError("Live stream disconnected.");
+      status = "error";
+      notify();
+      closed = true;
+    }
+  };
+
+  return {
+    kind: "live",
+    getSnapshot: () => snapshot,
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    close: () => {
+      if (closed) {
+        return;
+      }
+      closed = true;
+      source.close();
+      listeners.clear();
+    },
+  };
+}
