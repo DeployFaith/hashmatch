@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { hashFile, hashManifestCore } from "../core/hash.js";
 import { stableStringify, toStableJsonl } from "../core/json.js";
@@ -22,7 +22,10 @@ function ensureSingleTrailingNewline(value: string): string {
   return value.replace(/\n*$/, "\n");
 }
 
-function buildBroadcastManifestFiles(hasMoments: boolean): BroadcastManifestFileEntry[] {
+function buildBroadcastManifestFiles(
+  hasMoments: boolean,
+  hasHighlights: boolean,
+): BroadcastManifestFileEntry[] {
   const files: BroadcastManifestFileEntry[] = [
     { path: "match.jsonl", class: "truth" },
     { path: "match_manifest.json", class: "truth" },
@@ -30,6 +33,9 @@ function buildBroadcastManifestFiles(hasMoments: boolean): BroadcastManifestFile
   ];
   if (hasMoments) {
     files.push({ path: "moments.json", class: "telemetry" });
+  }
+  if (hasHighlights) {
+    files.push({ path: "highlights.json", class: "show" });
   }
   return files;
 }
@@ -156,7 +162,8 @@ export async function writeMatchArtifacts(config: MatchArtifactsConfig): Promise
     hasMoments = true;
   }
 
-  const broadcastFiles = buildBroadcastManifestFiles(hasMoments);
+  const hasHighlights = existsSync(join(config.matchDir, "highlights.json"));
+  const broadcastFiles = buildBroadcastManifestFiles(hasMoments, hasHighlights);
   const truthFileHashes: Record<string, string> = {
     "match.jsonl": logHash,
     "match_manifest.json": manifestHash,

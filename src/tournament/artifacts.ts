@@ -106,6 +106,7 @@ function ensureSingleTrailingNewline(value: string): string {
 function buildTournamentBroadcastManifestFiles(
   matchKeys: MatchKey[],
   hasMoments: Set<MatchKey>,
+  hasHighlights: Set<MatchKey>,
 ): BroadcastManifestFileEntry[] {
   const files: BroadcastManifestFileEntry[] = [
     { path: "tournament_manifest.json", class: "truth" },
@@ -119,6 +120,9 @@ function buildTournamentBroadcastManifestFiles(
     files.push({ path: `matches/${matchKey}/match_summary.json`, class: "telemetry" });
     if (hasMoments.has(matchKey)) {
       files.push({ path: `matches/${matchKey}/moments.json`, class: "telemetry" });
+    }
+    if (hasHighlights.has(matchKey)) {
+      files.push({ path: `matches/${matchKey}/highlights.json`, class: "show" });
     }
   }
 
@@ -236,7 +240,16 @@ export async function writeTournamentArtifacts(
       existsSync(join(outDir, "matches", matchKey, "moments.json")),
     ),
   );
-  const broadcastFiles = buildTournamentBroadcastManifestFiles(matchKeys, detectedMoments);
+  const detectedHighlights = new Set(
+    matchKeys.filter((matchKey) =>
+      existsSync(join(outDir, "matches", matchKey, "highlights.json")),
+    ),
+  );
+  const broadcastFiles = buildTournamentBroadcastManifestFiles(
+    matchKeys,
+    detectedMoments,
+    detectedHighlights,
+  );
   const broadcastManifest: BroadcastManifest = {
     bundleId: String(result.tournament.tournamentSeed),
     bundleType: "tournament",
