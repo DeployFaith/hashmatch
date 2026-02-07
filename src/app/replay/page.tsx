@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Upload,
   FileText,
@@ -30,7 +31,12 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { parseJsonl } from "@/lib/replay/parseJsonl";
 import type { ReplayEvent, ParseError } from "@/lib/replay/parseJsonl";
-import { createFileEventSource } from "@/lib/replay/eventSource";
+import type {
+  EventSourceStatus,
+  MatchEventSource,
+  MatchEventSourceSnapshot,
+} from "@/lib/replay/eventSource";
+import { createFileEventSource, createLiveEventSource } from "@/lib/replay/eventSource";
 import { buildMomentEventRangeMap, detectMoments } from "@/lib/replay/detectMoments";
 import type { ReplayMoment } from "@/lib/replay/detectMoments";
 import { redactEvent } from "@/lib/replay/redaction";
@@ -133,7 +139,9 @@ type PageState =
       events: ReplayEvent[];
       errors: ParseError[];
       moments: ReplayMoment[] | null;
-    };
+    }
+  | { mode: "live"; matchId: string; snapshot: MatchEventSourceSnapshot }
+  | { mode: "liveError"; message: string };
 
 /** Event filter state. */
 interface EventFilters {
@@ -1013,14 +1021,17 @@ function OrderingTooltip() {
 function ViewerModeSelector({
   mode,
   onChange,
+  disabled,
 }: {
   mode: ViewerMode;
   onChange: (m: ViewerMode) => void;
+  disabled?: boolean;
 }) {
   return (
     <select
       value={mode}
       onChange={(e) => onChange(e.target.value as ViewerMode)}
+      disabled={disabled}
       className="h-8 rounded-md border border-border bg-card px-2 text-xs"
     >
       <option value="spectator">Spectator</option>
@@ -1398,6 +1409,8 @@ function ReplayViewer({
   onClose,
   onBack,
   momentsOverride,
+  liveStatus,
+  lockSensitiveControls = false,
 }: {
   events: ReplayEvent[];
   errors: ParseError[];
@@ -1405,6 +1418,8 @@ function ReplayViewer({
   onClose: () => void;
   onBack?: () => void;
   momentsOverride?: ReplayMoment[] | null;
+  liveStatus?: EventSourceStatus;
+  lockSensitiveControls?: boolean;
 }) {
   const [spoilers, setSpoilers] = useState(false);
   const [viewerMode, setViewerMode] = useState<ViewerMode>("spectator");
@@ -1615,6 +1630,13 @@ function ReplayViewer({
   // Derive if spoilers is effectively active (director mode forces it)
   const effectiveSpoilers = spoilers || viewerMode === "director";
 
+  useEffect(() => {
+    if (lockSensitiveControls) {
+      setViewerMode("spectator");
+      setSpoilers(false);
+    }
+  }, [lockSensitiveControls]);
+
   // Commentary entries visible at the current playhead position
   const activeCommentary = useMemo(() => {
     if (commentaryLoadStatus !== "loaded" || commentaryEntries.length === 0) {
@@ -1661,6 +1683,20 @@ function ReplayViewer({
             )}
           </p>
         </div>
+        {liveStatus && (
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-[10px] uppercase tracking-wider",
+              liveStatus === "loading" && "border-blue-500/40 text-blue-400",
+              liveStatus === "complete" && "border-emerald-500/40 text-emerald-400",
+              liveStatus === "error" && "border-destructive/50 text-destructive",
+            )}
+          >
+            {liveStatus === "loading" && <Loader2 className="h-3 w-3 animate-spin" />}
+            {liveStatus === "loading" ? "Live" : liveStatus}
+          </Badge>
+        )}
 
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" onClick={firstEvent} disabled={selectedIdx === 0}>
@@ -1733,13 +1769,17 @@ function ReplayViewer({
           </div>
         )}
 
-        <ViewerModeSelector mode={viewerMode} onChange={setViewerMode} />
+        <ViewerModeSelector
+          mode={viewerMode}
+          onChange={setViewerMode}
+          disabled={lockSensitiveControls}
+        />
 
         <Button
           variant={effectiveSpoilers ? "destructive" : "outline"}
           size="sm"
           onClick={() => setSpoilers((s) => !s)}
-          disabled={viewerMode === "director"}
+          disabled={viewerMode === "director" || lockSensitiveControls}
         >
           {effectiveSpoilers ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
           Spoilers {effectiveSpoilers ? "ON" : "OFF"}
@@ -1933,6 +1973,51 @@ function ReplayViewer({
 export default function ReplayPage() {
   const [state, setState] = useState<PageState>({ mode: "idle" });
   const [loadError, setLoadError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const liveParam = searchParams.get("live");
+  const matchIdParam = searchParams.get("matchId")?.trim() ?? "";
+  const liveSourceRef = useRef<MatchEventSource | null>(null);
+
+  useEffect(() => {
+    if (liveParam !== "1") {
+      if (liveSourceRef.current) {
+        liveSourceRef.current.close();
+        liveSourceRef.current = null;
+      }
+      return;
+    }
+
+    if (!matchIdParam) {
+      setState({ mode: "liveError", message: "Missing matchId for live replay." });
+      return;
+    }
+
+    if (liveSourceRef.current) {
+      liveSourceRef.current.close();
+    }
+
+    const source = createLiveEventSource(matchIdParam);
+    liveSourceRef.current = source;
+    setLoadError(null);
+    setState({ mode: "live", matchId: matchIdParam, snapshot: source.getSnapshot() });
+
+    const unsubscribe = source.subscribe(() => {
+      setState((prev) => {
+        if (prev.mode !== "live" || prev.matchId !== matchIdParam) {
+          return prev;
+        }
+        return { ...prev, snapshot: source.getSnapshot() };
+      });
+    });
+
+    return () => {
+      unsubscribe();
+      source.close();
+      if (liveSourceRef.current === source) {
+        liveSourceRef.current = null;
+      }
+    };
+  }, [liveParam, matchIdParam]);
 
   const handleSingleLoad = useCallback((text: string, filename: string) => {
     const source = createFileEventSource(text);
@@ -1988,6 +2073,53 @@ export default function ReplayPage() {
     },
     [state],
   );
+
+  if (state.mode === "liveError") {
+    return (
+      <div className="mx-auto max-w-xl">
+        <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <p className="font-medium">Unable to start live replay</p>
+            <p className="mt-1 text-xs">{state.message}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (state.mode === "live") {
+    const { events, errors, status } = state.snapshot;
+    const lockSensitiveControls = status === "loading";
+    return (
+      <div className="space-y-3">
+        {status === "error" && (
+          <div className="mx-auto max-w-2xl">
+            <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <p className="font-medium">Live stream error</p>
+                <p className="text-xs">
+                  The live replay stream ended unexpectedly. Try refreshing the page.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        <ReplayViewer
+          events={events}
+          errors={errors}
+          filename={`Live replay — ${state.matchId}`}
+          onClose={() => {
+            setLoadError(null);
+            setState({ mode: "idle" });
+          }}
+          liveStatus={status}
+          lockSensitiveControls={lockSensitiveControls}
+        />
+      </div>
+    );
+  }
 
   if (state.mode === "idle") {
     return (

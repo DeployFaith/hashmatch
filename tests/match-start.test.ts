@@ -7,6 +7,18 @@ import { MATCH_ID_PATTERN } from "../src/engine/matchId.js";
 
 let tempDir = "";
 
+function createStartRequest() {
+  return new Request("http://localhost/api/matches/start", {
+    method: "POST",
+    body: JSON.stringify({
+      scenarioKey: "numberGuess",
+      agentKeys: ["random", "baseline"],
+      seed: 123,
+      turns: 1,
+    }),
+  });
+}
+
 beforeEach(() => {
   tempDir = mkdtempSync(join(tmpdir(), "match-start-"));
   process.env.MATCH_STORAGE_DIR = tempDir;
@@ -21,15 +33,7 @@ afterEach(() => {
 
 describe("POST /api/matches/start", () => {
   it("creates a match directory and writes match_status.json", async () => {
-    const request = new Request("http://localhost/api/matches/start", {
-      method: "POST",
-      body: JSON.stringify({
-        scenarioKey: "numberGuess",
-        agentKeys: ["random", "baseline"],
-        seed: 123,
-        turns: 1,
-      }),
-    });
+    const request = createStartRequest();
 
     const response = await POST(request);
     expect(response.status).toBe(200);
@@ -50,6 +54,23 @@ describe("POST /api/matches/start", () => {
     expect(existsSync(join(matchDir, "match_summary.json"))).toBe(true);
     expect(existsSync(join(matchDir, "match_manifest.json"))).toBe(true);
     expect(existsSync(join(matchDir, "match.jsonl"))).toBe(true);
+  });
+
+  it("generates a unique matchId for each start", async () => {
+    const response1 = await POST(createStartRequest());
+    const response2 = await POST(createStartRequest());
+    expect(response1.status).toBe(200);
+    expect(response2.status).toBe(200);
+
+    const payload1 = (await response1.json()) as { matchId: string };
+    const payload2 = (await response2.json()) as { matchId: string };
+
+    expect(MATCH_ID_PATTERN.test(payload1.matchId)).toBe(true);
+    expect(MATCH_ID_PATTERN.test(payload2.matchId)).toBe(true);
+    expect(payload1.matchId).not.toBe(payload2.matchId);
+
+    expect(existsSync(join(tempDir, payload1.matchId))).toBe(true);
+    expect(existsSync(join(tempDir, payload2.matchId))).toBe(true);
   });
 
   it("rejects unknown scenario keys", async () => {

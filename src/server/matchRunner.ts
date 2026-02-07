@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync } from "node:fs";
-import { createMatchIdFromSeed, isSafeMatchId } from "../engine/matchId.js";
+import { createUniqueMatchId, isSafeMatchId } from "../engine/matchId.js";
 import { runMatch } from "../engine/runMatch.js";
 import { getAgentFactory, getScenarioFactory } from "../tournament/runTournament.js";
 import { writeMatchArtifacts } from "./matchArtifacts.js";
@@ -104,7 +104,7 @@ export async function startMatchRun(request: StartMatchRequest): Promise<StartMa
   ensureMatchStorageRoot();
   const seed = resolveSeed(request.seed);
   const maxTurns = resolveTurns(request.turns);
-  const matchId = createMatchIdFromSeed(seed);
+  const matchId = createUniqueMatchId();
 
   if (!isSafeMatchId(matchId)) {
     throw new Error(`Generated unsafe matchId "${matchId}"`);
