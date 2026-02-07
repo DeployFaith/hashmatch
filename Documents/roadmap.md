@@ -196,7 +196,7 @@ Infrastructure must not be required to run a tournament.
 
 ## Current Status (Confirmed by Repo Audit)
 
-Last audited: 2026-02-06
+Last audited: 2026-02-07
 
 ### Milestone 0 — Foundations: ✅ Done
 
@@ -221,9 +221,8 @@ All spec documents are written and checked in under `Documents/`.
 **Gaps vs spec:**
 
 * Output file is transitioning from `tournament.json` to `tournament_manifest.json`. For one transitional release, the harness dual-writes both filenames; `tournament.json` will be deprecated and removed in the following release.
-* Per-match `match_manifest.json` is not produced (only `match_summary.json`).
+* Per-match `match_manifest.json` is now produced by `writeTournamentArtifacts()` in `src/tournament/artifacts.ts`.
 * Bracket/single-elimination formats are not implemented (round-robin only).
-* No `verify-tournament` CLI.
 * Scoring: resolved — spec updated to match implementation (win=3 / draw=1 / loss=0).
 
 ### Milestone 2 — Replay Viewer MVP: ✅ Done
@@ -245,9 +244,9 @@ All spec documents are written and checked in under `Documents/`.
 
 **Gaps vs spec:**
 
-* No auto-play/pause (step-by-step scrubbing only, no timed playback).
-* Moment detection is basic (turn boundaries only, no score-swing / error / reversal heuristics).
-* `moments.json` is not automatically produced as an artifact file by the harness.
+* ~~No auto-play/pause~~ — resolved: autoplay with play/pause, speed control (0.5x–10x), and keyboard shortcuts (Space, Left/Right) implemented.
+* ~~Moment detection is basic~~ — resolved: `detectMoments()` implements 6 heuristic types: score_swing, lead_change, comeback, blunder, clutch, close_call.
+* ~~`moments.json` is not produced~~ — resolved: `writeTournamentArtifacts()` writes `moments.json` per match when moments are detected.
 
 ### Milestone 2.1 — Show Experiments: 🟨 Partial
 
@@ -263,9 +262,15 @@ All spec documents are written and checked in under `Documents/`.
 * Local registry index: ⬜ not implemented.
 * Bundle validation tooling: ⬜ not implemented (JSONL validation exists for individual files).
 
-### Milestone 4 — Receipts & Verification Tooling: ⬜ Not Started
+### Milestone 4 — Receipts & Verification Tooling: 🟨 Partial
 
-* No hash computation, signed receipts, or verification CLI.
+* SHA-256 hash computation: ✅ `src/core/hash.ts` (`sha256Hex`, `hashFile`, `hashManifestCore`)
+* Per-match `logHash` and `manifestHash` in `match_summary.json`: ✅
+* Tournament-level `truthBundleHash`: ✅ written to `tournament_manifest.json`
+* `verify-match` CLI: ✅ `src/cli/verify-match.ts`, tested in `tests/verify-match.test.ts`
+* `verify-tournament` CLI: ✅ `src/cli/verify-tournament.ts`, tested in `tests/verify-tournament.test.ts`
+* Signed receipts: ⬜ not implemented.
+* Receipt validation: ⬜ not implemented.
 
 ### Milestone 5 — Tournament Operations: ⬜ Not Started
 
@@ -276,7 +281,7 @@ All spec documents are written and checked in under `Documents/`.
 
 ### Cross-Cutting Workstreams
 
-* **Scenario Library:** Only NumberGuess. No hidden-information scenario yet.
+* **Scenario Library:** NumberGuess and Resource Rivals (hidden-information bidding game with `_private` field-level redaction).
 * **Safety & Policy:** Mode profiles are defined in docs but not enforced by the harness.
 * **Developer Experience:** No agent templates or quickstart guide.
 

@@ -174,6 +174,62 @@ The viewer must enforce visibility policy:
 * redact private fields for spectators during live playback
 * optionally reveal private fields post‑match
 
+### 5.4 `_private` Field-Level Redaction Convention
+
+Scenarios with mixed public/private observations use the `_private` key convention for field-level redaction.
+
+**What it is:**
+
+Any JSON object within an event payload may include a key named `_private`. The value of `_private` is an object containing fields that must be hidden from spectators during live playback.
+
+**Example `ObservationEmitted` payload:**
+
+```json
+{
+  "observation": {
+    "objectiveValue": 12,
+    "capturedScore": 45,
+    "objectivesRemaining": 7,
+    "_private": {
+      "remainingResources": 73
+    }
+  }
+}
+```
+
+In spectator mode, the viewer strips `_private` and its contents:
+
+```json
+{
+  "observation": {
+    "objectiveValue": 12,
+    "capturedScore": 45,
+    "objectivesRemaining": 7
+  }
+}
+```
+
+**Where it applies:**
+
+* `ObservationEmitted` payloads (primary use case)
+* `_private` keys are stripped recursively at any depth, including inside arrays of objects
+
+**Spectator mode behavior:**
+
+* All `_private` keys are removed from `displayRaw`; the remaining public fields are shown
+* `isRedacted` is `true` (indicates some data was stripped)
+* `summary` says "[partially redacted]" instead of "[redacted]"
+* `fullRaw` is `null` unless spoilers are revealed
+
+**Post-match and director modes:**
+
+* `_private` keys are preserved (full observation visible)
+
+**Backward compatibility:**
+
+* Observations that do not contain any `_private` key continue to be fully redacted in spectator mode (entire `observation` replaced with a placeholder)
+* Existing scenarios (e.g., NumberGuess) are unaffected
+
 ## 6. Match Manifest Contract
 
 The match manifest describes everything needed to reproduce/verify the match.
