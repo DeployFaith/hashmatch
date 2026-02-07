@@ -20,6 +20,9 @@ import {
   ShieldAlert,
   Filter,
   MessageSquare,
+  Play,
+  Pause,
+  Gauge,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -139,6 +142,49 @@ interface EventFilters {
 }
 
 const EMPTY_FILTERS: EventFilters = { turn: null, agentId: null, type: null };
+
+/** Autoplay speed presets — label and interval in ms. */
+const AUTOPLAY_SPEEDS = [
+  { label: "0.5x", ms: 2000 },
+  { label: "1x", ms: 1000 },
+  { label: "2x", ms: 500 },
+  { label: "4x", ms: 250 },
+  { label: "10x", ms: 100 },
+] as const;
+
+type AutoplaySpeedIdx = 0 | 1 | 2 | 3 | 4;
+
+/** Styling for the 6 moment types. */
+const momentTypeStyles: Record<string, { badge: string; bg: string }> = {
+  score_swing: { badge: "bg-amber-500/20 text-amber-400 border-amber-500/30", bg: "border-amber-500/20" },
+  lead_change: { badge: "bg-blue-500/20 text-blue-400 border-blue-500/30", bg: "border-blue-500/20" },
+  comeback: { badge: "bg-green-500/20 text-green-400 border-green-500/30", bg: "border-green-500/20" },
+  blunder: { badge: "bg-red-500/20 text-red-400 border-red-500/30", bg: "border-red-500/20" },
+  clutch: { badge: "bg-purple-500/20 text-purple-400 border-purple-500/30", bg: "border-purple-500/20" },
+  close_call: { badge: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30", bg: "border-cyan-500/20" },
+};
+
+/** Return a safe description for a moment in spectator mode (no private leaks). */
+function safeMomentDescription(moment: ReplayMoment, spoilers: boolean): string {
+  if (spoilers && moment.description) {
+    return moment.description;
+  }
+  // In spectator mode, show type + involved agents if available, but not scores or private data.
+  const agentId =
+    typeof moment.signals.agentId === "string"
+      ? moment.signals.agentId
+      : typeof moment.signals.winner === "string"
+        ? moment.signals.winner
+        : typeof moment.signals.newLeader === "string"
+          ? moment.signals.newLeader
+          : null;
+  const turnInfo =
+    typeof moment.signals.decisiveTurn === "number"
+      ? ` at turn ${moment.signals.decisiveTurn}`
+      : "";
+  const suffix = agentId ? ` — ${agentId}${turnInfo}` : turnInfo;
+  return `${moment.label}${suffix}`;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1374,6 +1420,11 @@ function ReplayViewer({
   const [viewerMode, setViewerMode] = useState<ViewerMode>("spectator");
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [filters, setFilters] = useState<EventFilters>(EMPTY_FILTERS);
+
+  // Autoplay state
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [speedIdx, setSpeedIdx] = useState<AutoplaySpeedIdx>(1); // default 1x
+
   const moments = useMemo(
     () => (momentsOverride ?? detectMoments(events)),
     [events, momentsOverride],
@@ -1521,6 +1572,65 @@ function ReplayViewer({
     [filteredRedacted, momentRanges],
   );
 
+  // Autoplay effect: advance playhead at the configured speed
+  useEffect(() => {
+    if (!isPlaying) {
+      return;
+    }
+    const interval = setInterval(() => {
+      setSelectedIdx((prev) => {
+        if (prev >= filteredRedacted.length - 1) {
+          setIsPlaying(false);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, AUTOPLAY_SPEEDS[speedIdx].ms);
+    return () => clearInterval(interval);
+  }, [isPlaying, speedIdx, filteredRedacted.length]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      // Skip if user is typing in an input/select
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+        return;
+      }
+
+      switch (e.code) {
+        case "Space":
+          e.preventDefault();
+          setIsPlaying((p) => !p);
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          setIsPlaying(false);
+          setSelectedIdx((i) => Math.max(0, i - 1));
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          setIsPlaying(false);
+          setSelectedIdx((i) => Math.min(filteredRedacted.length - 1, i + 1));
+          break;
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [filteredRedacted.length]);
+
+  const togglePlay = useCallback(() => {
+    if (selectedIdx >= filteredRedacted.length - 1) {
+      // Reset to beginning if at end
+      setSelectedIdx(0);
+    }
+    setIsPlaying((p) => !p);
+  }, [selectedIdx, filteredRedacted.length]);
+
+  const cycleSpeed = useCallback(() => {
+    setSpeedIdx((prev) => ((prev + 1) % AUTOPLAY_SPEEDS.length) as AutoplaySpeedIdx);
+  }, []);
+
   // Derive if spoilers is effectively active (director mode forces it)
   const effectiveSpoilers = spoilers || viewerMode === "director";
 
@@ -1609,6 +1719,30 @@ function ReplayViewer({
             disabled={selectedIdx === filteredRedacted.length - 1}
           >
             <ChevronsRight className="h-4 w-4" />
+          </Button>
+
+          {/* Autoplay controls */}
+          <Button
+            variant={isPlaying ? "default" : "outline"}
+            size="icon"
+            onClick={togglePlay}
+            title={isPlaying ? "Pause (Space)" : "Play (Space)"}
+          >
+            {isPlaying ? (
+              <Pause className="h-4 w-4" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={cycleSpeed}
+            title="Cycle playback speed"
+            className="min-w-[3.5rem] font-mono text-xs"
+          >
+            <Gauge className="h-3 w-3" />
+            {AUTOPLAY_SPEEDS[speedIdx].label}
           </Button>
         </div>
 
@@ -1718,18 +1852,36 @@ function ReplayViewer({
                 {moments.map((moment) => {
                   const isActive = moment.id === activeMoment?.id;
                   const range = momentRanges.get(moment.id);
+                  const style = momentTypeStyles[moment.type] ?? {
+                    badge: "bg-muted text-muted-foreground border-border",
+                    bg: "border-border",
+                  };
                   return (
                     <button
                       key={moment.id}
                       type="button"
                       onClick={() => jumpToMoment(moment)}
                       className={cn(
-                        "w-full rounded-md border border-transparent px-2 py-1.5 text-left text-xs transition",
-                        "hover:border-border hover:bg-muted/40",
-                        isActive && "border-primary/40 bg-primary/10 text-primary",
+                        "w-full rounded-md border px-2 py-1.5 text-left text-xs transition",
+                        "hover:bg-muted/40",
+                        isActive
+                          ? "border-primary/40 bg-primary/10 text-primary"
+                          : style.bg,
                       )}
                     >
-                      <p className="font-medium">{moment.label}</p>
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span
+                          className={cn(
+                            "inline-block rounded px-1 py-0 text-[9px] font-medium border",
+                            style.badge,
+                          )}
+                        >
+                          {moment.type.replace(/_/g, " ")}
+                        </span>
+                      </div>
+                      <p className="font-medium">
+                        {safeMomentDescription(moment, effectiveSpoilers)}
+                      </p>
                       <p className="text-[0.7rem] text-muted-foreground">
                         {range
                           ? `Events ${range.startEventIdx + 1}\u2013${range.endEventIdx + 1}`
