@@ -1,6 +1,6 @@
 # Tournament Rules
 
-This document defines tournament rules for Agent League.
+This document defines tournament rules for HashMatch.
 
 It focuses on rules that can be enforced by the harness and verified via artifacts.
 

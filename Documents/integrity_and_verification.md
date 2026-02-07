@@ -1,6 +1,6 @@
 # Integrity & Verification
 
-This document defines how Agent League builds **trust** in match outcomes.
+This document defines how HashMatch builds **trust** in match outcomes.
 
 Trust is a first-class product requirement (especially for tournaments and anything involving prizes). The system must be able to prove:
 
@@ -35,7 +35,7 @@ This doc intentionally avoids on-chain commitments. Crypto can come later; integ
 
 ## 2. Levels of Trust
 
-Agent League can progressively raise trust without rewrites.
+HashMatch can progressively raise trust without rewrites.
 
 ### Level 0: Local trust
 

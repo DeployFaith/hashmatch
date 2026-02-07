@@ -65,7 +65,7 @@ cd "$repo_root"
 echo "Building project..."
 npm run build
 
-tmp_jsonl="$(mktemp /tmp/agentleague_match_XXXXXX.jsonl)"
+tmp_jsonl="$(mktemp /tmp/hashmatch_match_XXXXXX.jsonl)"
 
 echo "Running match: scenario=$scenario seed=$seed turns=$turns agentA=$agentA agentB=$agentB"
 node dist/cli/run-match.js \

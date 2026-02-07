@@ -1,4 +1,4 @@
-# Agent League — Execution Prompts (v4 — Final)
+# HashMatch — Execution Prompts (v4 — Final)
 
 **How to use this document:** Each section is a self-contained prompt for either **Claude Code** or **Codex**. Execute them in the order listed. Each prompt includes full context so the agent can work independently.
 
@@ -29,7 +29,7 @@ Every prompt in this pack operates under these rules:
 **Scope:** Edit spec documents only — no code changes
 
 ```
-You are editing the design documents for Agent League, a competitive league for autonomous agents ("UFC for Agents"). The project has a working tournament harness and replay viewer, but several spec documents contain internal contradictions that must be resolved before new code ships.
+You are editing the design documents for HashMatch, a competitive league for autonomous agents ("UFC for Agents"). The project has a working tournament harness and replay viewer, but several spec documents contain internal contradictions that must be resolved before new code ships.
 
 RULES:
 - Do not rename or move files unless explicitly instructed.
@@ -166,7 +166,7 @@ Commit message: "Lock decision contracts: filenames, scoring, hashing rules, mom
 **Scope:** Modify artifact writing, add types, update bundle
 
 ```
-You are working on Agent League, a TypeScript project that runs deterministic tournaments between autonomous agents.
+You are working on HashMatch, a TypeScript project that runs deterministic tournaments between autonomous agents.
 
 RULES:
 - Do not rename or move existing files unless explicitly instructed.
@@ -211,7 +211,7 @@ export interface MatchManifest {
     };
   };
   runner: {
-    name: string;  // "agent-league"
+    name: string;  // "hashmatch"
     version?: string;
     gitCommit?: string;
   };
@@ -309,7 +309,7 @@ If `--bundle-out` is used, the bundle should embed the new `tournament_manifest.
 **Scope:** New hashing module, integrate into artifact writing
 
 ```
-You are adding SHA-256 hashing to Agent League's tournament harness.
+You are adding SHA-256 hashing to HashMatch's tournament harness.
 
 RULES:
 - Do not rename or move existing files unless explicitly instructed.
@@ -443,7 +443,7 @@ IMPORTANT: When rewriting `tournament_manifest.json` to add `truthBundleHash`, p
 **Scope:** New CLI command
 
 ```
-You are building a match verification CLI for Agent League.
+You are building a match verification CLI for HashMatch.
 
 RULES:
 - Do not rename or move existing files unless explicitly instructed.
@@ -541,7 +541,7 @@ RESULT: FAIL
 **Can run in parallel with:** Prompt 6
 
 ```
-You are building a tournament-level verification CLI for Agent League.
+You are building a tournament-level verification CLI for HashMatch.
 
 RULES:
 - Do not rename or move existing files unless explicitly instructed.
@@ -630,7 +630,7 @@ RESULT: PASS (6/6 matches, standings confirmed)
 **Scope:** New scenario, new agents, validation
 
 ```
-You are building a second scenario for Agent League. The first scenario (NumberGuess) is at `src/scenarios/numberGuess/index.ts`.
+You are building a second scenario for HashMatch. The first scenario (NumberGuess) is at `src/scenarios/numberGuess/index.ts`.
 
 RULES:
 - Do not rename or move existing files unless explicitly instructed.
@@ -737,7 +737,7 @@ npx tsx src/cli/run-tournament.ts --scenario resourceRivals --agents ./src/agent
 **Scope:** Upgrade detection library, harness + viewer integration
 
 ```
-You are upgrading the moment detection system for Agent League.
+You are upgrading the moment detection system for HashMatch.
 
 RULES:
 - Do not rename or move existing files unless explicitly instructed.
@@ -819,7 +819,7 @@ In web viewer:
 **Scope:** Documentation only — no code changes
 
 ```
-You are doing a final reconciliation pass on all 12 design documents for Agent League.
+You are doing a final reconciliation pass on all 12 design documents for HashMatch.
 
 RULES:
 - Do not rename or move files unless explicitly instructed.

@@ -1,4 +1,4 @@
-# Agent League — Action Plan
+# HashMatch — Action Plan
 
 **Date:** 2026-02-06
 **Status:** Final (converged via adversarial review between Claude and ChatGPT)

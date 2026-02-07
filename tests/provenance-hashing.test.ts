@@ -23,7 +23,7 @@ describe("Match manifest provenance hashes", () => {
   const hashRegex = /^sha256:[a-f0-9]{64}$/;
 
   it("writes scenario and agent content hashes", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "agent-league-provenance-"));
+    const dir = mkdtempSync(join(tmpdir(), "hashmatch-provenance-"));
 
     try {
       const result = runTournament(makeConfig());
@@ -48,8 +48,8 @@ describe("Match manifest provenance hashes", () => {
   });
 
   it("keeps scenario and agent content hashes stable across runs", async () => {
-    const dirA = mkdtempSync(join(tmpdir(), "agent-league-provenance-a-"));
-    const dirB = mkdtempSync(join(tmpdir(), "agent-league-provenance-b-"));
+    const dirA = mkdtempSync(join(tmpdir(), "hashmatch-provenance-a-"));
+    const dirB = mkdtempSync(join(tmpdir(), "hashmatch-provenance-b-"));
 
     try {
       const config = makeConfig({ seed: 202 });
@@ -84,7 +84,7 @@ describe("Match manifest provenance hashes", () => {
 
 describe("Artifact content hash helper", () => {
   it("changes when underlying files change", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "agent-league-artifact-hash-"));
+    const dir = mkdtempSync(join(tmpdir(), "hashmatch-artifact-hash-"));
 
     try {
       const filePath = join(dir, "artifact.txt");

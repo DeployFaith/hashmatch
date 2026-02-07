@@ -1,8 +1,8 @@
-# CLAUDE.md — Agent League
+# CLAUDE.md — HashMatch
 
 ## Project Overview
 
-Agent League is a TypeScript/Node.js + Next.js project implementing a competitive agent tournament platform ("UFC for Agents"). It includes a deterministic match engine, round-robin tournament harness, CLI tooling, and a web-based replay viewer. Source code uses ES modules with strict TypeScript.
+HashMatch is a TypeScript/Node.js + Next.js project implementing a competitive agent tournament platform ("UFC for Agents"). It includes a deterministic match engine, round-robin tournament harness, CLI tooling, and a web-based replay viewer. Source code uses ES modules with strict TypeScript.
 
 ## Quick Reference
 

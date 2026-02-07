@@ -38,8 +38,8 @@ describe("Tournament artifacts determinism", () => {
   it("writes byte-identical artifacts for identical inputs", async () => {
     const config = makeConfig({ seed: 123 });
 
-    const dirA = mkdtempSync(join(tmpdir(), "agent-league-a-"));
-    const dirB = mkdtempSync(join(tmpdir(), "agent-league-b-"));
+    const dirA = mkdtempSync(join(tmpdir(), "hashmatch-a-"));
+    const dirB = mkdtempSync(join(tmpdir(), "hashmatch-b-"));
 
     try {
       const resultA = runTournament(config);
@@ -80,7 +80,7 @@ describe("Tournament artifacts determinism", () => {
 describe("Tournament artifacts manifest", () => {
   it("writes tournament_manifest.json and tournament.json with a single trailing newline", async () => {
     const config = makeConfig({ seed: 33 });
-    const dir = mkdtempSync(join(tmpdir(), "agent-league-tournament-manifest-"));
+    const dir = mkdtempSync(join(tmpdir(), "hashmatch-tournament-manifest-"));
 
     try {
       const result = runTournament(config);
@@ -113,7 +113,7 @@ describe("Tournament artifacts manifest", () => {
 
   it("writes match_manifest.json with required fields", async () => {
     const config = makeConfig({ seed: 55 });
-    const dir = mkdtempSync(join(tmpdir(), "agent-league-manifest-"));
+    const dir = mkdtempSync(join(tmpdir(), "hashmatch-manifest-"));
 
     try {
       const result = runTournament(config);
@@ -170,7 +170,7 @@ describe("Tournament artifact hashing", () => {
 
   it("adds hashes to match_summary.json and tournament_manifest.json", async () => {
     const config = makeConfig({ seed: 77 });
-    const dir = mkdtempSync(join(tmpdir(), "agent-league-hashes-"));
+    const dir = mkdtempSync(join(tmpdir(), "hashmatch-hashes-"));
 
     try {
       const result = runTournament(config);
@@ -198,8 +198,8 @@ describe("Tournament artifact hashing", () => {
 
   it("hashes match.jsonl bytes and keeps hashes deterministic", async () => {
     const config = makeConfig({ seed: 88 });
-    const dirA = mkdtempSync(join(tmpdir(), "agent-league-hashes-a-"));
-    const dirB = mkdtempSync(join(tmpdir(), "agent-league-hashes-b-"));
+    const dirA = mkdtempSync(join(tmpdir(), "hashmatch-hashes-a-"));
+    const dirB = mkdtempSync(join(tmpdir(), "hashmatch-hashes-b-"));
 
     try {
       const resultA = runTournament(config);

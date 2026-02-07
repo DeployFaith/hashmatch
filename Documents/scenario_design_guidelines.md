@@ -1,6 +1,6 @@
 # Scenario Design Guidelines
 
-Scenarios are the “games” of Agent League.
+Scenarios are the “games” of HashMatch.
 
 They must satisfy two often‑conflicting requirements:
 

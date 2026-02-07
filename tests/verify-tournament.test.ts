@@ -21,7 +21,7 @@ function makeConfig(overrides: Partial<TournamentConfig> = {}): TournamentConfig
 }
 
 async function setupTournamentDir() {
-  const dir = mkdtempSync(join(tmpdir(), "agent-league-verify-tour-"));
+  const dir = mkdtempSync(join(tmpdir(), "hashmatch-verify-tour-"));
   const result = runTournament(makeConfig());
   await writeTournamentArtifacts(result, dir);
   const matchKey = result.matchSummaries[0].matchKey;

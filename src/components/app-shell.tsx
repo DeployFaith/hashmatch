@@ -41,7 +41,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         <div className="flex h-14 items-center gap-2 border-b border-border px-4">
           <GitCompare className="h-5 w-5 text-primary" />
-          <span className="text-sm font-bold tracking-tight">Agent League</span>
+          <span className="text-sm font-bold tracking-tight">HashMatch</span>
         </div>
 
         <div className="flex flex-1 flex-col gap-1 p-2">

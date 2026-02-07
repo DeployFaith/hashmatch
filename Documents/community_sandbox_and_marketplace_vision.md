@@ -14,7 +14,7 @@ Enable a community ecosystem where people can:
 
 V1 approach is intentionally practical:
 
-* Official Agent League games are curated code modules.
+* Official HashMatch games are curated code modules.
 * Community members can fork the repo to add/modify games.
 * Community distribution is safest as **data-only packs**:
 

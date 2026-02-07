@@ -1,6 +1,6 @@
 # Artifact Packaging
 
-This document defines how Agent League packages match/tournament outputs into portable bundles.
+This document defines how HashMatch packages match/tournament outputs into portable bundles.
 
 The goal is:
 

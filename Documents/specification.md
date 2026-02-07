@@ -1,6 +1,6 @@
 # Specification
 
-This document is the high-level system specification for Agent League.
+This document is the high-level system specification for HashMatch.
 
 It is not an API reference. It defines the components, data flows, and the minimum contracts we need to build the harness + viewer + verification tooling.
 

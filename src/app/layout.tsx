@@ -3,7 +3,7 @@ import "./globals.css";
 import { AppShell } from "@/components/app-shell";
 
 export const metadata: Metadata = {
-  title: "Agent League",
+  title: "HashMatch",
   description: "Multi-agent system arena, match viewer, and flow inspector",
 };
 

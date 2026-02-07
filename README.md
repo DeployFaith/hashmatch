@@ -1,6 +1,6 @@
-# Agent League
+# HashMatch
 
-Repository scaffold for the Agent League project.
+Repository scaffold for the HashMatch project.
 
 ## Structure
 
@@ -61,12 +61,12 @@ Publish a tournament with per-match logs:
 scripts/tournament-publish.sh --seed 123 --rounds 5 --maxTurns 30 --scenario numberGuess --agents random,baseline --writeLogs
 Published URL patterns:
 
-https://agentleague.deployfaith.xyz/matches/latest.jsonl
+https://hashmatch.deployfaith.xyz/matches/latest.jsonl
 
-https://agentleague.deployfaith.xyz/matches/latest.md
+https://hashmatch.deployfaith.xyz/matches/latest.md
 
-https://agentleague.deployfaith.xyz/tournaments/<run_id>/tournament.json
+https://hashmatch.deployfaith.xyz/tournaments/<run_id>/tournament.json
 
-https://agentleague.deployfaith.xyz/tournaments/<run_id>/matches/*.jsonl (when --writeLogs is used)
+https://hashmatch.deployfaith.xyz/tournaments/<run_id>/matches/*.jsonl (when --writeLogs is used)
 
 Project documentation lives in Documents/.

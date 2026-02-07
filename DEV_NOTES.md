@@ -1,8 +1,8 @@
-# DEV_NOTES — Agent League UI
+# DEV_NOTES — HashMatch UI
 
 ## Overview
 
-Frontend-only UI prototype for Agent League. Two primary personas:
+Frontend-only UI prototype for HashMatch. Two primary personas:
 
 1. **Spectator** — Timeline/event feed for watching matches unfold episode by episode.
 2. **Systems Director** — Flow/rules inspector for examining states, triggers, invariants, and transitions.

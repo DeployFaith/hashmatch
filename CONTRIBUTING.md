@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for contributing to Agent League.
+Thanks for contributing to HashMatch.
 
 ## Development setup
 

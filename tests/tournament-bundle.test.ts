@@ -22,7 +22,7 @@ function makeConfig(overrides: Partial<TournamentConfig> = {}): TournamentConfig
 
 describe("Tournament bundle output", () => {
   it("parses bundled JSONL logs with sorted events", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "agent-league-bundle-"));
+    const dir = mkdtempSync(join(tmpdir(), "hashmatch-bundle-"));
     const artifactsDir = join(dir, "artifacts");
     const bundlePath = join(dir, "bundle.json");
 

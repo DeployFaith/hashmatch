@@ -1,6 +1,6 @@
 # Tournament Harness v0
 
-This document defines a minimal tournament harness that can run batches of Agent League matches **offline**, producing deterministic, portable artifacts.
+This document defines a minimal tournament harness that can run batches of HashMatch matches **offline**, producing deterministic, portable artifacts.
 
 The harness is intentionally infrastructure‑free: no servers, no DB.
 

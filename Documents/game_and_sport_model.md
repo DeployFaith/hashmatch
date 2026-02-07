@@ -1,6 +1,6 @@
 # Game and Sport Model
 
-This document captures the agreed model for how Agent League represents **games**, **scenarios**, and **sport/esport packaging**.
+This document captures the agreed model for how HashMatch represents **games**, **scenarios**, and **sport/esport packaging**.
 
 ## Definitions
 

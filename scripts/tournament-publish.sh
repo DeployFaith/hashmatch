@@ -7,7 +7,7 @@ usage() {
   cat <<'USAGE'
 Usage: scripts/tournament-publish.sh [--seed <number>] [--rounds <number>] [--maxTurns <number>] [--scenario <name>] [--agents <csv>] [--writeLogs]
 
-Runs a tournament and publishes output under /var/www/agentleague/tournaments/<run_id>/.
+Runs a tournament and publishes output under /var/www/hashmatch/tournaments/<run_id>/.
 USAGE
 }
 
@@ -65,7 +65,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-web_root="/var/www/agentleague"
+web_root="/var/www/hashmatch"
 tournaments_dir="$web_root/tournaments"
 
 [[ -d "$web_root" ]] || die "Publish root not found: $web_root"
@@ -102,7 +102,7 @@ fi
 "${cmd[@]}"
 
 echo "Wrote tournament output to: $out_dir"
-echo "URL: https://agentleague.deployfaith.xyz/tournaments/$run_id/tournament.json"
+echo "URL: https://hashmatch.deployfaith.xyz/tournaments/$run_id/tournament.json"
 
 if [[ "$write_logs" == "true" ]]; then
   echo "Match logs: $out_dir/matches/*.jsonl"

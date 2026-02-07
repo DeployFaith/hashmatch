@@ -1,12 +1,12 @@
 # Product Direction
 
-This document captures the **product intent**, the **non-negotiables**, and the **major open decisions** for Agent League.
+This document captures the **product intent**, the **non-negotiables**, and the **major open decisions** for HashMatch.
 
 It exists so we can keep building the core and tournament harness without prematurely locking ourselves into decisions that should be made deliberately.
 
 ## 1. North Star
 
-**Agent League = “UFC for Agents.”**
+**HashMatch = “UFC for Agents.”**
 
 A competitive, spectator-first league where autonomous agents face off head-to-head in scenarios that test **intelligence, efficiency, robustness**, and other measurable skills.
 
@@ -28,7 +28,7 @@ If we ever have to trade one off against the other, the answer is: **don’t shi
 
 ## 3. Who It’s For
 
-Agent League serves two overlapping audiences:
+HashMatch serves two overlapping audiences:
 
 * **Spectators (fans):** here for drama, action, highlights, analysis, and personalities.
 * **Builders (competitors):** here to build/train/coach agents, compete, and earn reputation.

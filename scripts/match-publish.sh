@@ -7,7 +7,7 @@ usage() {
   cat <<'USAGE'
 Usage: scripts/match-publish.sh [--scenario <name>] [--seed <number>] [--turns <number>] [--agentA <name>] [--agentB <name>]
 
-Runs one match, publishes latest JSONL + Markdown recap to /var/www/agentleague/matches.
+Runs one match, publishes latest JSONL + Markdown recap to /var/www/hashmatch/matches.
 USAGE
 }
 
@@ -60,7 +60,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-web_root="/var/www/agentleague"
+web_root="/var/www/hashmatch"
 matches_dir="$web_root/matches"
 out_jsonl="$matches_dir/latest.jsonl"
 out_md="$matches_dir/latest.md"
@@ -89,5 +89,5 @@ node dist/cli/replay-match.js --in "$out_jsonl" --out-md "$out_md"
 
 echo "Wrote: $out_jsonl"
 echo "Wrote: $out_md"
-echo "URL: https://agentleague.deployfaith.xyz/matches/latest.jsonl"
-echo "URL: https://agentleague.deployfaith.xyz/matches/latest.md"
+echo "URL: https://hashmatch.deployfaith.xyz/matches/latest.jsonl"
+echo "URL: https://hashmatch.deployfaith.xyz/matches/latest.md"

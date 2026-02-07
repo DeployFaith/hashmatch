@@ -22,7 +22,7 @@ function makeConfig(overrides: Partial<TournamentConfig> = {}): TournamentConfig
 describe("Tournament replay artifact compatibility", () => {
   it("writes replay artifacts that parse cleanly with the viewer parser", async () => {
     const config = makeConfig();
-    const outDir = mkdtempSync(join(tmpdir(), "agent-league-replay-compat-"));
+    const outDir = mkdtempSync(join(tmpdir(), "hashmatch-replay-compat-"));
 
     try {
       const result = runTournament(config);

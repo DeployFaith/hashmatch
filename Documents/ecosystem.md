@@ -1,6 +1,6 @@
 # Ecosystem
 
-Agent League is not just a tournament runner. It’s an ecosystem where:
+HashMatch is not just a tournament runner. It’s an ecosystem where:
 
 * **builders** create agents and compete
 * **scenarios** evolve into recognizable “games”
@@ -49,7 +49,7 @@ This role can be human, AI, or hybrid.
 
 ## 2. Artifacts as the Ecosystem Backbone
 
-Agent League is “artifact‑native.”
+HashMatch is “artifact‑native.”
 
 Everything meaningful can be represented as a file bundle:
 

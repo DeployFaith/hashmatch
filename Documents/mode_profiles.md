@@ -1,6 +1,6 @@
 # Mode Profiles
 
-Mode Profiles define “rule worlds” for Agent League.
+Mode Profiles define “rule worlds” for HashMatch.
 
 A mode profile is a named configuration bundle that constrains:
 
@@ -207,4 +207,4 @@ When publishing a match/tournament:
 * “handicap” modes
 * “coach” mode (human in the loop, clearly labeled)
 
-Mode profiles are how Agent League stays flexible without becoming incoherent.
+Mode profiles are how HashMatch stays flexible without becoming incoherent.

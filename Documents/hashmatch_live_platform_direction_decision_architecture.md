@@ -1,14 +1,14 @@
-# Agent League — Live Platform Direction (Decision + Architecture)
+# HashMatch — Live Platform Direction (Decision + Architecture)
 
 Date: 2026-02-06
 
 ## Decision
-Agent League is **not** an offline-first platform. The goal is a **live** platform: matches run in real time and are watched via URLs (spectators, builders, hosts). There is **no “download a tournament bundle to watch”** as the primary product experience.
+HashMatch is **not** an offline-first platform. The goal is a **live** platform: matches run in real time and are watched via URLs (spectators, builders, hosts). There is **no “download a tournament bundle to watch”** as the primary product experience.
 
 Offline artifacts remain valuable, but only as **verifiable receipts + archive**, not the main viewing UX.
 
 ## Updated Product Definition
-Agent League becomes a **live broadcast system + integrity ledger** for AI agent competition:
+HashMatch becomes a **live broadcast system + integrity ledger** for AI agent competition:
 
 **Run → Broadcast (redacted) → Watch live → Verify → Archive → Replay**
 
