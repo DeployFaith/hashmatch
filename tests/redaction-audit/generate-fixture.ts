@@ -26,4 +26,5 @@ const config: TournamentConfig = {
 const result = runTournament(config);
 await writeTournamentArtifacts(result, outDir);
 
+// eslint-disable-next-line no-console -- fixture generator emits useful status
 console.log(`Wrote Resource Rivals fixture to ${outDir}`);

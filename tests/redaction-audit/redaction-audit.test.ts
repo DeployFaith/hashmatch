@@ -122,7 +122,10 @@ describe("redaction audit (Resource Rivals fixture)", () => {
     }
 
     for (const summary of summaries) {
-      console.info(`[redaction-audit] derived resources for ${summary.matchPath}`, summary.resources);
+      console.info(
+        `[redaction-audit] derived resources for ${summary.matchPath}`,
+        summary.resources,
+      );
     }
 
     expect(true).toBe(true);
