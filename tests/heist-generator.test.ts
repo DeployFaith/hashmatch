@@ -57,4 +57,10 @@ describe("generateHeistScenario", () => {
     const result = HeistScenarioParamsSchema.safeParse(scenario);
     expect(result.success).toBe(true);
   });
+
+  it("accepts partial config input with embedded seed", () => {
+    const scenario = generateHeistScenario({ seed: 42, preset: "standard" });
+    const result = HeistScenarioParamsSchema.safeParse(scenario);
+    expect(result.success).toBe(true);
+  });
 });

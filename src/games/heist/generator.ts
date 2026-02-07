@@ -53,6 +53,16 @@ const PRESET_OVERRIDES: Record<string, Partial<HeistScoring>> = {
 };
 
 const DEFAULT_MAX_TURNS = 24;
+const DEFAULT_CONFIG: HeistGeneratorConfig = {
+  rooms: { exact: 8 },
+  securityDensity: {},
+  hazardsEnabled: false,
+};
+
+type HeistGeneratorConfigInput = Partial<HeistGeneratorConfig> & {
+  seed?: Seed;
+  preset?: string;
+};
 
 interface RoomAssignment {
   rooms: HeistRoom[];
@@ -411,9 +421,20 @@ function buildScenario(
 }
 
 export function generateHeistScenario(
-  config: HeistGeneratorConfig,
-  seed: Seed,
+  config: HeistGeneratorConfigInput,
+  seed?: Seed,
 ): HeistScenarioParams {
-  const rng = createRng(seed);
-  return buildScenario(config, rng);
+  const { seed: embeddedSeed, preset, ...rawConfig } = config;
+  void preset;
+  const normalizedConfig: HeistGeneratorConfig = {
+    ...DEFAULT_CONFIG,
+    ...rawConfig,
+    rooms: rawConfig.rooms ?? DEFAULT_CONFIG.rooms,
+    securityDensity: {
+      ...DEFAULT_CONFIG.securityDensity,
+      ...rawConfig.securityDensity,
+    },
+  };
+  const rng = createRng(seed ?? embeddedSeed ?? 0);
+  return buildScenario(normalizedConfig, rng);
 }
