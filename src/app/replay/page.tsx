@@ -27,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { parseJsonl } from "@/lib/replay/parseJsonl";
 import type { ReplayEvent, ParseError } from "@/lib/replay/parseJsonl";
-import { detectMoments } from "@/lib/replay/detectMoments";
+import { buildMomentEventRangeMap, detectMoments } from "@/lib/replay/detectMoments";
 import type { ReplayMoment } from "@/lib/replay/detectMoments";
 import { redactEvent } from "@/lib/replay/redaction";
 import type { ViewerMode, RedactedEvent } from "@/lib/replay/redaction";
@@ -128,6 +128,7 @@ type PageState =
       matchKey: string;
       events: ReplayEvent[];
       errors: ParseError[];
+      moments: ReplayMoment[] | null;
     };
 
 /** Event filter state. */
@@ -303,6 +304,42 @@ async function readJsonFromSource<T>(source: TournamentSource, ...path: string[]
   return JSON.parse(text) as T;
 }
 
+function parseMomentsJson(raw: unknown): ReplayMoment[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  const moments: ReplayMoment[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      continue;
+    }
+    const record = entry as Record<string, unknown>;
+    if (
+      typeof record.id !== "string" ||
+      typeof record.label !== "string" ||
+      typeof record.type !== "string" ||
+      typeof record.startSeq !== "number" ||
+      typeof record.endSeq !== "number"
+    ) {
+      continue;
+    }
+    const signals = record.signals && typeof record.signals === "object" && !Array.isArray(record.signals)
+      ? (record.signals as Record<string, unknown>)
+      : {};
+    const description = typeof record.description === "string" ? record.description : undefined;
+    moments.push({
+      id: record.id,
+      label: record.label,
+      type: record.type as ReplayMoment["type"],
+      startSeq: record.startSeq,
+      endSeq: record.endSeq,
+      signals,
+      ...(description ? { description } : {}),
+    });
+  }
+  return moments;
+}
+
 /** Load all tournament data from any supported source. */
 async function loadTournamentFromSource(source: TournamentSource): Promise<TournamentData> {
   const tournament = await readJsonFromSource<TournamentMeta>(source, "tournament.json");
@@ -330,9 +367,19 @@ async function loadTournamentFromSource(source: TournamentSource): Promise<Tourn
 async function loadMatchFromSource(
   source: TournamentSource,
   matchKey: string,
-): Promise<{ events: ReplayEvent[]; errors: ParseError[] }> {
+): Promise<{ events: ReplayEvent[]; errors: ParseError[]; moments: ReplayMoment[] | null }> {
   const text = await readTextFromSource(source, "matches", matchKey, "match.jsonl");
-  return parseJsonl(text);
+  const parsed = parseJsonl(text);
+  let moments: ReplayMoment[] | null = null;
+
+  try {
+    const momentsRaw = await readJsonFromSource<unknown>(source, "matches", matchKey, "moments.json");
+    moments = parseMomentsJson(momentsRaw);
+  } catch {
+    moments = null;
+  }
+
+  return { ...parsed, moments };
 }
 
 // ---------------------------------------------------------------------------
@@ -1314,18 +1361,27 @@ function ReplayViewer({
   filename,
   onClose,
   onBack,
+  momentsOverride,
 }: {
   events: ReplayEvent[];
   errors: ParseError[];
   filename: string;
   onClose: () => void;
   onBack?: () => void;
+  momentsOverride?: ReplayMoment[] | null;
 }) {
   const [spoilers, setSpoilers] = useState(false);
   const [viewerMode, setViewerMode] = useState<ViewerMode>("spectator");
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [filters, setFilters] = useState<EventFilters>(EMPTY_FILTERS);
-  const moments = useMemo(() => detectMoments(events), [events]);
+  const moments = useMemo(
+    () => (momentsOverride ?? detectMoments(events)),
+    [events, momentsOverride],
+  );
+  const momentRanges = useMemo(
+    () => buildMomentEventRangeMap(moments, events),
+    [moments, events],
+  );
 
   // Commentary state
   const [commentaryEntries, setCommentaryEntries] = useState<CommentaryEntry[]>([]);
@@ -1341,7 +1397,7 @@ function ReplayViewer({
           setCommentaryLoadStatus("error");
           return;
         }
-        const result = parseCommentaryFile(text, moments, events.length);
+        const result = parseCommentaryFile(text, moments, events.length, momentRanges);
         if (result.entries.length === 0 && result.warnings.length > 0) {
           setCommentaryLoadStatus("error");
           setCommentaryWarnings(result.warnings);
@@ -1356,7 +1412,7 @@ function ReplayViewer({
       };
       reader.readAsText(file);
     },
-    [moments, events.length],
+    [moments, events.length, momentRanges],
   );
 
   const clearCommentary = useCallback(() => {
@@ -1438,25 +1494,31 @@ function ReplayViewer({
     }
     return (
       moments.find(
-        (moment) =>
-          activeIdx >= moment.start_event_idx &&
-          activeIdx <= moment.end_event_idx,
+        (moment) => {
+          const range = momentRanges.get(moment.id);
+          if (!range) {
+            return false;
+          }
+          return activeIdx >= range.startEventIdx && activeIdx <= range.endEventIdx;
+        },
       ) ?? null
     );
-  }, [moments, selectedEvent?.originalIdx]);
+  }, [moments, momentRanges, selectedEvent?.originalIdx]);
 
   const jumpToMoment = useCallback(
     (moment: ReplayMoment) => {
+      const range = momentRanges.get(moment.id);
+      if (!range) {
+        return;
+      }
       const idx = filteredRedacted.findIndex(
-        (ev) =>
-          ev.originalIdx >= moment.start_event_idx &&
-          ev.originalIdx <= moment.end_event_idx,
+        (ev) => ev.originalIdx >= range.startEventIdx && ev.originalIdx <= range.endEventIdx,
       );
       if (idx >= 0) {
         setSelectedIdx(idx);
       }
     },
-    [filteredRedacted],
+    [filteredRedacted, momentRanges],
   );
 
   // Derive if spoilers is effectively active (director mode forces it)
@@ -1472,10 +1534,18 @@ function ReplayViewer({
       commentaryEntries,
       playheadIdx,
       moments,
+      momentRanges,
       playheadIdx,
       effectiveSpoilers,
     );
-  }, [commentaryEntries, commentaryLoadStatus, selectedEvent?.originalIdx, moments, effectiveSpoilers]);
+  }, [
+    commentaryEntries,
+    commentaryLoadStatus,
+    selectedEvent?.originalIdx,
+    moments,
+    momentRanges,
+    effectiveSpoilers,
+  ]);
 
   return (
     <div className="flex h-[calc(100vh-theme(spacing.14)-theme(spacing.12))] flex-col gap-3">
@@ -1647,6 +1717,7 @@ function ReplayViewer({
               <div className="space-y-2">
                 {moments.map((moment) => {
                   const isActive = moment.id === activeMoment?.id;
+                  const range = momentRanges.get(moment.id);
                   return (
                     <button
                       key={moment.id}
@@ -1660,7 +1731,9 @@ function ReplayViewer({
                     >
                       <p className="font-medium">{moment.label}</p>
                       <p className="text-[0.7rem] text-muted-foreground">
-                        Events {moment.start_event_idx + 1}–{moment.end_event_idx + 1}
+                        {range
+                          ? `Events ${range.startEventIdx + 1}\u2013${range.endEventIdx + 1}`
+                          : `Seq ${moment.startSeq}\u2013${moment.endSeq}`}
                       </p>
                     </button>
                   );
@@ -1790,7 +1863,7 @@ export default function ReplayPage() {
       }
 
       try {
-        const { events, errors } = await loadMatchFromSource(
+        const { events, errors, moments } = await loadMatchFromSource(
           state.data.source,
           matchKey,
         );
@@ -1805,6 +1878,7 @@ export default function ReplayPage() {
           matchKey,
           events,
           errors,
+          moments,
         });
       } catch (err) {
         setLoadError(
@@ -1890,6 +1964,7 @@ export default function ReplayPage() {
           setLoadError(null);
           setState({ mode: "tournament", data: state.data });
         }}
+        momentsOverride={state.moments}
       />
     );
   }

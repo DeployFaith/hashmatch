@@ -9,7 +9,7 @@
  * This module is offline-only: no network calls, no external APIs.
  */
 
-import type { ReplayMoment } from "./detectMoments.js";
+import type { MomentEventRangeMap, ReplayMoment } from "./detectMoments.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -98,6 +98,7 @@ export function parseCommentaryFile(
   text: string,
   moments: ReplayMoment[],
   eventCount: number,
+  momentRanges: MomentEventRangeMap,
 ): CommentaryFile {
   const warnings: CommentaryWarning[] = [];
 
@@ -208,7 +209,7 @@ export function parseCommentaryFile(
   }
 
   // Deterministic sort: by effective start index, then by id as stable tie-breaker
-  const sorted = sortCommentaryEntries(entries, momentMap);
+  const sorted = sortCommentaryEntries(entries, momentMap, momentRanges);
 
   return { version, matchId, entries: sorted, warnings };
 }
@@ -221,10 +222,15 @@ export function parseCommentaryFile(
 export function getEntryStartIdx(
   entry: CommentaryEntry,
   momentMap: Map<string, ReplayMoment>,
+  momentRanges: MomentEventRangeMap,
 ): number {
   if (entry.kind === "moment") {
     const moment = momentMap.get(entry.momentId);
-    return moment ? moment.start_event_idx : 0;
+    if (!moment) {
+      return 0;
+    }
+    const range = momentRanges.get(moment.id);
+    return range ? range.startEventIdx : 0;
   }
   return entry.startEventIdx;
 }
@@ -233,10 +239,16 @@ export function getEntryStartIdx(
 export function getEntryEndIdx(
   entry: CommentaryEntry,
   momentMap: Map<string, ReplayMoment>,
+  momentRanges: MomentEventRangeMap,
+  fallbackEndIdx: number,
 ): number {
   if (entry.kind === "moment") {
     const moment = momentMap.get(entry.momentId);
-    return moment ? moment.end_event_idx : 0;
+    if (!moment) {
+      return fallbackEndIdx;
+    }
+    const range = momentRanges.get(moment.id);
+    return range ? range.endEventIdx : fallbackEndIdx;
   }
   return entry.endEventIdx;
 }
@@ -244,10 +256,11 @@ export function getEntryEndIdx(
 function sortCommentaryEntries(
   entries: CommentaryEntry[],
   momentMap: Map<string, ReplayMoment>,
+  momentRanges: MomentEventRangeMap,
 ): CommentaryEntry[] {
   return [...entries].sort((a, b) => {
-    const aStart = getEntryStartIdx(a, momentMap);
-    const bStart = getEntryStartIdx(b, momentMap);
+    const aStart = getEntryStartIdx(a, momentMap, momentRanges);
+    const bStart = getEntryStartIdx(b, momentMap, momentRanges);
     if (aStart !== bStart) {
       return aStart - bStart;
     }
@@ -272,6 +285,7 @@ export function getVisibleCommentary(
   entries: CommentaryEntry[],
   playheadIdx: number,
   moments: ReplayMoment[],
+  momentRanges: MomentEventRangeMap,
   revealSpoilers: boolean,
 ): CommentaryEntry[] {
   const momentMap = new Map<string, ReplayMoment>();
@@ -280,7 +294,7 @@ export function getVisibleCommentary(
   }
 
   return entries.filter((entry) => {
-    const startIdx = getEntryStartIdx(entry, momentMap);
+    const startIdx = getEntryStartIdx(entry, momentMap, momentRanges);
 
     // Anti-spoiler gating: don't show commentary for future events
     if (!revealSpoilers && startIdx > playheadIdx) {
@@ -302,18 +316,22 @@ export function getCommentaryForMoment(
   entries: CommentaryEntry[],
   moment: ReplayMoment,
   moments: ReplayMoment[],
+  momentRanges: MomentEventRangeMap,
   playheadIdx: number,
   revealSpoilers: boolean,
 ): CommentaryEntry[] {
-  const visible = getVisibleCommentary(entries, playheadIdx, moments, revealSpoilers);
+  const visible = getVisibleCommentary(entries, playheadIdx, moments, momentRanges, revealSpoilers);
 
   return visible.filter((entry) => {
     if (entry.kind === "moment") {
       return entry.momentId === moment.id;
     }
     // Range overlap check
-    return entry.startEventIdx <= moment.end_event_idx &&
-      entry.endEventIdx >= moment.start_event_idx;
+    const range = momentRanges.get(moment.id);
+    if (!range) {
+      return false;
+    }
+    return entry.startEventIdx <= range.endEventIdx && entry.endEventIdx >= range.startEventIdx;
   });
 }
 
@@ -326,10 +344,11 @@ export function getCommentaryAtIndex(
   entries: CommentaryEntry[],
   eventIdx: number,
   moments: ReplayMoment[],
+  momentRanges: MomentEventRangeMap,
   playheadIdx: number,
   revealSpoilers: boolean,
 ): CommentaryEntry[] {
-  const visible = getVisibleCommentary(entries, playheadIdx, moments, revealSpoilers);
+  const visible = getVisibleCommentary(entries, playheadIdx, moments, momentRanges, revealSpoilers);
 
   const momentMap = new Map<string, ReplayMoment>();
   for (const m of moments) {
@@ -337,8 +356,8 @@ export function getCommentaryAtIndex(
   }
 
   return visible.filter((entry) => {
-    const startIdx = getEntryStartIdx(entry, momentMap);
-    const endIdx = getEntryEndIdx(entry, momentMap);
+    const startIdx = getEntryStartIdx(entry, momentMap, momentRanges);
+    const endIdx = getEntryEndIdx(entry, momentMap, momentRanges, eventIdx);
     return eventIdx >= startIdx && eventIdx <= endIdx;
   });
 }

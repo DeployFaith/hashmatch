@@ -4,6 +4,7 @@ import { hashFile, hashManifestCore, sha256Hex } from "../core/hash.js";
 import { stableStringify, toStableJsonl } from "../core/json.js";
 import type { MatchEvent } from "../contract/types.js";
 import type { TournamentBundleV1 } from "../lib/replay/bundle.js";
+import { detectMoments } from "../lib/replay/detectMoments.js";
 import type { JsonValue } from "../contract/types.js";
 import type { MatchKey, MatchManifest, TournamentManifest, TournamentResult } from "./types.js";
 
@@ -154,6 +155,15 @@ export async function writeTournamentArtifacts(
       ensureSingleTrailingNewline(stableStringify(summaryWithHashes)),
       "utf-8",
     );
+
+    const moments = detectMoments(events);
+    if (moments.length > 0) {
+      writeFileSync(
+        join(matchDir, "moments.json"),
+        ensureSingleTrailingNewline(stableStringify(moments)),
+        "utf-8",
+      );
+    }
   }
 
   const truthBundleHash = sha256Hex(Buffer.from(logHashes.sort().join(""), "utf-8"));
