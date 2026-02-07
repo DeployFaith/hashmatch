@@ -61,6 +61,16 @@ export interface MatchManifest {
   createdAt: string;
 }
 
+export interface TournamentManifest {
+  tournamentSeed: Seed;
+  scenarioName: string;
+  agents: AgentId[];
+  matches: MatchSpec[];
+  modeProfile?: JsonValue;
+  harnessVersion?: string;
+  createdAt: string;
+}
+
 /** Summary of a single match within a tournament. */
 export interface MatchSummary {
   matchId: MatchId;
