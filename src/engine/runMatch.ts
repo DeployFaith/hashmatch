@@ -1,16 +1,7 @@
 import type { Agent, AgentContext, MatchRunnerConfig, Scenario } from "../contract/interfaces.js";
 import type { AgentId, JsonValue, MatchEvent, MatchResult } from "../contract/types.js";
 import { createRng, deriveSeed } from "../core/rng.js";
-
-/** Generate a deterministic match id from the RNG stream. */
-function generateMatchId(rng: () => number): string {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  let id = "m_";
-  for (let i = 0; i < 12; i++) {
-    id += chars[Math.floor(rng() * chars.length)];
-  }
-  return id;
-}
+import { generateMatchId } from "./matchId.js";
 
 /** Append a partial event (sans seq/matchId) to the event list. */
 function emit(
@@ -37,7 +28,8 @@ export function runMatch<TState, TObs, TAct>(
   const seq = { value: 0 };
 
   const masterRng = createRng(config.seed);
-  const matchId = config.matchId ?? generateMatchId(masterRng);
+  const generatedMatchId = generateMatchId(masterRng);
+  const matchId = config.matchId ?? generatedMatchId;
 
   // Stable agent ordering
   const agentIds: AgentId[] = agents.map((a) => a.id);

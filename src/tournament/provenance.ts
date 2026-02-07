@@ -67,12 +67,18 @@ export interface MatchManifestProvenance {
   agentsById: Map<AgentId, MatchManifestAgent>;
 }
 
-export async function buildMatchManifestProvenance(
-  result: TournamentResult,
+export interface MatchManifestProvenanceConfig {
+  scenarioKey: string;
+  scenarioName: string;
+  agentKeys: string[];
+}
+
+export async function buildMatchManifestProvenanceFromConfig(
+  config: MatchManifestProvenanceConfig,
 ): Promise<MatchManifestProvenance> {
-  const scenarioPath = SCENARIO_PATHS[result.config.scenarioKey];
+  const scenarioPath = SCENARIO_PATHS[config.scenarioKey];
   if (!scenarioPath) {
-    throw new Error(`Missing scenario provenance mapping for "${result.config.scenarioKey}"`);
+    throw new Error(`Missing scenario provenance mapping for "${config.scenarioKey}"`);
   }
   const scenarioContentHash = await computeArtifactContentHash({
     rootDir: RUNTIME_ROOT,
@@ -83,14 +89,14 @@ export async function buildMatchManifestProvenance(
   const artifactVersion = readPackageVersion();
 
   const scenario: MatchManifestScenario = {
-    id: result.tournament.scenarioName,
+    id: config.scenarioName,
     version: artifactVersion,
     contractVersion: null,
     contentHash: scenarioContentHash,
   };
 
   const agentContentHashes = new Map<string, string>();
-  for (const agentKey of result.config.agentKeys) {
+  for (const agentKey of config.agentKeys) {
     if (agentContentHashes.has(agentKey)) {
       continue;
     }
@@ -107,7 +113,7 @@ export async function buildMatchManifestProvenance(
   }
 
   const agentsById = new Map<AgentId, MatchManifestAgent>();
-  result.config.agentKeys.forEach((agentKey, index) => {
+  config.agentKeys.forEach((agentKey, index) => {
     const agentId = `${agentKey}-${index}`;
     const contentHash = agentContentHashes.get(agentKey);
     if (!contentHash) {
@@ -121,4 +127,14 @@ export async function buildMatchManifestProvenance(
   });
 
   return { scenario, agentsById };
+}
+
+export async function buildMatchManifestProvenance(
+  result: TournamentResult,
+): Promise<MatchManifestProvenance> {
+  return buildMatchManifestProvenanceFromConfig({
+    scenarioKey: result.config.scenarioKey,
+    scenarioName: result.tournament.scenarioName,
+    agentKeys: result.config.agentKeys,
+  });
 }
