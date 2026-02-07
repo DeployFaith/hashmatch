@@ -42,6 +42,21 @@ function buildProvenanceFields(config: MatchRunnerConfig): Record<string, string
   };
 }
 
+function buildCombinedScores(
+  agentIds: AgentId[],
+  runs: [HeistSoloRun, HeistSoloRun],
+): Record<AgentId, number> {
+  const scores: Record<AgentId, number> = Object.fromEntries(
+    agentIds.map((agentId) => [agentId, 0]),
+  );
+  for (const run of runs) {
+    for (const [agentId, score] of Object.entries(run.result.scores)) {
+      scores[agentId] = score;
+    }
+  }
+  return scores;
+}
+
 export function combineHeistRuns(
   scenarioName: string,
   config: MatchRunnerConfig,
@@ -55,10 +70,7 @@ export function combineHeistRuns(
   const matchEndA = extractMatchEnd(runA.result);
   const matchEndB = extractMatchEnd(runB.result);
 
-  const scores: Record<AgentId, number> = {
-    ...runA.result.scores,
-    ...runB.result.scores,
-  };
+  const scores = buildCombinedScores(agentIds, runs);
 
   const reason: MatchEndedReason =
     matchEndA.reason === "maxTurnsReached" || matchEndB.reason === "maxTurnsReached"

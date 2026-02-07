@@ -64,6 +64,7 @@ describe("Heist competitive runner", () => {
 
     result.events.forEach((event, index) => {
       expect(event.seq).toBe(index);
+      expect(event.matchId).toBe(result.matchId);
     });
 
     const scoreA = result.scores[agentA.id];
