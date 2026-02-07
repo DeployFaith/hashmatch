@@ -69,6 +69,12 @@ export interface TournamentManifest {
   modeProfile?: JsonValue;
   harnessVersion?: string;
   createdAt: string;
+  truthBundleHash?: string;
+}
+
+export interface MatchSummaryHashes {
+  logHash: string;
+  manifestHash: string;
 }
 
 /** Summary of a single match within a tournament. */
@@ -81,6 +87,7 @@ export interface MatchSummary {
   winner: AgentId | null;
   turns: number;
   reason: string;
+  hashes?: MatchSummaryHashes;
 }
 
 /** A row in the tournament standings table. */

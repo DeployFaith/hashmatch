@@ -21,14 +21,14 @@ function makeConfig(overrides: Partial<TournamentConfig> = {}): TournamentConfig
 }
 
 describe("Tournament bundle output", () => {
-  it("parses bundled JSONL logs with sorted events", () => {
+  it("parses bundled JSONL logs with sorted events", async () => {
     const dir = mkdtempSync(join(tmpdir(), "agent-league-bundle-"));
     const artifactsDir = join(dir, "artifacts");
     const bundlePath = join(dir, "bundle.json");
 
     try {
       const result = runTournament(makeConfig());
-      writeTournamentArtifacts(result, artifactsDir);
+      await writeTournamentArtifacts(result, artifactsDir);
       writeTournamentBundle(result, bundlePath);
 
       const raw = readFileSync(bundlePath, "utf-8");

@@ -101,7 +101,7 @@ function tryReadHarnessVersion(): string | undefined {
   }
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
 
   if (args.seed === undefined) {
@@ -136,7 +136,7 @@ function main(): void {
 
   printStandings(result.standings);
 
-  writeTournamentArtifacts(result, args.outDir);
+  await writeTournamentArtifacts(result, args.outDir);
   // eslint-disable-next-line no-console
   console.log(`\nWrote tournament artifacts to ${args.outDir}`);
 
@@ -147,4 +147,4 @@ function main(): void {
   }
 }
 
-main();
+void main();
