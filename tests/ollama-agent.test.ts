@@ -29,7 +29,7 @@ describe("ollamaChat", () => {
     const fetchMock = vi.fn(async () => ({
       ok: true,
       status: 200,
-      json: async () => ({ message: { content: "ok" } }),
+      json: async () => ({ choices: [{ message: { content: "ok" } }] }),
     }));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -55,7 +55,7 @@ describe("ollamaChat", () => {
     const fetchMock = vi.fn(async () => ({
       ok: true,
       status: 200,
-      json: async () => ({ message: { content: "ok" } }),
+      json: async () => ({ choices: [{ message: { content: "ok" } }] }),
     }));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -72,7 +72,8 @@ describe("ollamaChat", () => {
       throw new Error("Expected request body to be set");
     }
     const body = JSON.parse(request.body as string) as Record<string, unknown>;
-    expect(body.options).toEqual({ temperature: 0.5 });
+    expect(body.options).toBeUndefined();
+    expect(body.temperature).toBe(0.5);
   });
 
   it("returns status errors for non-200 responses", async () => {
