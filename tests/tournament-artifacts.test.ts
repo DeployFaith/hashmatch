@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { runTournament } from "../src/tournament/runTournament.js";
 import { writeTournamentArtifacts } from "../src/tournament/artifacts.js";
+import { hashFile, hashManifestCore } from "../src/core/hash.js";
 import { stableStringify } from "../src/core/json.js";
 import type { TournamentConfig } from "../src/tournament/types.js";
 
@@ -34,7 +35,7 @@ function listFiles(dir: string, baseDir = dir): string[] {
 }
 
 describe("Tournament artifacts determinism", () => {
-  it("writes byte-identical artifacts for identical inputs", () => {
+  it("writes byte-identical artifacts for identical inputs", async () => {
     const config = makeConfig({ seed: 123 });
 
     const dirA = mkdtempSync(join(tmpdir(), "agent-league-a-"));
@@ -44,8 +45,8 @@ describe("Tournament artifacts determinism", () => {
       const resultA = runTournament(config);
       const resultB = runTournament(config);
 
-      writeTournamentArtifacts(resultA, dirA);
-      writeTournamentArtifacts(resultB, dirB);
+      await writeTournamentArtifacts(resultA, dirA);
+      await writeTournamentArtifacts(resultB, dirB);
 
       const filesA = listFiles(dirA);
       const filesB = listFiles(dirB);
@@ -77,13 +78,13 @@ describe("Tournament artifacts determinism", () => {
 });
 
 describe("Tournament artifacts manifest", () => {
-  it("writes tournament_manifest.json and tournament.json with a single trailing newline", () => {
+  it("writes tournament_manifest.json and tournament.json with a single trailing newline", async () => {
     const config = makeConfig({ seed: 33 });
     const dir = mkdtempSync(join(tmpdir(), "agent-league-tournament-manifest-"));
 
     try {
       const result = runTournament(config);
-      writeTournamentArtifacts(result, dir);
+      await writeTournamentArtifacts(result, dir);
 
       const manifestRaw = readFileSync(join(dir, "tournament_manifest.json"), "utf-8");
       const legacyRaw = readFileSync(join(dir, "tournament.json"), "utf-8");
@@ -110,13 +111,13 @@ describe("Tournament artifacts manifest", () => {
     }
   });
 
-  it("writes match_manifest.json with required fields", () => {
+  it("writes match_manifest.json with required fields", async () => {
     const config = makeConfig({ seed: 55 });
     const dir = mkdtempSync(join(tmpdir(), "agent-league-manifest-"));
 
     try {
       const result = runTournament(config);
-      writeTournamentArtifacts(result, dir);
+      await writeTournamentArtifacts(result, dir);
 
       const matchDir = join(dir, "matches", result.matchSummaries[0].matchKey);
       const raw = readFileSync(join(matchDir, "match_manifest.json"), "utf-8");
@@ -150,5 +151,104 @@ describe("Tournament artifacts manifest", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("Tournament artifact hashing", () => {
+  const hashRegex = /^sha256:[a-f0-9]{64}$/;
+
+  it("adds hashes to match_summary.json and tournament_manifest.json", async () => {
+    const config = makeConfig({ seed: 77 });
+    const dir = mkdtempSync(join(tmpdir(), "agent-league-hashes-"));
+
+    try {
+      const result = runTournament(config);
+      await writeTournamentArtifacts(result, dir);
+
+      const matchDir = join(dir, "matches", result.matchSummaries[0].matchKey);
+      const summaryRaw = readFileSync(join(matchDir, "match_summary.json"), "utf-8");
+      expect(summaryRaw.endsWith("\n")).toBe(true);
+      expect(summaryRaw.endsWith("\n\n")).toBe(false);
+
+      const summary = JSON.parse(summaryRaw) as { hashes?: { logHash: string; manifestHash: string } };
+      expect(summary.hashes).toBeDefined();
+      expect(summary.hashes?.logHash).toMatch(hashRegex);
+      expect(summary.hashes?.manifestHash).toMatch(hashRegex);
+
+      const tournamentRaw = readFileSync(join(dir, "tournament_manifest.json"), "utf-8");
+      expect(tournamentRaw.endsWith("\n")).toBe(true);
+      expect(tournamentRaw.endsWith("\n\n")).toBe(false);
+      const tournamentManifest = JSON.parse(tournamentRaw) as { truthBundleHash?: string };
+      expect(tournamentManifest.truthBundleHash).toMatch(hashRegex);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("hashes match.jsonl bytes and keeps hashes deterministic", async () => {
+    const config = makeConfig({ seed: 88 });
+    const dirA = mkdtempSync(join(tmpdir(), "agent-league-hashes-a-"));
+    const dirB = mkdtempSync(join(tmpdir(), "agent-league-hashes-b-"));
+
+    try {
+      const resultA = runTournament(config);
+      const resultB = runTournament(config);
+      await writeTournamentArtifacts(resultA, dirA);
+      await writeTournamentArtifacts(resultB, dirB);
+
+      const matchKey = resultA.matchSummaries[0].matchKey;
+      const summaryRawA = readFileSync(
+        join(dirA, "matches", matchKey, "match_summary.json"),
+        "utf-8",
+      );
+      const summaryRawB = readFileSync(
+        join(dirB, "matches", matchKey, "match_summary.json"),
+        "utf-8",
+      );
+      const summaryA = JSON.parse(summaryRawA) as { hashes: { logHash: string; manifestHash: string } };
+      const summaryB = JSON.parse(summaryRawB) as { hashes: { logHash: string; manifestHash: string } };
+
+      expect(summaryA.hashes.logHash).toBe(summaryB.hashes.logHash);
+      expect(summaryA.hashes.manifestHash).toBe(summaryB.hashes.manifestHash);
+
+      const matchJsonlPath = join(dirA, "matches", matchKey, "match.jsonl");
+      const computedLogHash = await hashFile(matchJsonlPath);
+      expect(summaryA.hashes.logHash).toBe(computedLogHash);
+
+      const tournamentRawA = readFileSync(join(dirA, "tournament_manifest.json"), "utf-8");
+      const tournamentRawB = readFileSync(join(dirB, "tournament_manifest.json"), "utf-8");
+      const tournamentManifestA = JSON.parse(tournamentRawA) as { truthBundleHash?: string };
+      const tournamentManifestB = JSON.parse(tournamentRawB) as { truthBundleHash?: string };
+      expect(tournamentManifestA.truthBundleHash).toBe(tournamentManifestB.truthBundleHash);
+    } finally {
+      rmSync(dirA, { recursive: true, force: true });
+      rmSync(dirB, { recursive: true, force: true });
+    }
+  });
+
+  it("ignores createdAt when hashing manifest core", () => {
+    const baseManifest = {
+      matchId: "match-1",
+      createdAt: "2024-01-01T00:00:00.000Z",
+      config: { seed: 123 },
+    };
+    const sameCoreDifferentCreated = {
+      matchId: "match-1",
+      createdAt: "2024-02-01T00:00:00.000Z",
+      config: { seed: 123 },
+    };
+    const differentCore = {
+      matchId: "match-1",
+      createdAt: "2024-01-01T00:00:00.000Z",
+      config: { seed: 999 },
+    };
+
+    const hashA = hashManifestCore(baseManifest);
+    const hashB = hashManifestCore(sameCoreDifferentCreated);
+    const hashC = hashManifestCore(differentCore);
+
+    expect(hashA).toBe(hashB);
+    expect(hashA).not.toBe(hashC);
+    expect(hashA).toMatch(hashRegex);
   });
 });

@@ -1,5 +1,6 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { hashFile, hashManifestCore, sha256Hex } from "../core/hash.js";
 import { stableStringify, toStableJsonl } from "../core/json.js";
 import type { MatchEvent } from "../contract/types.js";
 import type { TournamentBundleV1 } from "../lib/replay/bundle.js";
@@ -87,11 +88,18 @@ function assertMatchLogs(
   }
 }
 
-export function writeTournamentArtifacts(result: TournamentResult, outDir: string): void {
+function ensureSingleTrailingNewline(value: string): string {
+  return value.replace(/\n*$/, "\n");
+}
+
+export async function writeTournamentArtifacts(
+  result: TournamentResult,
+  outDir: string,
+): Promise<void> {
   mkdirSync(outDir, { recursive: true });
 
   const tournamentManifest = buildTournamentManifest(result);
-  const tournamentManifestJson = `${stableStringify(tournamentManifest)}\n`;
+  const tournamentManifestJson = ensureSingleTrailingNewline(stableStringify(tournamentManifest));
   writeFileSync(join(outDir, "tournament_manifest.json"), tournamentManifestJson, "utf-8");
   writeFileSync(
     join(outDir, "tournament.json"),
@@ -106,16 +114,11 @@ export function writeTournamentArtifacts(result: TournamentResult, outDir: strin
 
   const matchesDir = join(outDir, "matches");
   mkdirSync(matchesDir, { recursive: true });
+  const logHashes: string[] = [];
 
   for (const summary of result.matchSummaries) {
     const matchDir = join(matchesDir, summary.matchKey);
     mkdirSync(matchDir, { recursive: true });
-
-    writeFileSync(
-      join(matchDir, "match_summary.json"),
-      stableStringify(summary) + "\n",
-      "utf-8",
-    );
 
     const manifest = buildMatchManifest(
       result,
@@ -126,14 +129,43 @@ export function writeTournamentArtifacts(result: TournamentResult, outDir: strin
     );
     writeFileSync(
       join(matchDir, "match_manifest.json"),
-      stableStringify(manifest) + "\n",
+      ensureSingleTrailingNewline(stableStringify(manifest)),
       "utf-8",
     );
 
     assertMatchLogs(summary.matchKey, result.matchLogs);
     const events = result.matchLogs[summary.matchKey];
-    writeFileSync(join(matchDir, "match.jsonl"), toStableJsonl(events), "utf-8");
+    const matchLogPath = join(matchDir, "match.jsonl");
+    writeFileSync(matchLogPath, toStableJsonl(events), "utf-8");
+
+    const logHash = await hashFile(matchLogPath);
+    const manifestHash = hashManifestCore(manifest as unknown as Record<string, unknown>);
+    logHashes.push(logHash);
+
+    const summaryWithHashes = {
+      ...summary,
+      hashes: {
+        logHash,
+        manifestHash,
+      },
+    };
+    writeFileSync(
+      join(matchDir, "match_summary.json"),
+      ensureSingleTrailingNewline(stableStringify(summaryWithHashes)),
+      "utf-8",
+    );
   }
+
+  const truthBundleHash = sha256Hex(Buffer.from(logHashes.sort().join(""), "utf-8"));
+  const manifestPath = join(outDir, "tournament_manifest.json");
+  const existingManifest = JSON.parse(readFileSync(manifestPath, "utf-8")) as TournamentManifest;
+  const updatedManifest: TournamentManifest = {
+    ...existingManifest,
+    truthBundleHash,
+  };
+  const updatedManifestJson = ensureSingleTrailingNewline(stableStringify(updatedManifest));
+  writeFileSync(manifestPath, updatedManifestJson, "utf-8");
+  writeFileSync(join(outDir, "tournament.json"), updatedManifestJson, "utf-8");
 }
 
 export function buildTournamentBundle(result: TournamentResult): TournamentBundleV1 {
