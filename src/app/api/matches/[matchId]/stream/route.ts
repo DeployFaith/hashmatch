@@ -162,7 +162,7 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
   let status = await readMatchStatus(statusPath);
   if (!status) {
     enqueueEvent(ctx, "error", { message: "Missing match_status.json" });
-    ctx.closeStream(ctx);
+    closeStream(ctx);
     return;
   }
 
@@ -196,7 +196,7 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
         parsed = parseJsonLine(line);
       } catch {
         enqueueEvent(ctx, "error", { message: "Failed to parse match.jsonl" });
-        ctx.closeStream(ctx);
+        closeStream(ctx);
         return;
       }
       if (shouldSkipEvent(parsed, lastEventId)) {
@@ -223,7 +223,7 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
     } else {
       enqueueEvent(ctx, "error", { status: status.status, error: status.error ?? null });
     }
-    ctx.closeStream(ctx);
+    closeStream(ctx);
     return;
   }
 
@@ -252,7 +252,7 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
               parsed = parseJsonLine(line);
             } catch {
               enqueueEvent(ctx, "error", { message: "Failed to parse match.jsonl" });
-              ctx.closeStream(ctx);
+              closeStream(ctx);
               return;
             }
             if (shouldSkipEvent(parsed, lastEventId)) {
@@ -268,7 +268,7 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
         }
       } catch {
         enqueueEvent(ctx, "error", { message: "Failed to read match.jsonl" });
-        ctx.closeStream(ctx);
+        closeStream(ctx);
         return;
       }
     }
@@ -277,7 +277,7 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
       const updated = await readMatchStatus(statusPath);
       if (!updated) {
         enqueueEvent(ctx, "error", { message: "Missing match_status.json" });
-        ctx.closeStream(ctx);
+        closeStream(ctx);
         return;
       }
       status = updated;
@@ -288,7 +288,7 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
         } else {
           enqueueEvent(ctx, "error", { status: status.status, error: status.error ?? null });
         }
-        ctx.closeStream(ctx);
+        closeStream(ctx);
         return;
       }
       if (!hadAnyEvents && !sentWaiting) {
@@ -301,7 +301,7 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
     await delay(TAIL_POLL_INTERVAL_MS);
   }
 
-  ctx.closeStream(ctx);
+  closeStream(ctx);
 }
 
 type RouteContext = { params: Promise<{ matchId: string }> };
