@@ -9,9 +9,7 @@ import type { ReplayEvent } from "../src/lib/replay/parseJsonl.js";
 function makeEvent(overrides: Partial<ReplayEvent> & { type: string; seq: number }): ReplayEvent {
   const baseRaw = { type: overrides.type, seq: overrides.seq, matchId: "m_test" };
   const mergedRaw =
-    overrides.raw && typeof overrides.raw === "object"
-      ? { ...baseRaw, ...overrides.raw }
-      : baseRaw;
+    overrides.raw && typeof overrides.raw === "object" ? { ...baseRaw, ...overrides.raw } : baseRaw;
   return {
     matchId: "m_test",
     ...overrides,

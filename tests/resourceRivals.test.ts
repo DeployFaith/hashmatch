@@ -53,8 +53,8 @@ describe("ResourceRivals scenario", () => {
     const state1 = scenario.init(42, ["alice", "bob"]);
     const state2 = scenario.init(99, ["alice", "bob"]);
     // With high probability, at least one objective differs
-    const same = state1.objectives.every((o, i) =>
-      state2.objectives[i] && o.value === state2.objectives[i].value,
+    const same = state1.objectives.every(
+      (o, i) => state2.objectives[i] && o.value === state2.objectives[i].value,
     );
     expect(same).toBe(false);
   });
@@ -164,10 +164,7 @@ describe("ResourceRivals scenario", () => {
 describe("ResourceRivals full match", () => {
   it("runs a complete match with random agents", () => {
     const scenario = createResourceRivalsScenario();
-    const agents = [
-      createRandomBidderAgent("alice"),
-      createConservativeAgent("bob"),
-    ];
+    const agents = [createRandomBidderAgent("alice"), createConservativeAgent("bob")];
     const result = runMatch(scenario, agents, { seed: 42, maxTurns: 30 });
 
     expect(result.events.length).toBeGreaterThan(0);
