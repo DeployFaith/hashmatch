@@ -11,7 +11,7 @@ export interface OllamaChatMessage {
 }
 
 function buildUrl(endpoint: string): string {
-  return `${endpoint.replace(/\/$/, "")}/api/chat`;
+  return `${endpoint.replace(/\/$/, "")}/v1/chat/completions`;
 }
 
 export async function ollamaChat(
@@ -27,7 +27,7 @@ export async function ollamaChat(
   };
 
   if (config.options && Object.keys(config.options).length > 0) {
-    payload.options = config.options;
+    Object.assign(payload, config.options);
   }
 
   const controller = new AbortController();
@@ -42,7 +42,13 @@ export async function ollamaChat(
         return `ERROR: Ollama returned status ${response.status}`;
       }
       try {
-        const data = (await response.json()) as { message?: { content?: string } };
+        const data = (await response.json()) as {
+          choices?: Array<{ message?: { content?: string } }>;
+          message?: { content?: string };
+        };
+        if (typeof data?.choices?.[0]?.message?.content === "string") {
+          return data.choices[0].message.content;
+        }
         if (typeof data?.message?.content === "string") {
           return data.message.content;
         }
