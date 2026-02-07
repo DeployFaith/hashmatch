@@ -29,7 +29,7 @@ describe("Tournament bundle output", () => {
     try {
       const result = runTournament(makeConfig());
       await writeTournamentArtifacts(result, artifactsDir);
-      writeTournamentBundle(result, bundlePath);
+      await writeTournamentBundle(result, bundlePath);
 
       const raw = readFileSync(bundlePath, "utf-8");
       const bundle = JSON.parse(raw) as TournamentBundleV1;

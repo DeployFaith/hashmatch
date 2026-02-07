@@ -141,7 +141,7 @@ async function main(): Promise<void> {
   console.log(`\nWrote tournament artifacts to ${args.outDir}`);
 
   if (args.bundleOut) {
-    writeTournamentBundle(result, args.bundleOut);
+    await writeTournamentBundle(result, args.bundleOut);
     // eslint-disable-next-line no-console
     console.log(`Wrote tournament bundle to ${args.bundleOut}`);
   }

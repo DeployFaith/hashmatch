@@ -6,6 +6,7 @@ import type { MatchEvent } from "../contract/types.js";
 import type { TournamentBundleV1 } from "../lib/replay/bundle.js";
 import { detectMoments } from "../lib/replay/detectMoments.js";
 import type { JsonValue } from "../contract/types.js";
+import { buildMatchManifestProvenance } from "./provenance.js";
 import type { MatchKey, MatchManifest, TournamentManifest, TournamentResult } from "./types.js";
 
 function resolveModeProfileId(modeProfile: JsonValue | undefined): string {
@@ -30,25 +31,27 @@ function buildMatchManifest(
   matchId: string,
   seed: number,
   agentIds: string[],
+  provenance: {
+    scenario: MatchManifest["scenario"];
+    agentsById: Map<string, MatchManifest["agents"][number]>;
+  },
 ): MatchManifest {
   const modeProfileId = resolveModeProfileId(result.tournament.modeProfile);
-  const scenarioId = result.tournament.scenarioName;
   const harnessVersion = result.tournament.harnessVersion ?? null;
+  const scenario = provenance.scenario;
+  const agents = agentIds.map((id) => {
+    const agent = provenance.agentsById.get(id);
+    if (!agent) {
+      throw new Error(`Missing provenance for agent "${id}"`);
+    }
+    return agent;
+  });
 
   return {
     matchId,
     modeProfileId,
-    scenario: {
-      id: scenarioId,
-      version: null,
-      contractVersion: null,
-      contentHash: null,
-    },
-    agents: agentIds.map((id) => ({
-      id,
-      version: null,
-      contentHash: null,
-    })),
+    scenario,
+    agents,
     config: {
       maxTurns: result.config.maxTurns,
       seed,
@@ -99,6 +102,7 @@ export async function writeTournamentArtifacts(
 ): Promise<void> {
   mkdirSync(outDir, { recursive: true });
 
+  const provenance = await buildMatchManifestProvenance(result);
   const tournamentManifest = buildTournamentManifest(result);
   const tournamentManifestJson = ensureSingleTrailingNewline(stableStringify(tournamentManifest));
   writeFileSync(join(outDir, "tournament_manifest.json"), tournamentManifestJson, "utf-8");
@@ -127,6 +131,7 @@ export async function writeTournamentArtifacts(
       summary.matchId,
       summary.seed,
       summary.agentIds,
+      provenance,
     );
     writeFileSync(
       join(matchDir, "match_manifest.json"),
@@ -178,15 +183,23 @@ export async function writeTournamentArtifacts(
   writeFileSync(join(outDir, "tournament.json"), updatedManifestJson, "utf-8");
 }
 
-export function buildTournamentBundle(result: TournamentResult): TournamentBundleV1 {
+export async function buildTournamentBundle(result: TournamentResult): Promise<TournamentBundleV1> {
   const summaryLookup = new Map(result.matchSummaries.map((summary) => [summary.matchKey, summary]));
+  const provenance = await buildMatchManifestProvenance(result);
 
   const matches = result.tournament.matches.map((spec) => {
     assertMatchLogs(spec.matchKey, result.matchLogs);
     const events = result.matchLogs[spec.matchKey];
     const summary = summaryLookup.get(spec.matchKey);
     const manifest = summary
-      ? buildMatchManifest(result, spec.matchKey, summary.matchId, summary.seed, summary.agentIds)
+      ? buildMatchManifest(
+          result,
+          spec.matchKey,
+          summary.matchId,
+          summary.seed,
+          summary.agentIds,
+          provenance,
+        )
       : undefined;
     return {
       matchKey: spec.matchKey,
@@ -204,7 +217,7 @@ export function buildTournamentBundle(result: TournamentResult): TournamentBundl
   };
 }
 
-export function writeTournamentBundle(result: TournamentResult, outPath: string): void {
-  const bundle = buildTournamentBundle(result);
+export async function writeTournamentBundle(result: TournamentResult, outPath: string): Promise<void> {
+  const bundle = await buildTournamentBundle(result);
   writeFileSync(outPath, stableStringify(bundle) + "\n", "utf-8");
 }

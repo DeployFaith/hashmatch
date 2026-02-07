@@ -90,6 +90,13 @@ For each agent:
 * `agent.contentHash`
 * `agent.capabilities` (declared requirements: network/tools/etc)
 
+`contentHash` is computed as SHA-256 of a deterministic JSON manifest that maps
+`relativePath -> sha256(fileBytes)` for the files that make up the runtime artifact.
+Paths are sorted lexicographically, serialized with stable JSON, and hashed again to
+produce the final `sha256:...` value, making it portable across machines.
+If no explicit artifact version is available, the manifest uses `unversioned` for
+the `version` fields.
+
 **Configuration**
 
 * `config.maxTurns`
