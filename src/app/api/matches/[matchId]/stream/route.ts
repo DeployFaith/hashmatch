@@ -57,10 +57,33 @@ function serializeSseEvent({
   return `${lines.join("\n")}\n\n`;
 }
 
-function enqueueEvent(ctx: StreamContext, event: string, data: unknown, id?: string | number): void {
-  ctx.controller.enqueue(ctx.encoder.encode(serializeSseEvent({ event, data, id })));
+// Prevent races between background poll/heartbeat ticks and stream closure.
+const closedSseControllers = new WeakSet<ReadableStreamDefaultController<Uint8Array>>();
+
+function closeStream(ctx: StreamContext): void {
+  if (closedSseControllers.has(ctx.controller)) return;
+  closedSseControllers.add(ctx.controller);
+  try {
+    ctx.closeStream(ctx);
+  } catch {
+    // ignore
+  }
 }
 
+function enqueueEvent(ctx: StreamContext, event: string, data: unknown, id?: string | number): void {
+  if (ctx.signal.aborted) return;
+  if (closedSseControllers.has(ctx.controller)) return;
+  try {
+    ctx.controller.enqueue(ctx.encoder.encode(serializeSseEvent({ event, data, id })));
+  } catch (err: any) {
+    // If something closed the controller between our checks and enqueue, stop quietly.
+    if (err?.code === "ERR_INVALID_STATE") {
+      closedSseControllers.add(ctx.controller);
+      return;
+    }
+    throw err;
+  }
+}
 async function readMatchStatus(statusPath: string): Promise<MatchStatus | null> {
   try {
     const raw = await readFile(statusPath, "utf-8");
@@ -133,7 +156,7 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
   let status = await readMatchStatus(statusPath);
   if (!status) {
     enqueueEvent(ctx, "error", { message: "Missing match_status.json" });
-    ctx.controller.close();
+    ctx.closeStream(ctx);
     return;
   }
 
@@ -167,7 +190,7 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
         parsed = parseJsonLine(line);
       } catch {
         enqueueEvent(ctx, "error", { message: "Failed to parse match.jsonl" });
-        ctx.controller.close();
+        ctx.closeStream(ctx);
         return;
       }
       if (shouldSkipEvent(parsed, lastEventId)) {
@@ -194,7 +217,7 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
     } else {
       enqueueEvent(ctx, "error", { status: status.status, error: status.error ?? null });
     }
-    ctx.controller.close();
+    ctx.closeStream(ctx);
     return;
   }
 
@@ -223,7 +246,7 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
               parsed = parseJsonLine(line);
             } catch {
               enqueueEvent(ctx, "error", { message: "Failed to parse match.jsonl" });
-              ctx.controller.close();
+              ctx.closeStream(ctx);
               return;
             }
             if (shouldSkipEvent(parsed, lastEventId)) {
@@ -239,7 +262,7 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
         }
       } catch {
         enqueueEvent(ctx, "error", { message: "Failed to read match.jsonl" });
-        ctx.controller.close();
+        ctx.closeStream(ctx);
         return;
       }
     }
@@ -248,7 +271,7 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
       const updated = await readMatchStatus(statusPath);
       if (!updated) {
         enqueueEvent(ctx, "error", { message: "Missing match_status.json" });
-        ctx.controller.close();
+        ctx.closeStream(ctx);
         return;
       }
       status = updated;
@@ -259,7 +282,7 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
         } else {
           enqueueEvent(ctx, "error", { status: status.status, error: status.error ?? null });
         }
-        ctx.controller.close();
+        ctx.closeStream(ctx);
         return;
       }
       if (!hadAnyEvents && !sentWaiting) {
@@ -272,7 +295,7 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
     await delay(TAIL_POLL_INTERVAL_MS);
   }
 
-  ctx.controller.close();
+  ctx.closeStream(ctx);
 }
 
 type RouteContext = { params: Promise<{ matchId: string }> };
@@ -287,31 +310,31 @@ export async function GET(request: Request, context: RouteContext): Promise<Resp
 
       if (!isSafeMatchId(matchId)) {
         enqueueEvent(ctx, "error", { message: "Invalid matchId" });
-        controller.close();
+        closeStream(ctx);
         return;
       }
 
       const matchDir = getMatchDirectory(matchId);
       if (!existsSync(matchDir)) {
         enqueueEvent(ctx, "error", { message: "Match not found" });
-        controller.close();
+        closeStream(ctx);
         return;
       }
 
       if (request.signal.aborted) {
-        controller.close();
+        closeStream(ctx);
         return;
       }
 
       const abortListener = () => {
-        controller.close();
+        closeStream(ctx);
       };
       request.signal.addEventListener("abort", abortListener, { once: true });
 
       void streamMatchEvents(ctx, matchDir, parseLastEventId(request)).catch(() => {
         if (!request.signal.aborted) {
           enqueueEvent(ctx, "error", { message: "Stream error" });
-          controller.close();
+          closeStream(ctx);
         }
       });
     },
