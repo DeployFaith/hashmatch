@@ -127,9 +127,8 @@ export function createResourceRivalsScenario(
       const opponentId = state.agentIds.find((id) => id !== agentId) ?? agentId;
       const opponentScore = state.capturedScore[opponentId] ?? 0;
 
-      const lastBid = state.bidHistory.length > 0
-        ? state.bidHistory[state.bidHistory.length - 1]
-        : null;
+      const lastBid =
+        state.bidHistory.length > 0 ? state.bidHistory[state.bidHistory.length - 1] : null;
       const lastResult = lastBid
         ? {
             objectiveValue: lastBid.objectiveValue,
@@ -160,17 +159,10 @@ export function createResourceRivalsScenario(
       const remaining = state.resources[agentId] ?? 0;
 
       // Validate bid
-      if (
-        typeof bid !== "number" ||
-        !Number.isInteger(bid) ||
-        bid < 0 ||
-        bid > remaining
-      ) {
+      if (typeof bid !== "number" || !Number.isInteger(bid) || bid < 0 || bid > remaining) {
         // Invalid bid: treat as 0 bid, penalize by not participating
         const newPendingBids = { ...state.pendingBids, [agentId]: 0 };
-        const newState = maybeResolveBids(
-          { ...state, pendingBids: newPendingBids },
-        );
+        const newState = maybeResolveBids({ ...state, pendingBids: newPendingBids });
         return {
           valid: false,
           state: newState,
@@ -183,9 +175,7 @@ export function createResourceRivalsScenario(
 
       // Record the bid
       const newPendingBids = { ...state.pendingBids, [agentId]: bid };
-      const newState = maybeResolveBids(
-        { ...state, pendingBids: newPendingBids },
-      );
+      const newState = maybeResolveBids({ ...state, pendingBids: newPendingBids });
 
       return {
         valid: true,
