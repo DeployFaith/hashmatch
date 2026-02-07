@@ -5,6 +5,7 @@ import { stableStringify, toStableJsonl } from "../core/json.js";
 import type { MatchEvent } from "../contract/types.js";
 import type { TournamentBundleV1 } from "../lib/replay/bundle.js";
 import { detectMoments } from "../lib/replay/detectMoments.js";
+import { generateHighlights } from "../lib/replay/generateHighlights.js";
 import type { JsonValue } from "../contract/types.js";
 import { buildMatchManifestProvenance } from "./provenance.js";
 import type { MatchKey, MatchManifest, TournamentManifest, TournamentResult } from "./types.js";
@@ -168,6 +169,16 @@ export async function writeTournamentArtifacts(
         ensureSingleTrailingNewline(stableStringify(moments)),
         "utf-8",
       );
+
+      const highlights = generateHighlights(moments, summary);
+      if (highlights) {
+        writeFileSync(
+          join(matchDir, "highlights.json"),
+          ensureSingleTrailingNewline(stableStringify(highlights)),
+          "utf-8",
+        );
+      }
+      // TODO: Add highlights.json to broadcast_manifest.json (class: "show") when available.
     }
   }
 
@@ -191,6 +202,8 @@ export async function buildTournamentBundle(result: TournamentResult): Promise<T
     assertMatchLogs(spec.matchKey, result.matchLogs);
     const events = result.matchLogs[spec.matchKey];
     const summary = summaryLookup.get(spec.matchKey);
+    const moments = summary ? detectMoments(events) : [];
+    const highlights = summary ? generateHighlights(moments, summary) : null;
     const manifest = summary
       ? buildMatchManifest(
           result,
@@ -205,6 +218,7 @@ export async function buildTournamentBundle(result: TournamentResult): Promise<T
       matchKey: spec.matchKey,
       ...(summary ? { summary } : {}),
       ...(manifest ? { manifest } : {}),
+      ...(highlights ? { highlights } : {}),
       jsonl: toStableJsonl(events),
     };
   });
