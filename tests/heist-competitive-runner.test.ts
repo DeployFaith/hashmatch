@@ -71,6 +71,10 @@ describe("Heist competitive runner", () => {
     const scoreB = result.scores[agentB.id];
     const winner = scoreA === scoreB ? null : scoreA > scoreB ? agentA.id : agentB.id;
     expect(winner).toBeNull();
+
+    if (ended.type === "MatchEnded" && ended.details && typeof ended.details === "object") {
+      expect((ended.details as { winner?: string | null }).winner).toBeNull();
+    }
   });
 
   it("produces deterministic winner comparisons from solo scores", () => {
@@ -84,6 +88,12 @@ describe("Heist competitive runner", () => {
     const winner = scoreA === scoreB ? null : scoreA > scoreB ? agentA.id : agentB.id;
 
     expect(winner).toBe(agentA.id);
+
+    const ended = result.events[result.events.length - 1];
+    expect(ended.type).toBe("MatchEnded");
+    if (ended.type === "MatchEnded" && ended.details && typeof ended.details === "object") {
+      expect((ended.details as { winner?: string | null }).winner).toBe(agentA.id);
+    }
   });
 });
 

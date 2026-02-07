@@ -57,6 +57,28 @@ function buildCombinedScores(
   return scores;
 }
 
+function determineWinner(
+  scores: Record<AgentId, number>,
+  agentIds: AgentId[],
+): AgentId | null {
+  let winner: AgentId | null = null;
+  let bestScore = Number.NEGATIVE_INFINITY;
+  let hasTie = false;
+
+  for (const agentId of agentIds) {
+    const score = scores[agentId] ?? 0;
+    if (score > bestScore) {
+      bestScore = score;
+      winner = agentId;
+      hasTie = false;
+    } else if (score === bestScore) {
+      hasTie = true;
+    }
+  }
+
+  return hasTie ? null : winner;
+}
+
 export function combineHeistRuns(
   scenarioName: string,
   config: MatchRunnerConfig,
@@ -71,6 +93,7 @@ export function combineHeistRuns(
   const matchEndB = extractMatchEnd(runB.result);
 
   const scores = buildCombinedScores(agentIds, runs);
+  const winner = determineWinner(scores, agentIds);
 
   const reason: MatchEndedReason =
     matchEndA.reason === "maxTurnsReached" || matchEndB.reason === "maxTurnsReached"
@@ -98,7 +121,12 @@ export function combineHeistRuns(
       : null,
   ].filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 
-  const details = attemptDetails.length > 0 ? { attempts: attemptDetails } : undefined;
+  const details =
+    attemptDetails.length > 0
+      ? { winner, attempts: attemptDetails }
+      : winner !== null
+        ? { winner }
+        : undefined;
 
   const startedEvent: MatchEvent = {
     type: "MatchStarted",
