@@ -5,6 +5,12 @@ import { stableStringify, toStableJsonl } from "../core/json.js";
 import type { AgentId, MatchEvent } from "../contract/types.js";
 import { detectMoments } from "../lib/replay/detectMoments.js";
 import {
+  hashTruthBundle,
+  sortBroadcastManifestFiles,
+  type BroadcastManifest,
+  type BroadcastManifestFileEntry,
+} from "../core/broadcastManifest.js";
+import {
   buildMatchManifestProvenanceFromConfig,
   type MatchManifestProvenanceConfig,
 } from "../tournament/provenance.js";
@@ -14,6 +20,18 @@ const DEFAULT_MODE_PROFILE_ID = "sandbox";
 
 function ensureSingleTrailingNewline(value: string): string {
   return value.replace(/\n*$/, "\n");
+}
+
+function buildBroadcastManifestFiles(hasMoments: boolean): BroadcastManifestFileEntry[] {
+  const files: BroadcastManifestFileEntry[] = [
+    { path: "match.jsonl", class: "truth" },
+    { path: "match_manifest.json", class: "truth" },
+    { path: "match_summary.json", class: "telemetry" },
+  ];
+  if (hasMoments) {
+    files.push({ path: "moments.json", class: "telemetry" });
+  }
+  return files;
 }
 
 function resolveModeProfileId(modeKey: string | undefined): string {
@@ -128,11 +146,32 @@ export async function writeMatchArtifacts(config: MatchArtifactsConfig): Promise
   );
 
   const moments = detectMoments(config.events);
+  let hasMoments = false;
   if (moments.length > 0) {
     writeFileSync(
       join(config.matchDir, "moments.json"),
       ensureSingleTrailingNewline(stableStringify(moments)),
       "utf-8",
     );
+    hasMoments = true;
   }
+
+  const broadcastFiles = buildBroadcastManifestFiles(hasMoments);
+  const truthFileHashes: Record<string, string> = {
+    "match.jsonl": logHash,
+    "match_manifest.json": manifestHash,
+  };
+  const broadcastManifest: BroadcastManifest = {
+    bundleId: config.matchId,
+    bundleType: "match",
+    modeProfileId: manifest.modeProfileId,
+    createdBy: manifest.runner.name,
+    files: sortBroadcastManifestFiles(broadcastFiles),
+    truthBundleHash: hashTruthBundle(truthFileHashes),
+  };
+  writeFileSync(
+    join(config.matchDir, "broadcast_manifest.json"),
+    ensureSingleTrailingNewline(stableStringify(broadcastManifest)),
+    "utf-8",
+  );
 }
