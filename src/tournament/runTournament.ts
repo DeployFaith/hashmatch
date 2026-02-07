@@ -2,8 +2,11 @@ import type { Agent, Scenario } from "../contract/interfaces.js";
 import type { AgentId, MatchEvent, Seed } from "../contract/types.js";
 import { runMatch } from "../engine/runMatch.js";
 import { createNumberGuessScenario } from "../scenarios/numberGuess/index.js";
+import { createResourceRivalsScenario } from "../scenarios/resourceRivals/index.js";
 import { createRandomAgent } from "../agents/randomAgent.js";
 import { createBaselineAgent } from "../agents/baselineAgent.js";
+import { createRandomBidderAgent } from "../agents/resourceRivals/randomBidder.js";
+import { createConservativeAgent } from "../agents/resourceRivals/conservativeAgent.js";
 import type {
   MatchKey,
   MatchSpec,
@@ -22,11 +25,14 @@ type AgentFactory = (id: AgentId) => Agent<any, any>;
 
 const scenarioRegistry: Record<string, ScenarioFactory> = {
   numberGuess: createNumberGuessScenario,
+  resourceRivals: createResourceRivalsScenario,
 };
 
 const agentRegistry: Record<string, AgentFactory> = {
   random: createRandomAgent,
   baseline: createBaselineAgent,
+  randomBidder: createRandomBidderAgent,
+  conservative: createConservativeAgent,
 };
 
 /** Resolve a scenario factory by key. Throws if unknown. */
