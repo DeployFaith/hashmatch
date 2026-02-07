@@ -12,6 +12,7 @@ export const dynamic = "force-dynamic";
 const HEARTBEAT_INTERVAL_MS = 15_000;
 const TAIL_POLL_INTERVAL_MS = 300;
 const STATUS_POLL_INTERVAL_MS = 1_000;
+const BROADCAST_MATCH_PHASE: MatchPhase = "live";
 
 type MatchStatusState = "running" | "complete" | "incomplete" | "failed";
 interface MatchStatus {
@@ -116,16 +117,6 @@ async function readModeProfile(matchDir: string): Promise<ModeProfile | null> {
   return null;
 }
 
-function resolveMatchPhase(status: MatchStatusState): MatchPhase {
-  if (status === "running") {
-    return "live";
-  }
-  if (status === "complete") {
-    return "complete";
-  }
-  return "incomplete";
-}
-
 function parseJsonLine(line: string): MatchEvent {
   return JSON.parse(line) as MatchEvent;
 }
@@ -167,7 +158,6 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
   }
 
   const modeProfile = await readModeProfile(matchDir);
-  let matchPhase = resolveMatchPhase(status.status);
   const matchLogPath = join(matchDir, "match.jsonl");
   let logOffset = 0;
   let buffered = "";
@@ -202,7 +192,7 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
       if (shouldSkipEvent(parsed, lastEventId)) {
         continue;
       }
-      const redacted = redactEvent(parsed, modeProfile, matchPhase) as MatchEvent | null;
+      const redacted = redactEvent(parsed, modeProfile, BROADCAST_MATCH_PHASE) as MatchEvent | null;
       if (redacted) {
         enqueueEvent(ctx, "match_event", redacted, redacted.seq);
         hadAnyEvents = true;
@@ -258,7 +248,7 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
             if (shouldSkipEvent(parsed, lastEventId)) {
               continue;
             }
-            const redacted = redactEvent(parsed, modeProfile, matchPhase) as MatchEvent | null;
+            const redacted = redactEvent(parsed, modeProfile, BROADCAST_MATCH_PHASE) as MatchEvent | null;
             if (redacted) {
               enqueueEvent(ctx, "match_event", redacted, redacted.seq);
               hadAnyEvents = true;
@@ -281,7 +271,6 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
         return;
       }
       status = updated;
-      matchPhase = resolveMatchPhase(status.status);
       if (status.status !== "running") {
         if (status.status === "complete") {
           enqueueEvent(ctx, "match_end", { status: status.status, endedAt: status.endedAt ?? null });

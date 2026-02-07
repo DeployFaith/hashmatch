@@ -160,7 +160,7 @@ export function createNumberGuessScenario(
     },
 
     reveal(state: NumberGuessState): JsonValue {
-      return { secretNumber: state.secretNumber };
+      return { _private: { secretNumber: state.secretNumber } };
     },
   };
 }

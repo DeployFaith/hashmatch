@@ -87,7 +87,7 @@ function syntheticEvents(): MatchEvent[] {
       reason: "completed",
       scores: { alice: 0, bob: 100 },
       turns: 1,
-      details: { secretNumber: 75 },
+      details: { _private: { secretNumber: 75 } },
     },
   ];
 }

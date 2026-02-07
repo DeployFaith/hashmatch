@@ -217,7 +217,11 @@ describe("GET /api/matches/[matchId]/stream", () => {
     }
     expect(matchEvent?.data).toMatchObject({ type: "TurnStarted", seq: 0 });
 
-    writeStatus(matchDir, { status: "complete", startedAt: new Date().toISOString(), endedAt: new Date().toISOString() });
+    writeStatus(matchDir, {
+      status: "complete",
+      startedAt: new Date().toISOString(),
+      endedAt: new Date().toISOString(),
+    });
 
     let endEvent: ParsedEvent | null = null;
     while (endEvent?.event !== "match_end") {
@@ -241,5 +245,58 @@ describe("GET /api/matches/[matchId]/stream", () => {
     expect(received[0]?.event).toBe("verification");
     expect(received[1]?.event).toBe("error");
     expect(received[1]?.data).toMatchObject({ status: "failed", error: "boom" });
+  });
+
+  it("never emits _private data over SSE", async () => {
+    const matchId = "m_private123456";
+    const matchDir = createMatchDir(tempDir, matchId);
+    writeStatus(matchDir, {
+      status: "complete",
+      startedAt: new Date().toISOString(),
+      endedAt: new Date().toISOString(),
+    });
+
+    const events = [
+      {
+        type: "MatchStarted",
+        seq: 0,
+        matchId,
+        seed: 1,
+        agentIds: ["a", "b"],
+        scenarioName: "numberGuess",
+        maxTurns: 1,
+      },
+      {
+        type: "ObservationEmitted",
+        seq: 1,
+        matchId,
+        turn: 1,
+        agentId: "a",
+        observation: { _private: { secretNumber: 42 } },
+      },
+      {
+        type: "MatchEnded",
+        seq: 2,
+        matchId,
+        reason: "completed",
+        scores: { a: 1, b: 0 },
+        turns: 1,
+        details: { _private: { secretNumber: 42 } },
+      },
+    ];
+    writeLog(
+      matchDir,
+      events.map((event) => JSON.stringify(event)),
+    );
+
+    const request = new Request("http://localhost/api/matches/m_private123456/stream");
+    const response = await GET(request, { params: Promise.resolve({ matchId }) });
+    const received = await readEvents(response, 5);
+    const matchEvents = received.filter((event) => event.event === "match_event");
+    for (const event of matchEvents) {
+      const payload = JSON.stringify(event.data);
+      expect(payload).not.toContain('"_private"');
+      expect(payload).not.toContain("secretNumber");
+    }
   });
 });

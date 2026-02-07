@@ -122,7 +122,7 @@ describe("Contract v0 — Match Runner", () => {
       }
     });
 
-    it("MatchEnded is emitted exactly once and includes details.secretNumber", () => {
+    it("MatchEnded is emitted exactly once and includes details._private.secretNumber", () => {
       const result = runMatch(makeScenario(), makeAgents(), { seed: 42, maxTurns: 20 });
       const endedEvents = result.events.filter((e) => e.type === "MatchEnded");
       expect(endedEvents.length).toBe(1);
@@ -130,8 +130,10 @@ describe("Contract v0 — Match Runner", () => {
       if (ended.type === "MatchEnded") {
         expect(ended.details).toBeDefined();
         const details = ended.details as Record<string, JsonValue>;
-        expect(details).toHaveProperty("secretNumber");
-        expect(typeof details["secretNumber"]).toBe("number");
+        expect(details).toHaveProperty("_private");
+        const privateDetails = details["_private"] as Record<string, JsonValue>;
+        expect(privateDetails).toHaveProperty("secretNumber");
+        expect(typeof privateDetails["secretNumber"]).toBe("number");
       }
     });
   });
