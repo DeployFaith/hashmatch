@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { parseJsonl } from "@/lib/replay/parseJsonl";
 import type { ReplayEvent, ParseError } from "@/lib/replay/parseJsonl";
+import { createFileEventSource } from "@/lib/replay/eventSource";
 import { buildMomentEventRangeMap, detectMoments } from "@/lib/replay/detectMoments";
 import type { ReplayMoment } from "@/lib/replay/detectMoments";
 import { redactEvent } from "@/lib/replay/redaction";
@@ -1934,23 +1935,20 @@ export default function ReplayPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const handleSingleLoad = useCallback((text: string, filename: string) => {
-    const result = parseJsonl(text);
-    if (result.events.length === 0 && result.errors.length > 0) {
+    const source = createFileEventSource(text);
+    const { events, errors, status } = source.getSnapshot();
+
+    if (status === "error") {
       setState({ mode: "idle" });
       setLoadError(
-        result.errors
+        errors
           .slice(0, 10)
           .map((e) => `Line ${e.line}: ${e.message}`)
           .join("\n"),
       );
     } else {
       setLoadError(null);
-      setState({
-        mode: "single",
-        events: result.events,
-        errors: result.errors,
-        filename,
-      });
+      setState({ mode: "single", events, errors, filename });
     }
   }, []);
 
