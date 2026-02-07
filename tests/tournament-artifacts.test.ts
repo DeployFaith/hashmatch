@@ -55,7 +55,11 @@ describe("Tournament artifacts determinism", () => {
       for (const file of filesA) {
         const a = readFileSync(join(dirA, file), "utf-8");
         const b = readFileSync(join(dirB, file), "utf-8");
-        if (file.endsWith("match_manifest.json")) {
+        if (
+          file.endsWith("match_manifest.json") ||
+          file === "tournament_manifest.json" ||
+          file === "tournament.json"
+        ) {
           const parsedA = JSON.parse(a) as { createdAt?: string };
           const parsedB = JSON.parse(b) as { createdAt?: string };
           delete parsedA.createdAt;
@@ -73,6 +77,39 @@ describe("Tournament artifacts determinism", () => {
 });
 
 describe("Tournament artifacts manifest", () => {
+  it("writes tournament_manifest.json and tournament.json with a single trailing newline", () => {
+    const config = makeConfig({ seed: 33 });
+    const dir = mkdtempSync(join(tmpdir(), "agent-league-tournament-manifest-"));
+
+    try {
+      const result = runTournament(config);
+      writeTournamentArtifacts(result, dir);
+
+      const manifestRaw = readFileSync(join(dir, "tournament_manifest.json"), "utf-8");
+      const legacyRaw = readFileSync(join(dir, "tournament.json"), "utf-8");
+
+      expect(manifestRaw).toBe(legacyRaw);
+      expect(manifestRaw.endsWith("\n")).toBe(true);
+      expect(manifestRaw.endsWith("\n\n")).toBe(false);
+
+      const manifest = JSON.parse(manifestRaw) as {
+        tournamentSeed: number;
+        scenarioName: string;
+        agents: string[];
+        matches: Array<{ matchKey: string }>;
+        createdAt: string;
+      };
+
+      expect(manifest.tournamentSeed).toBe(result.tournament.tournamentSeed);
+      expect(manifest.scenarioName).toBe(result.tournament.scenarioName);
+      expect(manifest.agents).toEqual(result.tournament.agents);
+      expect(manifest.matches).toHaveLength(result.tournament.matches.length);
+      expect(typeof manifest.createdAt).toBe("string");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("writes match_manifest.json with required fields", () => {
     const config = makeConfig({ seed: 55 });
     const dir = mkdtempSync(join(tmpdir(), "agent-league-manifest-"));
