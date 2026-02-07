@@ -1,1 +1,0 @@
-{"agentIds":["random-0","baseline-1"],"hashes":{"logHash":"sha256:03bcdd5a5a7e22d5b7e60749e76fa82345bc78a1848c56d6f10cbf4951366f41","manifestHash":"sha256:ce4a8a3d551af6dbf35b0220267faacc49b9d4de14e7abfe56880969b2613c03"},"matchId":"m_vq4ygsjw5ri5","matchKey":"m_vq4ygsjw5ri5","reason":"completed","scores":{"baseline-1":100,"random-0":0},"seed":42,"turns":5,"winner":"baseline-1"}

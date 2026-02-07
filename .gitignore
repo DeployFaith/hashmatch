@@ -32,3 +32,6 @@ __pycache__/
 # Local replay artifacts
 public/replays/*-latest.jsonl
 Documents/Agentic_Design_Patterns.pdf
+
+# Generated match output
+/data/
