@@ -10,6 +10,7 @@ import {
   type BroadcastManifest,
   type BroadcastManifestFileEntry,
 } from "../core/broadcastManifest.js";
+import { GATEWAY_TRANSCRIPT_FILENAME } from "../gateway/transcript.js";
 import {
   buildMatchManifestProvenanceFromConfig,
   type MatchManifestProvenanceConfig,
@@ -25,12 +26,16 @@ function ensureSingleTrailingNewline(value: string): string {
 function buildBroadcastManifestFiles(
   hasMoments: boolean,
   hasHighlights: boolean,
+  hasGatewayTranscript: boolean,
 ): BroadcastManifestFileEntry[] {
   const files: BroadcastManifestFileEntry[] = [
     { path: "match.jsonl", class: "truth" },
     { path: "match_manifest.json", class: "truth" },
     { path: "match_summary.json", class: "telemetry" },
   ];
+  if (hasGatewayTranscript) {
+    files.push({ path: GATEWAY_TRANSCRIPT_FILENAME, class: "telemetry" });
+  }
   if (hasMoments) {
     files.push({ path: "moments.json", class: "telemetry" });
   }
@@ -163,7 +168,8 @@ export async function writeMatchArtifacts(config: MatchArtifactsConfig): Promise
   }
 
   const hasHighlights = existsSync(join(config.matchDir, "highlights.json"));
-  const broadcastFiles = buildBroadcastManifestFiles(hasMoments, hasHighlights);
+  const hasGatewayTranscript = existsSync(join(config.matchDir, GATEWAY_TRANSCRIPT_FILENAME));
+  const broadcastFiles = buildBroadcastManifestFiles(hasMoments, hasHighlights, hasGatewayTranscript);
   const truthFileHashes: Record<string, string> = {
     "match.jsonl": logHash,
     "match_manifest.json": manifestHash,

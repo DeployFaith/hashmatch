@@ -1,0 +1,217 @@
+import type { Agent, AgentContext, MatchRunnerConfig, Scenario } from "../contract/interfaces.js";
+import type { AgentId, JsonValue, MatchEvent, MatchResult } from "../contract/types.js";
+import { createRng, deriveSeed } from "../core/rng.js";
+import { createLocalAdapter } from "../gateway/localAdapter.js";
+import type { GatewayObservationRequest } from "../gateway/types.js";
+import type { GatewayRuntimeConfig } from "../gateway/runtime.js";
+import { generateMatchId } from "./matchId.js";
+
+function emit(
+  events: MatchEvent[],
+  seq: { value: number },
+  matchId: string,
+  partial: Record<string, unknown> & { type: string },
+): void {
+  events.push({ ...partial, seq: seq.value++, matchId } as MatchEvent);
+}
+
+function resolveGameId(scenario: Scenario<unknown, unknown, unknown>, gateway: GatewayRuntimeConfig): string {
+  return gateway.gameId ?? scenario.name;
+}
+
+function resolveGameVersion(gateway: GatewayRuntimeConfig): string {
+  return gateway.gameVersion ?? "unknown";
+}
+
+function buildObservationRequest<TObs>(
+  gateway: GatewayRuntimeConfig,
+  matchId: string,
+  turn: number,
+  turnStartedAt: string,
+  agentId: AgentId,
+  observation: TObs,
+  scenario: Scenario<unknown, unknown, unknown>,
+): GatewayObservationRequest {
+  return {
+    protocolVersion: "0.1.0",
+    matchId,
+    turn,
+    agentId,
+    deadlineMs: gateway.config.defaultDeadlineMs,
+    turnStartedAt,
+    gameId: resolveGameId(scenario, gateway),
+    gameVersion: resolveGameVersion(gateway),
+    observation,
+    constraints: {
+      maxResponseBytes: gateway.config.maxResponseBytes,
+    },
+  };
+}
+
+export async function runMatchWithGateway<TState, TObs, TAct>(
+  scenario: Scenario<TState, TObs, TAct>,
+  agents: Agent<TObs, TAct>[],
+  config: MatchRunnerConfig,
+  gateway: GatewayRuntimeConfig,
+): Promise<MatchResult> {
+  const events: MatchEvent[] = [];
+  const seq = { value: 0 };
+
+  const masterRng = createRng(config.seed);
+  const generatedMatchId = generateMatchId(masterRng);
+  const matchId = config.matchId ?? generatedMatchId;
+
+  const agentIds: AgentId[] = agents.map((a) => a.id);
+
+  const agentRngs = new Map<AgentId, () => number>();
+  for (const agent of agents) {
+    const agentSeed = deriveSeed(masterRng);
+    agentRngs.set(agent.id, createRng(agentSeed));
+    agent.init({ agentId: agent.id, seed: agentSeed });
+  }
+
+  const scenarioSeed = deriveSeed(masterRng);
+  let state = scenario.init(scenarioSeed, agentIds);
+
+  const provenanceFields = config.provenance
+    ? {
+        ...(config.provenance.engineCommit !== undefined && {
+          engineCommit: config.provenance.engineCommit,
+        }),
+        ...(config.provenance.engineVersion !== undefined && {
+          engineVersion: config.provenance.engineVersion,
+        }),
+      }
+    : {};
+
+  emit(events, seq, matchId, {
+    type: "MatchStarted",
+    seed: config.seed,
+    agentIds,
+    scenarioName: scenario.name,
+    maxTurns: config.maxTurns,
+    ...provenanceFields,
+  });
+
+  if (gateway.adapters) {
+    for (const [agentId, adapter] of gateway.adapters) {
+      adapter.onMatchStart?.(matchId, resolveGameId(scenario, gateway), agentId);
+    }
+  }
+
+  let turn = 0;
+
+  while (turn < config.maxTurns && !scenario.isTerminal(state)) {
+    turn++;
+    const turnStartedAt = new Date().toISOString();
+    emit(events, seq, matchId, { type: "TurnStarted", turn });
+
+    for (const agent of agents) {
+      if (scenario.isTerminal(state)) {
+        break;
+      }
+
+      const observation = scenario.observe(state, agent.id);
+      emit(events, seq, matchId, {
+        type: "ObservationEmitted",
+        agentId: agent.id,
+        turn,
+        observation: observation as JsonValue,
+      });
+
+      const ctx: AgentContext = {
+        rng: agentRngs.get(agent.id)!,
+        turn,
+        agentId: agent.id,
+      };
+
+      const request = buildObservationRequest(
+        gateway,
+        matchId,
+        turn,
+        turnStartedAt,
+        agent.id,
+        observation,
+        scenario,
+      );
+
+      const fallbackAction = null;
+      const adapter =
+        gateway.mode === "local"
+          ? createLocalAdapter((obs) => agent.act(obs as TObs, ctx), gateway.config)
+          : gateway.adapters?.get(agent.id);
+
+      if (!adapter) {
+        throw new Error(`Missing gateway adapter for agent "${agent.id}"`);
+      }
+
+      let action: TAct;
+      let transcript;
+      try {
+        const result = await adapter.requestAction(request, fallbackAction);
+        action = result.action as TAct;
+        transcript = result.transcript;
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        emit(events, seq, matchId, { type: "AgentError", agentId: agent.id, turn, message });
+        continue;
+      }
+
+      gateway.transcriptWriter?.write(transcript);
+
+      if (transcript.status !== "ok") {
+        emit(events, seq, matchId, {
+          type: "AgentError",
+          agentId: agent.id,
+          turn,
+          message: transcript.errorMessage ?? `Gateway ${transcript.status}`,
+        });
+        continue;
+      }
+
+      emit(events, seq, matchId, {
+        type: "ActionSubmitted",
+        agentId: agent.id,
+        turn,
+        action: action as JsonValue,
+      });
+
+      const result = scenario.adjudicate(state, agent.id, action);
+      emit(events, seq, matchId, {
+        type: "ActionAdjudicated",
+        agentId: agent.id,
+        turn,
+        valid: result.valid,
+        feedback: result.feedback,
+      });
+
+      state = result.state;
+    }
+
+    emit(events, seq, matchId, {
+      type: "StateUpdated",
+      turn,
+      summary: scenario.summarize(state),
+    });
+  }
+
+  const scores = scenario.score(state);
+  const reason = scenario.isTerminal(state) ? "completed" : "maxTurnsReached";
+
+  const details = scenario.reveal?.(state);
+  emit(events, seq, matchId, {
+    type: "MatchEnded",
+    reason,
+    scores,
+    turns: turn,
+    ...(details !== undefined && { details }),
+  });
+
+  if (gateway.adapters) {
+    for (const adapter of gateway.adapters.values()) {
+      adapter.onMatchEnd?.(matchId);
+    }
+  }
+
+  return { matchId, seed: config.seed, scores, events, turns: turn };
+}

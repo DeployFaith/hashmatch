@@ -2,7 +2,11 @@ import { execSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { runMatch } from "../engine/runMatch.js";
+import { runMatchWithGateway } from "../engine/runMatchWithGateway.js";
 import { toStableJsonl } from "../core/json.js";
+import { createHttpAdapter } from "../gateway/httpAdapter.js";
+import { createTranscriptWriter } from "../gateway/transcript.js";
+import type { GatewayRuntimeConfig } from "../gateway/runtime.js";
 import { getScenarioFactory, getAgentFactory } from "../tournament/runTournament.js";
 
 // ---------------------------------------------------------------------------
@@ -16,6 +20,8 @@ interface MatchCliArgs {
   out?: string;
   agentA: string;
   agentB: string;
+  gateway?: "local" | "http";
+  agentUrls: string[];
 
   // Opt-in provenance
   emitProvenance: boolean;
@@ -30,6 +36,8 @@ function parseArgs(argv: string[]): MatchCliArgs {
   let out: string | undefined;
   let agentA = "random";
   let agentB = "baseline";
+  let gateway: "local" | "http" | undefined;
+  let agentUrls: string[] = [];
 
   let emitProvenance = false;
   let engineCommit: string | undefined;
@@ -49,6 +57,16 @@ function parseArgs(argv: string[]): MatchCliArgs {
       agentA = argv[++i];
     } else if (arg === "--agentB" && i + 1 < argv.length) {
       agentB = argv[++i];
+    } else if (arg === "--gateway" && i + 1 < argv.length) {
+      const value = argv[++i];
+      if (value === "local" || value === "http") {
+        gateway = value;
+      }
+    } else if (arg === "--agent-urls" && i + 1 < argv.length) {
+      agentUrls = argv[++i]
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0);
     } else if (arg === "--emit-provenance") {
       emitProvenance = true;
     } else if (arg === "--engine-commit" && i + 1 < argv.length) {
@@ -65,6 +83,8 @@ function parseArgs(argv: string[]): MatchCliArgs {
     out,
     agentA,
     agentB,
+    gateway,
+    agentUrls,
     emitProvenance,
     engineCommit,
     engineVersion,
@@ -99,7 +119,7 @@ function tryReadEngineVersion(): string | undefined {
 // Main
 // ---------------------------------------------------------------------------
 
-function main(): void {
+async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
 
   // Validate scenario (getScenarioFactory throws with available options on unknown key)
@@ -146,11 +166,60 @@ function main(): void {
     }
   }
 
-  const result = runMatch(scenario, agents, {
-    seed: args.seed,
-    maxTurns: args.turns,
-    ...(provenance ? { provenance } : {}),
-  });
+  if (args.gateway === "http" && args.agentUrls.length === 0) {
+    // eslint-disable-next-line no-console
+    console.error("Error: --agent-urls is required when --gateway http is set.");
+    process.exit(1);
+  }
+
+  if (args.gateway === "http" && args.agentUrls.length !== agents.length) {
+    // eslint-disable-next-line no-console
+    console.error("Error: --agent-urls must have the same count as agents.");
+    process.exit(1);
+  }
+
+  let result;
+  if (args.gateway) {
+    const outDir = args.out ? dirname(args.out) : process.cwd();
+    const gatewayDefaults = {
+      defaultDeadlineMs: 5000,
+      maxResponseBytes: 1024 * 1024,
+    };
+    const gatewayConfig: GatewayRuntimeConfig = {
+      mode: args.gateway,
+      config: gatewayDefaults,
+      transcriptWriter: createTranscriptWriter(outDir),
+      gameId: scenario.name,
+      gameVersion: "unknown",
+      ...(args.gateway === "http"
+        ? {
+            adapters: new Map(
+              agents.map((agent, index) => [
+                agent.id,
+                createHttpAdapter(args.agentUrls[index], gatewayDefaults),
+              ]),
+            ),
+          }
+        : {}),
+    };
+
+    result = await runMatchWithGateway(
+      scenario,
+      agents,
+      {
+        seed: args.seed,
+        maxTurns: args.turns,
+        ...(provenance ? { provenance } : {}),
+      },
+      gatewayConfig,
+    );
+  } else {
+    result = runMatch(scenario, agents, {
+      seed: args.seed,
+      maxTurns: args.turns,
+      ...(provenance ? { provenance } : {}),
+    });
+  }
 
   const lines = toStableJsonl(result.events);
 
