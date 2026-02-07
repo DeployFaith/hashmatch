@@ -66,17 +66,43 @@ type HeistGeneratorConfigInput = Partial<HeistGeneratorConfig> & {
 
 export const HEIST_PRESETS: Record<string, HeistGeneratorConfig> = {
   warehouse_breakin: {
-    rooms: { exact: 7 },
+    rooms: { min: 7, max: 8 },
     branchingFactor: 2,
     loopCount: 0,
-    securityDensity: { guards: 1, cameras: 1 },
+    securityDensity: { guards: 1, cameras: 1, terminals: 1 },
     hazardsEnabled: false,
     maxTurns: 6,
-    difficultyPreset: "normal",
+    difficultyPreset: "easy",
     skin: {
       themeName: "Warehouse Break-in",
       flavorText:
         "A corporate whistleblower's evidence is locked in a downtown warehouse vault.",
+    },
+  },
+  prison_escape: {
+    rooms: { min: 8, max: 12 },
+    branchingFactor: 2,
+    loopCount: 0,
+    securityDensity: { guards: 2, cameras: 2, terminals: 2 },
+    hazardsEnabled: false,
+    maxTurns: 6,
+    difficultyPreset: "normal",
+    skin: {
+      themeName: "Prison Escape",
+      flavorText: "An underground prison transfer holds the only way out tonight.",
+    },
+  },
+  museum_night: {
+    rooms: { min: 10, max: 15 },
+    branchingFactor: 2,
+    loopCount: 0,
+    securityDensity: { guards: 3, cameras: 3, terminals: 3 },
+    hazardsEnabled: false,
+    maxTurns: 6,
+    difficultyPreset: "hard",
+    skin: {
+      themeName: "Museum Night",
+      flavorText: "After hours at the museum, the vault doors are finally unguarded.",
     },
   },
 };
@@ -180,7 +206,10 @@ function connectRooms(
     }
     const hasConnection = doors.some((door) => door.roomA === roomId || door.roomB === roomId);
     if (!hasConnection) {
-      const target = roomIds[randomInt(rng, 0, roomIds.length - 1)];
+      let target = roomIds[randomInt(rng, 0, roomIds.length - 1)];
+      if (target === roomId) {
+        target = roomIds[(roomIds.indexOf(roomId) + 1) % roomIds.length];
+      }
       doors.push(createDoor(`door-${doorIndex++}`, roomId, target, rng));
     }
   }
@@ -197,7 +226,111 @@ function connectRooms(
     }
   }
 
+  let reachable = computeReachableRooms(rooms, doors, spawnId);
+  while (reachable.size < roomIds.length) {
+    const unreachable = roomIds.filter((id) => !reachable.has(id));
+    for (const roomId of unreachable) {
+      const candidates = roomIds.filter((id) => reachable.has(id));
+      if (candidates.length === 0) {
+        break;
+      }
+      let target = candidates[randomInt(rng, 0, candidates.length - 1)];
+      if (target === roomId) {
+        target = candidates[(candidates.indexOf(target) + 1) % candidates.length];
+      }
+      if (!doors.some((door) => isDoorBetween(door, roomId, target))) {
+        doors.push(createDoor(`door-${doorIndex++}`, roomId, target, rng));
+      }
+    }
+    reachable = computeReachableRooms(rooms, doors, spawnId);
+  }
+
   return doors;
+}
+
+function buildUnlockedGraph(
+  rooms: HeistRoom[],
+  doors: HeistDoor[],
+): Map<string, { neighborId: string }[]> {
+  const graph = new Map<string, { neighborId: string }[]>();
+  for (const room of rooms) {
+    graph.set(room.id, []);
+  }
+  for (const door of doors) {
+    if (door.locked) {
+      continue;
+    }
+    graph.get(door.roomA)?.push({ neighborId: door.roomB });
+    graph.get(door.roomB)?.push({ neighborId: door.roomA });
+  }
+  return graph;
+}
+
+function buildDoorGraph(
+  rooms: HeistRoom[],
+  doors: HeistDoor[],
+): Map<string, { neighborId: string }[]> {
+  const graph = new Map<string, { neighborId: string }[]>();
+  for (const room of rooms) {
+    graph.set(room.id, []);
+  }
+  for (const door of doors) {
+    graph.get(door.roomA)?.push({ neighborId: door.roomB });
+    graph.get(door.roomB)?.push({ neighborId: door.roomA });
+  }
+  return graph;
+}
+
+function computeReachableRooms(
+  rooms: HeistRoom[],
+  doors: HeistDoor[],
+  startId: string,
+): Set<string> {
+  const graph = buildDoorGraph(rooms, doors);
+  const reachable = new Set<string>();
+  const queue: string[] = [startId];
+  reachable.add(startId);
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current) {
+      break;
+    }
+    const neighbors = graph.get(current) ?? [];
+    for (const neighbor of neighbors) {
+      if (reachable.has(neighbor.neighborId)) {
+        continue;
+      }
+      reachable.add(neighbor.neighborId);
+      queue.push(neighbor.neighborId);
+    }
+  }
+  return reachable;
+}
+
+function computeUnlockedReachableRooms(
+  rooms: HeistRoom[],
+  doors: HeistDoor[],
+  startId: string,
+): string[] {
+  const graph = buildUnlockedGraph(rooms, doors);
+  const reachable = new Set<string>();
+  const queue: string[] = [startId];
+  reachable.add(startId);
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current) {
+      break;
+    }
+    const neighbors = graph.get(current) ?? [];
+    for (const neighbor of neighbors) {
+      if (reachable.has(neighbor.neighborId)) {
+        continue;
+      }
+      reachable.add(neighbor.neighborId);
+      queue.push(neighbor.neighborId);
+    }
+  }
+  return [...reachable];
 }
 
 function isDoorBetween(door: HeistDoor, roomA: string, roomB: string): boolean {
@@ -375,11 +508,14 @@ function buildScenario(
   const extractionRoomId = roomByType.extraction[0];
 
   const keycardCount = Math.max(1, Math.floor(roomCount / 4));
-  const keycards = createKeycards(
-    rooms.map((room) => room.id).filter((id) => id !== vaultRoomId),
-    rng,
-    keycardCount,
+  const unlockedReachable = computeUnlockedReachableRooms(rooms, doors, spawnId).filter(
+    (id) => id !== vaultRoomId,
   );
+  const keycardPlacementRooms =
+    unlockedReachable.length > 0
+      ? unlockedReachable
+      : rooms.map((room) => room.id).filter((id) => id !== vaultRoomId);
+  const keycards = createKeycards(keycardPlacementRooms, rng, keycardCount);
   assignDoorRequirements(doors, keycards);
 
   const tools = createTools(rooms.map((room) => room.id), rng, Math.max(1, Math.floor(roomCount / 3)));
@@ -390,15 +526,15 @@ function buildScenario(
   );
 
   const intelItems = createIntelItems(Math.max(1, Math.floor(roomCount / 3)));
+  const securityDensity = config.securityDensity ?? {};
 
   const terminals = createTerminals(
     roomByType.security.length > 0 ? roomByType.security : rooms.map((room) => room.id),
     rng,
-    Math.max(1, Math.floor(roomCount / 4)),
+    securityDensity.terminals ?? Math.max(1, Math.floor(roomCount / 4)),
   );
   attachTerminalIntel(terminals, intelItems, rng);
 
-  const securityDensity = config.securityDensity ?? {};
   const guards = createGuards(
     rooms.map((room) => room.id),
     rng,

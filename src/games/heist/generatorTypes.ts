@@ -7,6 +7,7 @@ export type HeistRoomCountConfig = { exact: number } | { min: number; max: numbe
 export interface HeistGeneratorSecurityDensity {
   guards?: number;
   cameras?: number;
+  terminals?: number;
 }
 
 export interface HeistGeneratorConfig {

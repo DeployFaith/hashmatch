@@ -223,10 +223,10 @@ const getDifficultyLabel = (params: HeistScenarioParams): string => {
   const roomCount = params.map.rooms.length;
   const guardCount = params.entities.filter((entity) => entity.type === "guard").length;
   const cameraCount = params.entities.filter((entity) => entity.type === "camera").length;
-  if (roomCount <= 5 && guardCount <= 1 && cameraCount <= 1) {
+  if (roomCount <= 8 && guardCount <= 1 && cameraCount <= 1) {
     return "easy";
   }
-  if (roomCount >= 10 || guardCount >= 4 || cameraCount >= 3 || params.winCondition.maxTurns <= 20) {
+  if (roomCount >= 12 || guardCount >= 3 || cameraCount >= 3) {
     return "hard";
   }
   return "medium";
