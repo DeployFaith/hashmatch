@@ -1,12 +1,11 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import type { AgentId } from "../contract/types.js";
 import { computeArtifactContentHash } from "../core/hash.js";
 import type { MatchManifestAgent, MatchManifestScenario, TournamentResult } from "./types.js";
 
-const RUNTIME_ROOT = fileURLToPath(new URL("..", import.meta.url));
-const REPO_ROOT = fileURLToPath(new URL("../..", import.meta.url));
+const RUNTIME_ROOT = join(process.cwd(), "src");
+const REPO_ROOT = process.cwd();
 const HASH_EXCLUDE_EXTENSIONS = [".d.ts", ".map"];
 
 const SCENARIO_PATHS: Record<string, string> = {

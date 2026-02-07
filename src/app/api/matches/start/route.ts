@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getAgentFactory, getScenarioFactory } from "../../../../tournament/runTournament.js";
-import { startMatchRun } from "../../../../server/matchRunner.js";
+import { getAgentFactory, getScenarioFactory } from "@/tournament/runTournament";
+import { startMatchRun } from "@/server/matchRunner";
 
 const requestSchema = z
   .object({
