@@ -4,7 +4,7 @@ import { stableStringify, toStableJsonl } from "../core/json.js";
 import type { MatchEvent } from "../contract/types.js";
 import type { TournamentBundleV1 } from "../lib/replay/bundle.js";
 import type { JsonValue } from "../contract/types.js";
-import type { MatchKey, MatchManifest, TournamentResult } from "./types.js";
+import type { MatchKey, MatchManifest, TournamentManifest, TournamentResult } from "./types.js";
 
 function resolveModeProfileId(modeProfile: JsonValue | undefined): string {
   if (typeof modeProfile === "string") {
@@ -64,6 +64,20 @@ function buildMatchManifest(
   };
 }
 
+function buildTournamentManifest(result: TournamentResult): TournamentManifest {
+  return {
+    tournamentSeed: result.tournament.tournamentSeed,
+    scenarioName: result.tournament.scenarioName,
+    agents: result.tournament.agents,
+    matches: result.tournament.matches,
+    ...(result.tournament.modeProfile !== undefined && { modeProfile: result.tournament.modeProfile }),
+    ...(result.tournament.harnessVersion !== undefined && {
+      harnessVersion: result.tournament.harnessVersion,
+    }),
+    createdAt: new Date().toISOString(),
+  };
+}
+
 function assertMatchLogs(
   matchKey: MatchKey,
   matchLogs: TournamentResult["matchLogs"],
@@ -76,9 +90,12 @@ function assertMatchLogs(
 export function writeTournamentArtifacts(result: TournamentResult, outDir: string): void {
   mkdirSync(outDir, { recursive: true });
 
+  const tournamentManifest = buildTournamentManifest(result);
+  const tournamentManifestJson = `${stableStringify(tournamentManifest)}\n`;
+  writeFileSync(join(outDir, "tournament_manifest.json"), tournamentManifestJson, "utf-8");
   writeFileSync(
     join(outDir, "tournament.json"),
-    stableStringify(result.tournament) + "\n",
+    tournamentManifestJson,
     "utf-8",
   );
   writeFileSync(
