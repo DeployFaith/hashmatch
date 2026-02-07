@@ -128,8 +128,13 @@ describe("Tournament artifacts manifest", () => {
       const manifest = JSON.parse(raw) as {
         matchId: string;
         modeProfileId: string;
-        scenario: { id: string; version: string | null; contractVersion: string | null };
-        agents: Array<{ id: string; version: string | null }>;
+        scenario: {
+          id: string;
+          version: string;
+          contractVersion: string | null;
+          contentHash: string;
+        };
+        agents: Array<{ id: string; version: string; contentHash: string }>;
         config: { maxTurns: number; seed: number; seedDerivationInputs: Record<string, unknown> };
         runner: { name: string; version: string | null; gitCommit: string | null };
         createdAt: string;
@@ -139,7 +144,13 @@ describe("Tournament artifacts manifest", () => {
       expect(manifest.modeProfileId).toBe("sandbox");
       expect(manifest.scenario.id).toBe(result.tournament.scenarioName);
       expect(manifest.scenario.contractVersion).toBeNull();
+      expect(typeof manifest.scenario.version).toBe("string");
+      expect(typeof manifest.scenario.contentHash).toBe("string");
       expect(manifest.agents).toHaveLength(2);
+      for (const agent of manifest.agents) {
+        expect(typeof agent.version).toBe("string");
+        expect(typeof agent.contentHash).toBe("string");
+      }
       expect(manifest.config.maxTurns).toBe(result.config.maxTurns);
       expect(manifest.config.seed).toBe(result.matchSummaries[0].seed);
       expect(manifest.config.seedDerivationInputs).toEqual({
