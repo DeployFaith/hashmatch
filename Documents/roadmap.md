@@ -197,7 +197,7 @@ Last audited: 2026-02-07
 
 All spec documents are written and checked in under `Documents/`.
 
-### Milestone 1 â€” Deterministic Tournament Harness: âœ… Done
+### Milestone 1 â€” Deterministic Tournament Harness: ✅ Done
 
 | Deliverable                        | Status | Evidence                                                                      |
 | ---------------------------------- | ------ | ----------------------------------------------------------------------------- |
@@ -215,19 +215,19 @@ All spec documents are written and checked in under `Documents/`.
 
 **Gaps vs spec:**
 
-- Output file is transitioning from `tournament.json` to `tournament_manifest.json`. For one transitional release, the harness dual-writes both filenames; `tournament.json` will be deprecated and removed in the following release.
-- Per-match `match_manifest.json` is now produced by `writeTournamentArtifacts()` in `src/tournament/artifacts.ts`.
+- Output file: resolved â€” `tournament_manifest.json` is canonical and the harness dual-writes legacy `tournament.json` for one transitional release.
+- Per-match `match_manifest.json`: resolved â€” produced by `writeTournamentArtifacts()` in `src/tournament/artifacts.ts`.
 - Bracket/single-elimination formats are not implemented (round-robin only).
 - Scoring: resolved â€” spec updated to match implementation (win=3 / draw=1 / loss=0).
 
-### Milestone 2 â€” Replay Viewer MVP: âœ… Done
+### Milestone 2 â€” Replay Viewer MVP: ✅ Done
 
 | Deliverable                                       | Status | Evidence                                          |
 | ------------------------------------------------- | ------ | ------------------------------------------------- |
 | JSONL parsing (Zod-validated + tolerant)          | âœ…     | `src/lib/replay/parser.ts`, `parseJsonl.ts`       |
 | Terminal renderer (console + Markdown recap)      | âœ…     | `src/cli/replay-match.ts`                         |
 | Web replay viewer (interactive timeline)          | âœ…     | `src/app/replay/page.tsx` (~1900 lines)           |
-| Moment extraction (turn-based)                    | âœ…     | `src/lib/replay/detectMoments.ts`                 |
+| Moment extraction (6 heuristic types)             | ✅     | `src/lib/replay/detectMoments.ts`                 |
 | Commentary hooks (parser + viewer)                | âœ…     | `src/lib/replay/commentary.ts`                    |
 | Redaction / spoiler protection                    | âœ…     | `src/lib/replay/redaction.ts`                     |
 | Three viewer modes (spectator/postMatch/director) | âœ…     | Implemented in web viewer                         |
@@ -243,36 +243,36 @@ All spec documents are written and checked in under `Documents/`.
 - ~~Moment detection is basic~~ â€” resolved: `detectMoments()` implements 6 heuristic types: score_swing, lead_change, comeback, blunder, clutch, close_call.
 - ~~`moments.json` is not produced~~ â€” resolved: `writeTournamentArtifacts()` writes `moments.json` per match when moments are detected.
 
-### Milestone 2.1 â€” Show Experiments: ðŸŸ¨ Partial
+### Milestone 2.1 â€” Show Experiments: 🟨 Partial
 
-- Commentary parsing and rendering: âœ… implemented.
-- `highlights.json` generation: â¬œ not implemented.
-- Scene/storyboard prompts: â¬œ not implemented.
+- Commentary parsing and rendering: ✅ implemented.
+- `highlights.json` generation: ✅ implemented.
+- Scene/storyboard prompts: ✬ not started.
 
-### Milestone 3 â€” Artifact Bundles & Local Registry: ðŸŸ¨ Partial
+### Milestone 3 â€” Artifact Bundles & Local Registry: 🟨 Partial
 
 - Tournament folder output with standard layout: âœ…
 - Single-file tournament bundle: âœ… (`--bundle-out`)
-- `broadcast_manifest.json`: â¬œ not implemented.
-- Local registry index: â¬œ not implemented.
-- Bundle validation tooling: â¬œ not implemented (JSONL validation exists for individual files).
+- `broadcast_manifest.json`: ✅ implemented.
+- Local registry index: ✬ not implemented.
+- Bundle validation tooling: ✬ not implemented (JSONL validation exists for individual files).
 
-### Milestone 4 â€” Receipts & Verification Tooling: ðŸŸ¨ Partial
+### Milestone 4 â€” Receipts & Verification Tooling: 🟨 Partial
 
 - SHA-256 hash computation: âœ… `src/core/hash.ts` (`sha256Hex`, `hashFile`, `hashManifestCore`)
 - Per-match `logHash` and `manifestHash` in `match_summary.json`: âœ…
 - Tournament-level `truthBundleHash`: âœ… written to `tournament_manifest.json`
-- `verify-match` CLI: âœ… `src/cli/verify-match.ts`, tested in `tests/verify-match.test.ts`
-- `verify-tournament` CLI: âœ… `src/cli/verify-tournament.ts`, tested in `tests/verify-tournament.test.ts`
-- Signed receipts: â¬œ not implemented.
-- Receipt validation: â¬œ not implemented.
+- `verify-match` CLI: ✅ `src/cli/verify-match.ts`, tested in `tests/verify-match.test.ts`
+- `verify-tournament` CLI: ✅ `src/cli/verify-tournament.ts`, tested in `tests/verify-tournament.test.ts`
+- Signed receipts: ✬ not implemented.
+- Receipt validation: ✬ not implemented.
 
-### Milestone 5 â€” Tournament Operations: â¬œ Not Started
+### Milestone 5 â€” Tournament Operations: ✬ Not Started
 
 - No fight card metadata, intros/outros, or publish pipeline in the engine.
 - Shell scripts exist for manual publishing (`scripts/match-publish.sh`, `scripts/tournament-publish.sh`) but are not part of the engine.
 
-### Milestone 6 â€” Online Infrastructure: â¬œ Not Started
+### Milestone 6 â€” Online Infrastructure: ✬ Not Started
 
 ### Cross-Cutting Workstreams
 

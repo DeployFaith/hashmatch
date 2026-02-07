@@ -303,12 +303,18 @@ Dispute outcomes should be logged (who decided what, and why), ideally as signed
 
 ## 12. Implementation Status (Repo Audit)
 
-Last audited: 2026-02-06
+Last audited: 2026-02-07
 
 **Phase A status:**
 
-* Deterministic tournament harness outputs: âœ… implemented (`src/tournament/`).
-* Match manifest with version stamping: ðŸŸ¨ partial â€” `match_summary.json` is written per match but a full `match_manifest.json` with runner/scenario content hashes is not produced. Optional provenance fields (`engineCommit`, `engineVersion`) are supported via CLI flags.
-* Log hashing: â¬œ not implemented.
+* Deterministic tournament harness outputs: ✅ implemented (`src/tournament/`).
+* Match manifest with version stamping: ✅ implemented (`match_manifest.json` per match; optional provenance fields via CLI flags).
+* Log hashing: ✅ implemented (`logHash`, `manifestHash`, `truthBundleHash`).
 
-**Phase B and C:** Not started. No receipts, signatures, verification CLI, or content hashing.
+**Phase B status:**
+
+* Verification CLI: ✅ implemented (`verify-match`, `verify-tournament`).
+* Signed receipts: ✬ not implemented.
+* Receipt validation: ✬ not implemented.
+
+**Phase C:** Not started.

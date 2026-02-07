@@ -10,7 +10,7 @@
 
 The project has a working core loop: a deterministic tournament harness runs round-robin matches, writes structured output folders, and an interactive web replay viewer renders them with spoiler protection, redaction modes, and filtering. One scenario (NumberGuess) and two agents (random, baseline) exist. Twelve coherent design documents define the full system architecture.
 
-What's missing is the trust interface (manifests, hashes, verification), a second scenario to pressure-test hidden-info and redaction guarantees, and the show-layer heuristics that turn "log viewer" into "watchable match."
+What's missing is signed receipts, bundle validation/local registry tooling, and the remaining show-layer experiments (scene/storyboard prompts).
 
 The plan below is ordered by dependency and strategic value. It begins with decisions that must be locked before any code ships, then sequences implementation work with explicit parallelism where safe.
 
@@ -28,8 +28,8 @@ Recommended resolution:
 
 | Artifact | Canonical Name | Notes |
 |----------|---------------|-------|
-| Tournament manifest | `tournament_manifest.json` | Current code writes `tournament.json` â€” dual-write both for one release, then deprecate `tournament.json` |
-| Match manifest | `match_manifest.json` | Does not exist yet â€” create with this name from the start |
+| Tournament manifest | `tournament_manifest.json` | Current code dual-writes `tournament_manifest.json` (canonical) and legacy `tournament.json` for one release, then deprecates `tournament.json` |
+| Match manifest | `match_manifest.json` | Implemented â€” keep this name as canonical |
 | Match summary | `match_summary.json` | Already consistent â€” no change |
 | Standings | `standings.json` | Already consistent â€” no change |
 
@@ -54,10 +54,10 @@ This is what the code already does. It rewards winning over drawing, which align
 1. Points
 2. Head-to-head record
 3. Total score differential (pointsFor âˆ’ pointsAgainst)
-4. Total points scored
+4. Total points scored (`totalPointsScored`)
 5. Deterministic seed-derived coinflip (last resort, prevents ambiguity)
 
-**Where to record:** `tournament_rules.md` Â§8â€“9 as the single source of truth. Update `tournament_harness_v0.md` Â§8.1 to match (delete the win=1/loss=0 text). Verify the code's tie-break implementation matches this order.
+**Where to record:** `tournament_rules.md` Â§8â€“9 as the single source of truth. Update `tournament_harness_v0.md` Â§8.1 to match (remove the outdated scoring text). Verify the code's tie-break implementation matches this order.
 
 ### Lock 3: Hashing Rules
 
@@ -149,7 +149,7 @@ agents[].contentHash
 
 ### 1.2 â€” `tournament_manifest.json` Production
 
-**What:** Rename/upgrade the current `tournament.json` output.
+**What:** Confirm `tournament_manifest.json` as canonical and dual-write legacy `tournament.json` for one transitional release.
 
 **Fields:**
 
@@ -161,7 +161,7 @@ harnessVersion
 tournamentSeed
 seedDerivation (description string)
 scoringModel: { win: 3, draw: 1, loss: 0 }
-tieBreakers: ["points", "headToHead", "scoreDifferential", "totalPoints", "seedCoinflip"]
+tieBreakers: ["points", "headToHead", "scoreDifferential", "totalPointsScored", "seedCoinflip"]
 scenario.id
 scenario.version
 participants[] (agentId, owner, version)

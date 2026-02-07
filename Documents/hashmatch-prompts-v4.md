@@ -41,7 +41,7 @@ Your task: Record four "decision locks" into the spec documents. For each lock, 
 
 ## Lock 1: Canonical Filenames
 
-The codebase currently writes `tournament.json`. Multiple docs reference `tournament_manifest.json`. Resolve this:
+The codebase dual-writes `tournament_manifest.json` (canonical) and legacy `tournament.json`. Multiple docs reference `tournament_manifest.json`. Resolve this:
 
 - The canonical tournament manifest filename is `tournament_manifest.json`
 - The canonical per-match manifest filename is `match_manifest.json`
@@ -58,7 +58,7 @@ Update ALL of these files (do not skip any):
 
 ## Lock 2: Scoring Model
 
-The code uses win=3, draw=1, loss=0. But `Documents/tournament_harness_v0.md` Â§8.1 says win=1, loss=0. Resolve this:
+The code uses win=3, draw=1, loss=0. But `Documents/tournament_harness_v0.md` Â§8.1 contains outdated scoring text. Resolve this:
 
 - Canonical scoring: win=3, draw=1, loss=0
 - This aligns with the "discourage ties" product direction
@@ -66,7 +66,7 @@ The code uses win=3, draw=1, loss=0. But `Documents/tournament_harness_v0.md` Â
 Standings sort: **points first** (the primary ranking key), then apply tie-breakers in this order when points are equal:
 1. Head-to-head record
 2. Total score differential (pointsFor âˆ’ pointsAgainst)
-3. Total points scored (pointsFor â€” the aggregate match score, NOT standings points)
+3. Total points scored (`totalPointsScored`, i.e., pointsFor â€” the aggregate match score, NOT standings points)
 4. Deterministic seed-derived coinflip (last resort, prevents ambiguity)
 
 IMPORTANT: "Points" is the primary sort key, NOT a tie-breaker. Tie-breakers only apply when two agents have equal points. Write this distinction clearly.
@@ -74,7 +74,7 @@ IMPORTANT: "Points" is the primary sort key, NOT a tie-breaker. Tie-breakers onl
 IMPORTANT: "Total points scored" means aggregate match score (pointsFor), NOT standings points. Use the label `totalPointsScored` to avoid ambiguity. Write this distinction clearly.
 
 Update these files:
-- `Documents/tournament_harness_v0.md` Â§8.1: Replace win=1/loss=0 text with win=3/draw=1/loss=0. Add the tie-breaker order with clear framing.
+- `Documents/tournament_harness_v0.md` Â§8.1: Replace outdated scoring text with win=3/draw=1/loss=0. Add the tie-breaker order with clear framing.
 - `Documents/tournament_rules.md` Â§8â€“9: Make this the single source of truth for scoring and tie-breaks.
 - `Documents/roadmap.md`: Update the "Gaps vs spec" note about scoring to say "resolved â€” spec updated to match implementation (win=3/draw=1/loss=0)"
 
@@ -147,7 +147,7 @@ Update `Documents/tournament_harness_v0.md` Â§11 to clarify: "The harness MAY 
 
 After all edits, read through EVERY modified document and confirm:
 - No remaining references to `tournament.json` as the canonical name (except the dual-write transition note)
-- No remaining references to win=1/loss=0 scoring
+- No remaining references to outdated scoring text
 - Hashing rules appear in one place (integrity doc Â§5.4) with cross-references elsewhere
 - Moments ownership is unambiguous
 - Tie-breaker language correctly frames points as primary sort key, not as a tie-breaker
@@ -866,7 +866,7 @@ RULES:
 - Emoji: âœ… done, ðŸŸ¨ partial, â¬œ not started
 - Conservative: only update what actually changed
 - No remaining references to `tournament.json` as canonical (except dual-write note)
-- No remaining references to win=1/loss=0
+- No remaining references to outdated scoring text
 - `tieBreakers` uses `"totalPointsScored"` consistently
 
 Commit message: "Reconcile docs with implementation: trust foundation + scenario #2 + moments"
