@@ -166,6 +166,16 @@ Potential components:
 
 Infrastructure must not be required to run a tournament.
 
+## Milestone 7 — Heist Game Framework: ⬜ Not Started
+
+- Heist params schema + TypeScript types: ⬜
+- Heist generator (room graph + entity placement): ⬜
+- Heist validator (BFS reachability + dependency DAG): ⬜
+- Heist preview (ASCII minimap): ⬜
+- CLI: `hm scenario gen|validate|preview|describe --game heist`: ⬜
+- Curated presets (`warehouse_breakin`, `prison_escape`, `museum_night`): ⬜
+- Tests (determinism, validation, hard-lock rejection): ⬜
+
 ## Cross”‘Cutting Workstreams
 
 ### A) Scenario Library

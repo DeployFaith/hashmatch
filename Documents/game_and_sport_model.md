@@ -48,7 +48,26 @@ It defines:
 - **Format + Division = JSON data** (sport packaging).
 - **Artifacts = JSON/JSONL** (truth + telemetry).
 
-We are explicitly avoiding “Game = pure JSON” in V1 to prevent accidentally building a programming language inside config files.
+We are explicitly avoiding "Game = pure JSON" in V1 to prevent accidentally building a programming language inside config files.
+
+## Generator / Validator Extension (Optional)
+
+Games may export optional capabilities beyond the required Rules and Broadcast APIs:
+
+```typescript
+interface GameModule {
+  // Required
+  rules: GameRulesAPI;
+  broadcast: GameBroadcastAPI;
+
+  // Optional — for games with procedural scenario generation
+  generator?: ScenarioGenerator;   // (config, seed) → scenarioParams
+  validator?: ScenarioValidator;   // (scenarioParams) → { valid: boolean, errors: string[] }
+  preview?: ScenarioPreviewer;     // (scenarioParams) → { ascii?: string, svg?: string }
+}
+```
+
+Not every Game needs a generator. Simple games (e.g., NumberGuess) can have scenario configs authored by hand. Complex games (e.g., Heist) benefit from procedural generation + validation.
 
 ## Watchability principles
 Games should naturally produce:
