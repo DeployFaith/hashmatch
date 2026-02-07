@@ -35,3 +35,6 @@ Documents/Agentic_Design_Patterns.pdf
 
 # Generated match output
 /data/
+
+# Local doc backups
+/Documents/.old/
