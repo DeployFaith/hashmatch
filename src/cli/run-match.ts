@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { runMatch } from "../engine/runMatch.js";
 import { runMatchWithGateway } from "../engine/runMatchWithGateway.js";
 import { toStableJsonl } from "../core/json.js";
@@ -29,7 +30,33 @@ interface MatchCliArgs {
   engineVersion?: string;
 }
 
-function parseArgs(argv: string[]): MatchCliArgs {
+export const usage = `Usage: npm run match -- [options]
+
+Options:
+  --scenario <name>        Scenario to run (default: numberGuess)
+  --seed <number>          RNG seed (default: 42)
+  --turns <number>         Max turns (default: 20)
+  --agentA <name>          Agent A id (default: random)
+  --agentB <name>          Agent B id (default: baseline)
+  --out <path>             Write JSONL events to a file
+  --gateway <local|http>   Use gateway adapters
+  --agent-urls <urls>      Comma-separated agent URLs (required for http)
+  --emit-provenance        Include engine version/commit if available
+  --engine-commit <sha>    Override engine commit hash
+  --engine-version <ver>   Override engine version
+  -h, --help               Show this help message`;
+
+function printUsage(): void {
+  // eslint-disable-next-line no-console
+  console.log(usage);
+}
+
+export function parseArgs(argv: string[]): MatchCliArgs {
+  if (argv.includes("--help") || argv.includes("-h")) {
+    printUsage();
+    process.exit(0);
+  }
+
   let scenario = "numberGuess";
   let seed = 42;
   let turns = 20;
@@ -233,4 +260,10 @@ async function main(): Promise<void> {
   }
 }
 
-main();
+const isMain = process.argv[1]
+  ? fileURLToPath(import.meta.url) === resolve(process.argv[1])
+  : false;
+
+if (isMain) {
+  void main();
+}
