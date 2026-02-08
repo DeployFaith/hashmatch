@@ -2,33 +2,27 @@
 
 import type { CollapsedMomentCard } from "./momentTemplates";
 
-const SEVERITY_STYLES: Record<
+const REGISTER_STYLES: Record<
   string,
   { bg: string; border: string; color: string; badge: string }
 > = {
-  info: {
-    bg: "rgba(0,229,255,0.06)",
-    border: "rgba(0,229,255,0.12)",
-    color: "#00e5ff",
-    badge: "rgba(0,229,255,0.15)",
-  },
-  warning: {
-    bg: "rgba(255,171,64,0.06)",
-    border: "rgba(255,171,64,0.12)",
-    color: "#ffab40",
-    badge: "rgba(255,171,64,0.15)",
-  },
-  error: {
-    bg: "rgba(255,61,113,0.06)",
-    border: "rgba(255,61,113,0.12)",
+  failure: {
+    bg: "rgba(255,61,113,0.08)",
+    border: "rgba(255,61,113,0.2)",
     color: "#ff3d71",
-    badge: "rgba(255,61,113,0.15)",
+    badge: "rgba(255,61,113,0.2)",
   },
-  success: {
-    bg: "rgba(0,230,118,0.06)",
-    border: "rgba(0,230,118,0.12)",
+  tension: {
+    bg: "rgba(255,217,64,0.08)",
+    border: "rgba(255,217,64,0.2)",
+    color: "#ffd740",
+    badge: "rgba(255,217,64,0.2)",
+  },
+  progress: {
+    bg: "rgba(0,230,118,0.08)",
+    border: "rgba(0,230,118,0.2)",
     color: "#00e676",
-    badge: "rgba(0,230,118,0.15)",
+    badge: "rgba(0,230,118,0.2)",
   },
 };
 
@@ -51,7 +45,7 @@ type HeistMomentCardProps = {
 };
 
 export function HeistMomentCardComponent({ card, isActive, onClick }: HeistMomentCardProps) {
-  const styles = SEVERITY_STYLES[card.severity] ?? SEVERITY_STYLES.info;
+  const styles = REGISTER_STYLES[card.register] ?? REGISTER_STYLES.tension;
   const agentColor = getAgentColor(card.agentId);
 
   return (
@@ -79,6 +73,16 @@ export function HeistMomentCardComponent({ card, isActive, onClick }: HeistMomen
             {card.count > 1 && (
               <span className="ml-1 text-[10px] opacity-70">(\u00D7{card.count})</span>
             )}
+          </span>
+          <span
+            className="rounded-sm px-1 py-px text-[8px] font-semibold uppercase tracking-wide"
+            style={{
+              fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+              background: styles.badge,
+              color: styles.color,
+            }}
+          >
+            {card.register}
           </span>
           <span
             className="ml-auto shrink-0 text-[10px]"

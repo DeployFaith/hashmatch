@@ -1,5 +1,4 @@
-import type { ActionAdjudicatedEvent } from "@/contract/types";
-import type { HeistSceneState } from "@/arena/heist/types";
+import type { HeistMomentCandidate, HeistMomentId } from "./momentTypes";
 
 // ---- Types ----
 
@@ -8,11 +7,13 @@ export interface HeistMomentCard {
   turn: number;
   seq: number;
   agentId: string;
-  severity: "info" | "warning" | "error" | "success";
+  register: "failure" | "tension" | "progress";
+  priority: number;
   icon: string;
   title: string;
   detail: string;
   category: string;
+  momentId: HeistMomentId;
 }
 
 export interface CollapsedMomentCard extends HeistMomentCard {
@@ -20,299 +21,276 @@ export interface CollapsedMomentCard extends HeistMomentCard {
   collapsedSeqs: number[];
 }
 
-// ---- Context ----
-
-interface AdjudicationContext {
-  agentId: string;
-  turn: number;
-  seq: number;
-  valid: boolean;
+type HeistMomentContext = {
+  agentId?: string;
+  agentLabel?: string;
+  actionType?: string;
   errorCode?: string;
   resultCode?: string;
   message?: string;
-  currentRoom?: string;
-  targetRoom?: string;
-  targetLabel?: string;
+  currentRoomLabel?: string;
+  targetRoomLabel?: string;
   doorLabel?: string;
-  requiredKeycard?: string;
-  requiredItem?: string;
-  missingItems?: string[];
-  missingObjectives?: string[];
-  hackProgress?: number;
-  hackRequired?: number;
+  requiredItemLabel?: string;
+  targetLabel?: string;
   terminalLabel?: string;
-  guardLabel?: string;
-  newAlertLevel?: number;
   itemLabel?: string;
   itemType?: string;
-  turnsRemaining?: number;
-  extractionRoom?: string;
-}
+  hackProgress?: number;
+  hackRequired?: number;
+  extractionRoomLabel?: string;
+  fallbackReason?: string;
+  alertLevelBefore?: number;
+  alertLevelAfter?: number;
+  guardLabel?: string;
+  guardRoomLabel?: string;
+  agentRoomLabel?: string;
+  stalledTurns?: number;
+  noise?: number;
+  noisePercent?: number;
+  thresholdRatio?: number;
+  nextThreshold?: number;
+};
+
+type TemplateFn = (ctx: HeistMomentContext) => {
+  icon: string;
+  title: string;
+  detail: string;
+  category: string;
+};
+
+// ---- Template data ----
+
+const MOMENT_TEMPLATES: Record<HeistMomentId, TemplateFn[]> = {
+  misnavigation: [
+    (ctx) => ({
+      icon: "\u{1F9ED}",
+      title: "Wrong turn",
+      detail: `No door between ${ctx.currentRoomLabel ?? "here"} and ${ctx.targetRoomLabel ?? "there"}`,
+      category: "navigation",
+    }),
+    (ctx) => ({
+      icon: "\u{1F6A7}",
+      title: "Blocked path",
+      detail: `Move blocked near ${ctx.currentRoomLabel ?? "current room"}`,
+      category: "navigation",
+    }),
+  ],
+  locked_door: [
+    (ctx) => ({
+      icon: "\u{1F512}",
+      title: "Door locked",
+      detail: `${ctx.doorLabel ?? "Door"} needs ${ctx.requiredItemLabel ?? "a keycard"}`,
+      category: "navigation",
+    }),
+    (ctx) => ({
+      icon: "\u{1F6AA}",
+      title: "Access denied",
+      detail: `Couldn't pass ${ctx.doorLabel ?? "the door"}`,
+      category: "navigation",
+    }),
+  ],
+  interaction_snag: [
+    (ctx) => ({
+      icon: "\u26A0\uFE0F",
+      title: "Interaction failed",
+      detail: ctx.message ?? `No ${ctx.targetLabel ?? "target"} available here`,
+      category: "interaction",
+    }),
+    (ctx) => ({
+      icon: "\u{1F6AB}",
+      title: "Nothing to use",
+      detail: `Couldn't reach ${ctx.targetLabel ?? "that target"}`,
+      category: "interaction",
+    }),
+  ],
+  premature_extraction: [
+    (ctx) => ({
+      icon: "\u{1F6F0}\uFE0F",
+      title: "Too soon to extract",
+      detail: `Extraction point is ${ctx.extractionRoomLabel ?? "elsewhere"}`,
+      category: "extraction",
+    }),
+    (ctx) => ({
+      icon: "\u{1F4CD}",
+      title: "Wrong exit",
+      detail: `Not at ${ctx.extractionRoomLabel ?? "the extraction room"}`,
+      category: "extraction",
+    }),
+  ],
+  schema_fumble: [
+    (ctx) => ({
+      icon: "\u{1F9E9}",
+      title: "Schema fallback",
+      detail: `Decoder recovered from ${ctx.fallbackReason ?? "formatting error"}`,
+      category: "decoder",
+    }),
+    (ctx) => ({
+      icon: "\u{1F4C4}",
+      title: "Format hiccup",
+      detail: `Action parsed via fallback (${ctx.fallbackReason ?? "schema issue"})`,
+      category: "decoder",
+    }),
+  ],
+  terminal_hacked: [
+    (ctx) => ({
+      icon: "\u{1F4BB}",
+      title: "Terminal hacked",
+      detail: `${ctx.terminalLabel ?? "Terminal"} cracked \u2014 intel secured`,
+      category: "objective",
+    }),
+    (ctx) => ({
+      icon: "\u{1F4BB}",
+      title: "Access granted",
+      detail: `${ctx.terminalLabel ?? "Terminal"} is fully breached`,
+      category: "objective",
+    }),
+  ],
+  terminal_progress: [
+    (ctx) => ({
+      icon: "\u23F3",
+      title: "Hacking progress",
+      detail: `${ctx.terminalLabel ?? "Terminal"} ${ctx.hackProgress ?? "?"}/${ctx.hackRequired ?? "?"}`,
+      category: "objective",
+    }),
+    (ctx) => ({
+      icon: "\u{1F4BB}",
+      title: "Working the console",
+      detail: `Progress ${ctx.hackProgress ?? "?"}/${ctx.hackRequired ?? "?"}`,
+      category: "objective",
+    }),
+  ],
+  item_acquired: [
+    (ctx) => ({
+      icon: "\u{1F4E6}",
+      title: "Item secured",
+      detail: `${ctx.itemLabel ?? "Item"} collected`,
+      category: "inventory",
+    }),
+    (ctx) => ({
+      icon: "\u{1F392}",
+      title: "Pickup confirmed",
+      detail: `${ctx.itemLabel ?? "Item"} added to pack`,
+      category: "inventory",
+    }),
+  ],
+  clean_extraction: [
+    (ctx) => ({
+      icon: "\u{1F681}",
+      title: "Clean extraction",
+      detail: `${ctx.agentLabel ?? "Crew"} exfiltrated with the objective`,
+      category: "extraction",
+    }),
+    (ctx) => ({
+      icon: "\u2705",
+      title: "Mission complete",
+      detail: `${ctx.agentLabel ?? "Team"} extraction successful`,
+      category: "extraction",
+    }),
+  ],
+  guard_closing: [
+    (ctx) => ({
+      icon: "\u{1F6A8}",
+      title: "Guard closing in",
+      detail: `${ctx.guardLabel ?? "Guard"} near ${ctx.agentRoomLabel ?? "your position"}`,
+      category: "stealth",
+    }),
+    (ctx) => ({
+      icon: "\u{1F46E}",
+      title: "Patrol nearby",
+      detail: `${ctx.guardRoomLabel ?? "Guard"} adjacent to ${ctx.agentRoomLabel ?? "agent room"}`,
+      category: "stealth",
+    }),
+  ],
+  stalled_objective: [
+    (ctx) => ({
+      icon: "\u23F8\uFE0F",
+      title: "Objective stalled",
+      detail: `No progress for ${ctx.stalledTurns ?? 0} turns`,
+      category: "tempo",
+    }),
+    (ctx) => ({
+      icon: "\u23F8\uFE0F",
+      title: "Momentum fading",
+      detail: `Stalled for ${ctx.stalledTurns ?? 0} turns`,
+      category: "tempo",
+    }),
+  ],
+  noise_creep: [
+    (ctx) => ({
+      icon: "\u{1F50A}",
+      title: "Noise rising",
+      detail: `Noise at ${ctx.noisePercent ?? 0}% of next alert`,
+      category: "stealth",
+    }),
+    (ctx) => ({
+      icon: "\u{1F50A}",
+      title: "Sound spike",
+      detail: `Approaching threshold ${ctx.nextThreshold ?? "?"}`,
+      category: "stealth",
+    }),
+  ],
+  near_miss: [
+    (ctx) => ({
+      icon: "\u{1F9DF}\u200D\u2642\uFE0F",
+      title: "Near miss",
+      detail: `${ctx.guardLabel ?? "Guard"} crossed paths in ${ctx.agentRoomLabel ?? "the room"}`,
+      category: "stealth",
+    }),
+    (ctx) => ({
+      icon: "\u{1F441}\uFE0F",
+      title: "Close call",
+      detail: `Guard nearly spotted ${ctx.agentLabel ?? "agent"}`,
+      category: "stealth",
+    }),
+  ],
+};
 
 // ---- Helpers ----
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
-const asString = (value: unknown): string | undefined =>
-  typeof value === "string" ? value : undefined;
-
-const asNumber = (value: unknown): number | undefined =>
-  typeof value === "number" ? value : undefined;
-
-// ---- Error Templates ----
-
-type TemplateFn = (ctx: AdjudicationContext) => Partial<HeistMomentCard>;
-
-const ERROR_TEMPLATES: Record<string, TemplateFn> = {
-  no_door_between_rooms: (ctx) => ({
-    severity: "error",
-    icon: "\u{1F6AB}",
-    title: "Illegal move",
-    detail: `No door between ${ctx.currentRoom ?? "?"} and ${ctx.targetRoom ?? "?"}`,
-    category: "navigation",
-  }),
-
-  door_locked: (ctx) => ({
-    severity: "warning",
-    icon: "\u{1F512}",
-    title: "Door locked",
-    detail: `${ctx.doorLabel ?? "Door"} requires ${ctx.requiredKeycard ?? "a keycard"}`,
-    category: "navigation",
-  }),
-
-  entity_not_in_room: (ctx) => ({
-    severity: "error",
-    icon: "\u{1F47B}",
-    title: "Nothing there",
-    detail: `${ctx.targetLabel ?? "Target"} is not in ${ctx.currentRoom ?? "room"}`,
-    category: "interaction",
-  }),
-
-  missing_required_item: (ctx) => ({
-    severity: "warning",
-    icon: "\u{1F6B7}",
-    title: "Missing item",
-    detail: `Can't interact with ${ctx.targetLabel ?? "target"} \u2014 need ${ctx.requiredItem ?? "item"}`,
-    category: "interaction",
-  }),
-
-  vault_locked: (ctx) => ({
-    severity: "warning",
-    icon: "\u{1F510}",
-    title: "Vault sealed",
-    detail: `Missing required items: ${ctx.missingItems?.join(", ") ?? "unknown"}`,
-    category: "objective",
-  }),
-
-  not_in_extraction_room: (ctx) => ({
-    severity: "error",
-    icon: "\u{1F4CD}",
-    title: "Wrong room for extraction",
-    detail: `Tried to extract from ${ctx.currentRoom ?? "?"} \u2014 need ${ctx.extractionRoom ?? "extraction room"}`,
-    category: "extraction",
-  }),
-
-  extraction_missing_objectives: (ctx) => ({
-    severity: "warning",
-    icon: "\u{1F4E6}",
-    title: "Can't extract yet",
-    detail: `Missing objectives: ${ctx.missingObjectives?.join(", ") ?? "unknown"}`,
-    category: "extraction",
-  }),
-
-  hack_interrupted: (ctx) => ({
-    severity: "info",
-    icon: "\u23F8\uFE0F",
-    title: "Hack interrupted",
-    detail: `Left terminal with ${ctx.hackProgress ?? 0}/${ctx.hackRequired ?? "?"} progress`,
-    category: "hacking",
-  }),
-
-  detected_by_guard: (ctx) => ({
-    severity: "error",
-    icon: "\u{1F441}\uFE0F",
-    title: "Spotted!",
-    detail: `${ctx.guardLabel ?? "Guard"} detected agent in ${ctx.currentRoom ?? "room"}`,
-    category: "stealth",
-  }),
-
-  alert_escalation: (ctx) => ({
-    severity: "warning",
-    icon: "\u{1F6A8}",
-    title: `Alert \u2192 Level ${ctx.newAlertLevel ?? "?"}`,
-    detail: "Noise threshold crossed",
-    category: "stealth",
-  }),
+const hashString = (input: string): number => {
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash * 31 + input.charCodeAt(i)) >>> 0;
+  }
+  return hash;
 };
 
-// ---- Success Templates ----
-
-const SUCCESS_TEMPLATES: Record<string, TemplateFn> = {
-  hack_complete: (ctx) => ({
-    severity: "success",
-    icon: "\u{1F4BB}",
-    title: "Terminal hacked!",
-    detail: `${ctx.terminalLabel ?? "Terminal"} cracked \u2014 intel acquired`,
-    category: "hacking",
-  }),
-
-  hack_progress: (ctx) => ({
-    severity: "info",
-    icon: "\u{1F4BB}",
-    title: "Hacking...",
-    detail: `${ctx.terminalLabel ?? "Terminal"} progress: ${ctx.hackProgress ?? "?"}/${ctx.hackRequired ?? "?"}`,
-    category: "hacking",
-  }),
-
-  vault_opened: () => ({
-    severity: "success",
-    icon: "\u{1F513}",
-    title: "Vault cracked!",
-    detail: "Objective secured",
-    category: "objective",
-  }),
-
-  item_pickup: (ctx) => ({
-    severity: "info",
-    icon: "\u{1F392}",
-    title: `Picked up ${ctx.itemLabel ?? "item"}`,
-    detail: `${ctx.itemType ?? "Item"} added to inventory`,
-    category: "inventory",
-  }),
-
-  extraction_success: (ctx) => ({
-    severity: "success",
-    icon: "\u{1F681}",
-    title: "Extracted!",
-    detail: `Mission complete with ${ctx.turnsRemaining ?? 0} turns to spare`,
-    category: "extraction",
-  }),
+const pickTemplate = (candidate: HeistMomentCandidate, templates: TemplateFn[]): TemplateFn => {
+  if (templates.length === 1) {
+    return templates[0];
+  }
+  const seed = `${candidate.id}:${candidate.agentId}:${candidate.turn}:${candidate.seqRange?.start ?? 0}`;
+  const index = hashString(seed) % templates.length;
+  return templates[index];
 };
-
-// ---- Context Builder ----
-
-function buildContext(
-  event: ActionAdjudicatedEvent,
-  sceneState: HeistSceneState,
-): AdjudicationContext {
-  const feedback = isRecord(event.feedback) ? event.feedback : undefined;
-  const chosenAction = isRecord(event.chosenAction) ? event.chosenAction : undefined;
-  const agent = sceneState.agents[event.agentId];
-
-  const ctx: AdjudicationContext = {
-    agentId: event.agentId,
-    turn: event.turn,
-    seq: event.seq,
-    valid: event.valid,
-    errorCode: asString(feedback?.error),
-    resultCode: asString(feedback?.result),
-    message: asString(feedback?.message),
-    currentRoom: agent?.roomId,
-    extractionRoom: sceneState.scenarioParams?.extractionRoomId,
-  };
-
-  // Enrich from chosen action
-  if (chosenAction) {
-    ctx.targetRoom = asString(chosenAction.toRoomId);
-    ctx.targetLabel =
-      asString(chosenAction.itemId) ??
-      asString(chosenAction.terminalId) ??
-      asString(chosenAction.target);
-
-    const itemId = asString(chosenAction.itemId);
-    if (itemId && sceneState.items[itemId]) {
-      const item = sceneState.items[itemId];
-      ctx.itemLabel = item.label ?? item.itemId;
-      ctx.itemType = item.kind;
-    }
-
-    const terminalId = asString(chosenAction.terminalId);
-    if (terminalId && sceneState.entities[terminalId]) {
-      const terminal = sceneState.entities[terminalId];
-      ctx.terminalLabel = terminal.label ?? terminal.entityId;
-      ctx.hackProgress = asNumber(terminal.state?.progress);
-      ctx.hackRequired = asNumber(terminal.state?.hackTurns);
-    }
-  }
-
-  // Enrich from feedback
-  if (feedback) {
-    ctx.requiredKeycard = asString(feedback.requiredItem);
-    ctx.requiredItem = asString(feedback.requiredItem);
-    ctx.newAlertLevel = asNumber(feedback.alertLevel);
-    ctx.guardLabel = asString(feedback.guardId);
-    ctx.doorLabel = asString(feedback.doorId);
-    ctx.hackProgress = asNumber(feedback.progress) ?? ctx.hackProgress;
-    ctx.hackRequired = asNumber(feedback.required) ?? ctx.hackRequired;
-    ctx.turnsRemaining = asNumber(feedback.turnsRemaining);
-
-    if (Array.isArray(feedback.missingItems)) {
-      ctx.missingItems = feedback.missingItems.filter((v): v is string => typeof v === "string");
-    }
-    if (Array.isArray(feedback.missingObjectives)) {
-      ctx.missingObjectives = feedback.missingObjectives.filter(
-        (v): v is string => typeof v === "string",
-      );
-    }
-  }
-
-  return ctx;
-}
 
 // ---- Template Resolution ----
 
-export function adjudicationToMomentCard(
-  event: ActionAdjudicatedEvent,
-  sceneState: HeistSceneState,
-): HeistMomentCard | null {
-  const ctx = buildContext(event, sceneState);
-
-  // 1. Invalid action -> look up error template
-  if (!event.valid) {
-    const errorCode = ctx.errorCode;
-    if (errorCode) {
-      const template = ERROR_TEMPLATES[errorCode];
-      if (template) {
-        return {
-          id: `moment-${event.seq}`,
-          turn: event.turn,
-          seq: event.seq,
-          agentId: event.agentId,
-          ...template(ctx),
-        } as HeistMomentCard;
-      }
-    }
-    // Fallback for unknown error codes
-    return {
-      id: `moment-${event.seq}`,
-      turn: event.turn,
-      seq: event.seq,
-      agentId: event.agentId,
-      severity: "error",
-      icon: "\u274C",
-      title: "Invalid action",
-      detail: ctx.message ?? "Action rejected",
-      category: "unknown",
-    };
+export function momentCandidateToCard(candidate: HeistMomentCandidate): HeistMomentCard | null {
+  const templates = MOMENT_TEMPLATES[candidate.id];
+  if (!templates || templates.length === 0) {
+    return null;
   }
 
-  // 2. Valid action with notable result -> look up success template
-  if (ctx.resultCode) {
-    const template = SUCCESS_TEMPLATES[ctx.resultCode];
-    if (template) {
-      return {
-        id: `moment-${event.seq}`,
-        turn: event.turn,
-        seq: event.seq,
-        agentId: event.agentId,
-        ...template(ctx),
-      } as HeistMomentCard;
-    }
-  }
+  const ctx = candidate.context as HeistMomentContext;
+  const template = pickTemplate(candidate, templates);
+  const content = template(ctx);
+  const seq = candidate.seqRange?.start ?? 0;
 
-  // 3. Valid, unremarkable action -> no moment card
-  return null;
+  return {
+    id: `moment-${candidate.id}-${seq}`,
+    turn: candidate.turn,
+    seq,
+    agentId: candidate.agentId,
+    register: candidate.register,
+    priority: candidate.priority,
+    icon: content.icon,
+    title: content.title,
+    detail: content.detail,
+    category: content.category,
+    momentId: candidate.id,
+  };
 }
 
 // ---- Collapse Rule ----
@@ -329,12 +307,13 @@ export function collapseMomentCards(cards: HeistMomentCard[]): CollapsedMomentCa
     collapsedSeqs: [cards[0].seq],
   };
 
-  for (let i = 1; i < cards.length; i++) {
+  for (let i = 1; i < cards.length; i += 1) {
     const card = cards[i];
     if (
       card.agentId === current.agentId &&
       card.title === current.title &&
-      card.category === current.category
+      card.category === current.category &&
+      card.register === current.register
     ) {
       current.count += 1;
       current.collapsedSeqs.push(card.seq);

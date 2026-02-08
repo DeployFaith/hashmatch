@@ -20,6 +20,14 @@ const asNumber = (value: unknown): number | undefined =>
 const asBoolean = (value: unknown): boolean | undefined =>
   typeof value === "boolean" ? value : undefined;
 
+const asNumberArray = (value: unknown): number[] | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const numeric = value.filter((entry) => typeof entry === "number") as number[];
+  return numeric.length === value.length ? numeric : undefined;
+};
+
 const asStringArray = (value: unknown): string[] | undefined => {
   if (!Array.isArray(value)) {
     return undefined;
@@ -104,6 +112,9 @@ const extractScenarioMeta = (
       Array.isArray(winCondition.requiredObjectives) ? winCondition.requiredObjectives : undefined,
     ),
     maxAlertLevel: asNumber(winCondition.maxAlertLevel),
+    alertThresholds: asNumberArray(
+      isRecord(params.rules) ? params.rules.alertThresholds : undefined,
+    ),
   };
 };
 
@@ -312,10 +323,17 @@ export const reduceHeistEvent = (
         const priv = isRecord(observation._private) ? observation._private : undefined;
         if (priv) {
           const alertLevel = asNumber(priv.alertLevel);
+          const noise = asNumber(priv.noise ?? priv.noiseLevel);
           if (alertLevel !== undefined) {
             nextState = {
               ...nextState,
               sceneFacts: { ...nextState.sceneFacts, alertLevel },
+            };
+          }
+          if (noise !== undefined) {
+            nextState = {
+              ...nextState,
+              sceneFacts: { ...nextState.sceneFacts, noise },
             };
           }
           const terminalProgress = isRecord(priv.terminalProgress) ? priv.terminalProgress : null;
@@ -408,10 +426,17 @@ export const reduceHeistEvent = (
     case "StateUpdated": {
       const summary = isRecord(event.summary) ? event.summary : undefined;
       const alertLevel = summary ? asNumber(summary.alertLevel) : undefined;
+      const noise = summary ? asNumber(summary.noise ?? summary.noiseLevel) : undefined;
       if (alertLevel !== undefined) {
         nextState = {
           ...nextState,
           sceneFacts: { ...nextState.sceneFacts, alertLevel },
+        };
+      }
+      if (noise !== undefined) {
+        nextState = {
+          ...nextState,
+          sceneFacts: { ...nextState.sceneFacts, noise },
         };
       }
       const agents = summary && isRecord(summary.agents) ? summary.agents : undefined;
@@ -429,6 +454,26 @@ export const reduceHeistEvent = (
             roomId,
           }));
         }
+      }
+      const guards = summary && isRecord(summary.guards) ? summary.guards : undefined;
+      if (guards) {
+        const updatedGuards = { ...nextState.guards };
+        for (const [guardId, guardSummary] of Object.entries(guards)) {
+          if (!isRecord(guardSummary)) {
+            continue;
+          }
+          const roomId = asString(guardSummary.roomId);
+          if (!roomId) {
+            continue;
+          }
+          if (updatedGuards[guardId]) {
+            updatedGuards[guardId] = {
+              ...updatedGuards[guardId],
+              roomId,
+            };
+          }
+        }
+        nextState = { ...nextState, guards: updatedGuards };
       }
       break;
     }

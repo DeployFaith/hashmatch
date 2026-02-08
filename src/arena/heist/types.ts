@@ -17,12 +17,14 @@ export type HeistSceneState = {
   items: Record<ItemId, ItemVisual>;
   sceneFacts?: {
     alertLevel?: number;
+    noise?: number;
   };
   /** Scenario params needed by HUD selectors (win condition, extraction room, etc.). */
   scenarioParams?: {
     extractionRoomId?: string;
     requiredObjectives?: string[];
     maxAlertLevel?: number;
+    alertThresholds?: number[];
   };
   lastEventSeq?: number;
   unknownEvents?: Array<{ type: string; seq?: number }>;

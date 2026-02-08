@@ -1,12 +1,11 @@
 "use client";
 
 import { useMemo, useRef, useEffect, useState, useCallback } from "react";
-import type { MatchEvent, ActionAdjudicatedEvent } from "@/contract/types";
-import type { HeistSceneState } from "@/arena/heist/types";
-import { reduceHeistEvent } from "@/arena/heist/reducer";
+import type { MatchEvent } from "@/contract/types";
+import { selectHeistMomentCandidates } from "@/components/heist/hud/selectors";
 import {
-  adjudicationToMomentCard,
   collapseMomentCards,
+  momentCandidateToCard,
   type CollapsedMomentCard,
 } from "./momentTemplates";
 import { HeistMomentCardComponent } from "./HeistMomentCard";
@@ -19,26 +18,22 @@ type HeistMomentsPanelProps = {
 
 type FilterState = {
   agent: string | null;
-  severity: string | null;
+  register: string | null;
   category: string | null;
 };
 
 function buildMomentCards(events: MatchEvent[]): CollapsedMomentCard[] {
-  let sceneState: HeistSceneState | undefined;
-  const rawCards = [];
-
-  for (const event of events) {
-    sceneState = reduceHeistEvent(sceneState, event);
-
-    if (event.type === "ActionAdjudicated") {
-      const card = adjudicationToMomentCard(event as ActionAdjudicatedEvent, sceneState);
-      if (card) {
-        rawCards.push(card);
-      }
+  const candidates = selectHeistMomentCandidates(events);
+  const rawCards = candidates
+    .map((candidate) => momentCandidateToCard(candidate))
+    .filter((card): card is NonNullable<typeof card> => Boolean(card));
+  const collapsed = collapseMomentCards(rawCards);
+  return collapsed.sort((a, b) => {
+    if (a.priority !== b.priority) {
+      return b.priority - a.priority;
     }
-  }
-
-  return collapseMomentCards(rawCards);
+    return b.seq - a.seq;
+  });
 }
 
 export function HeistMomentsPanel({ events, currentSeq, onSeekToSeq }: HeistMomentsPanelProps) {
@@ -46,7 +41,7 @@ export function HeistMomentsPanel({ events, currentSeq, onSeekToSeq }: HeistMome
   const scrollRef = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState<FilterState>({
     agent: null,
-    severity: null,
+    register: null,
     category: null,
   });
 
@@ -55,7 +50,7 @@ export function HeistMomentsPanel({ events, currentSeq, onSeekToSeq }: HeistMome
       if (filter.agent && card.agentId !== filter.agent) {
         return false;
       }
-      if (filter.severity && card.severity !== filter.severity) {
+      if (filter.register && card.register !== filter.register) {
         return false;
       }
       if (filter.category && card.category !== filter.category) {
@@ -90,6 +85,7 @@ export function HeistMomentsPanel({ events, currentSeq, onSeekToSeq }: HeistMome
   // Gather unique agents and categories for filters
   const agents = useMemo(() => [...new Set(cards.map((c) => c.agentId))], [cards]);
   const categories = useMemo(() => [...new Set(cards.map((c) => c.category))], [cards]);
+  const registers = useMemo(() => [...new Set(cards.map((c) => c.register))], [cards]);
 
   return (
     <div
@@ -132,6 +128,27 @@ export function HeistMomentsPanel({ events, currentSeq, onSeekToSeq }: HeistMome
               {agentId}
             </button>
           ))}
+        {registers.map((register) => (
+          <button
+            key={register}
+            type="button"
+            className="cursor-pointer rounded border px-1.5 py-px text-[9px] transition-colors"
+            style={{
+              fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+              borderColor:
+                filter.register === register
+                  ? "rgba(0,229,255,0.3)"
+                  : "rgba(255,255,255,0.06)",
+              background: filter.register === register ? "rgba(0,229,255,0.1)" : "transparent",
+              color: filter.register === register ? "#00e5ff" : "#445",
+            }}
+            onClick={() =>
+              setFilter((f) => ({ ...f, register: f.register === register ? null : register }))
+            }
+          >
+            {register}
+          </button>
+        ))}
         {categories.map((cat) => (
           <button
             key={cat}
