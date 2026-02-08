@@ -343,10 +343,88 @@ export function createHeistScenario(
           extracted: agent.extracted,
         };
       }
+      const sharedInventory = new Set<string>();
+      for (const id of state.agentIds) {
+        const agent = state.agents[id];
+        for (const itemId of agent.inventory) {
+          sharedInventory.add(itemId);
+        }
+      }
+
+      const requiredObjectives = state.params.winCondition.requiredObjectives;
+      const objectives: Record<string, JsonValue> = {};
+      for (const objectiveId of requiredObjectives) {
+        objectives[objectiveId] = {
+          secured: sharedInventory.has(objectiveId),
+        };
+      }
+      const extractedAgents = state.agentIds.filter((id) => state.agents[id]?.extracted);
+
+      const guards: Record<string, JsonValue> = {};
+      for (const entity of state.params.entities) {
+        if (entity.type !== "guard") {
+          continue;
+        }
+        const route = entity.patrolRoute;
+        if (route.length === 0) {
+          continue;
+        }
+        const patrolIndex = state.turn % route.length;
+        guards[entity.id] = {
+          roomId: route[patrolIndex],
+          patrolIndex,
+          routeLength: route.length,
+          detectionRange: entity.detectionRange,
+        };
+      }
+
+      const doors: Record<string, JsonValue> = {};
+      for (const door of state.params.map.doors) {
+        doors[door.id] = {
+          locked: door.locked ?? false,
+          requiredItem: door.requiredItem ?? null,
+          accessible: isDoorPassable(door, sharedInventory),
+        };
+      }
+
+      const terminals: Record<string, JsonValue> = {};
+      const vaults: Record<string, JsonValue> = {};
+      for (const entity of state.params.entities) {
+        if (entity.type === "terminal") {
+          terminals[entity.id] = {
+            roomId: entity.roomId,
+            progress: state.terminalProgress[entity.id] ?? 0,
+            hacked: state.terminalHacked[entity.id] ?? false,
+          };
+        }
+        if (entity.type === "vault") {
+          const requiredItems = entity.requiredItems ?? [];
+          const requirementsMet = requiredItems.every((itemId) =>
+            sharedInventory.has(itemId),
+          );
+          vaults[entity.id] = {
+            roomId: entity.roomId,
+            requiredItems,
+            requirementsMet,
+          };
+        }
+      }
+
+      const maxAlertLevel = state.params.rules.maxAlertLevel;
+      const tension =
+        maxAlertLevel > 0 ? Math.min(1, state.alertLevel / maxAlertLevel) : 0;
       return {
         turn: state.turn,
         alertLevel: state.alertLevel,
+        tension,
+        maxAlertLevel,
         agents,
+        guards,
+        doors,
+        terminals,
+        vaults,
+        objectives,
+        extractedAgents,
       };
     },
 
