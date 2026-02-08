@@ -3,6 +3,7 @@
 This document defines the agreed file-format approach for representing Games, Scenarios, Formats, Divisions, and Handicaps in a forkable + marketplace-friendly way.
 
 ## Guiding rules
+
 - **Rules live in code** (Game module).
 - **Configurations live in JSON** (Scenario/Format/Division/Handicap).
 - Every config is versioned (`schemaVersion`) and namespaced (`...Id`).
@@ -15,6 +16,7 @@ A Game ships a small metadata JSON file used for UI, identity, and packaging.
 **File:** `game.meta.json`
 
 Recommended fields:
+
 - `schemaVersion`
 - `gameId` (namespaced)
 - `gameVersion` (semver)
@@ -32,6 +34,7 @@ A Scenario is a configured instance of a Game.
 **File:** `scenario.json`
 
 Required fields:
+
 - `schemaVersion`
 - `scenarioId` (namespaced)
 - `gameId`
@@ -39,6 +42,7 @@ Required fields:
 - `params` (validated by the game)
 
 Notes:
+
 - `params` MUST be validated by the Game”™s schema.
 - Scenarios are safe to distribute and monetize as data packs.
 
@@ -49,6 +53,7 @@ A Match config binds scenario + competitors + sport constraints.
 **File:** `match_config.json`
 
 Required fields:
+
 - `schemaVersion`
 - `scenarioRef` (scenarioId and/or embedded scenario)
 - `seed`
@@ -58,6 +63,7 @@ Required fields:
 - optional `handicapRef` (handicapId) ”” only when explicitly allowed
 
 Notes:
+
 - Match manifests should capture the effective, computed constraints.
 
 ## Format (sport wrapper)
@@ -67,6 +73,7 @@ A Format defines match structure.
 **File:** `format.json`
 
 Typical fields:
+
 - `schemaVersion`
 - `formatId` (namespaced)
 - `name`
@@ -82,6 +89,7 @@ A Division defines the “cage rules” that apply equally to all competitors.
 **File:** `division.json`
 
 Typical fields:
+
 - `schemaVersion`
 - `divisionId` (namespaced)
 - `name`
@@ -100,6 +108,7 @@ Handicaps/boosts are **explicit**, **declared**, and **auditable** modifiers tha
 **File:** `handicap.json`
 
 Typical fields:
+
 - `schemaVersion`
 - `handicapId` (namespaced)
 - `name`
@@ -111,25 +120,28 @@ Typical fields:
 - `allowedContexts`: ranked / exhibition / training
 
 UI guidance:
+
 - Avoid the word “handicap” in viewer UI; present as sanctioned rule tweaks (e.g., “Stamina Tax +10%”).
 
 ## Artifacts (truth vs telemetry)
 
 Truth (must be verifiable):
+
 - `match.jsonl`
 - `match_manifest.json`
 - `match_summary.json` (hashes)
-- `tournament_manifest.json` (+ legacy alias `tournament.json`)
+- `tournament_manifest.json` (canonical; legacy `tournament.json` is dual-written during transition and will be removed)
 
 Telemetry (regenerable):
+
 - `moments.json`
 
 ## Required manifest linkage
 
 Match manifests should include:
+
 - scenario/game refs: `gameId`, `gameVersion`, `scenarioId`
 - sport refs: `formatId`, `divisionId`, optional `handicapId`
 - effective computed budgets/permissions (not just references)
 
 This prevents “secret nerfs” and supports verification across forks.
-

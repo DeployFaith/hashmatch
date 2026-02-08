@@ -27,19 +27,24 @@ All four checks (lint, format:check, typecheck, test) must pass before any commi
 
 ```
 src/
-  app/            Next.js pages (replay viewer, leaderboard, agents, matches, etc.)
-  cli/            CLI entry points (run-demo, run-match, run-tournament, replay-match)
+  app/            Next.js pages (replay viewer, leaderboard, agents, matches, director, settings)
+  cli/            CLI entry points (run-demo, run-match, run-tournament, replay-match, verify-match, verify-tournament, scenario)
   components/     React components (app shell, event feed, timeline, UI primitives)
   contract/       Type definitions and interfaces (Agent, Scenario, events)
-  core/           Core utilities (seeded RNG, stable JSON serialization)
-  engine/         Match execution engine (runMatch)
-  lib/            Replay library (parser, redaction, commentary, moments), models, store
-  agents/         Built-in agents (random, baseline)
-  scenarios/      Scenario implementations (numberGuess)
-  tournament/     Tournament orchestration (runTournament, artifacts, types)
-tests/            Test files using Vitest (*.test.ts) — 13 suites, 120 tests
-Documents/        Project documentation (12 spec/design documents)
+  core/           Core utilities (seeded RNG, stable JSON serialization, hashing, broadcast manifest)
+  engine/         Match execution engine (runMatch, gateway runner, heist competitive)
+  games/heist/    Heist game framework (types, generator, validator, preview)
+  gateway/        Remote agent communication (HTTP adapter, local adapter, transcript)
+  lib/            Replay library (parser, redaction, commentary, moments), models, mock data, store
+  agents/         Built-in agents (random, baseline, noop, randomBidder, conservative, ollama)
+  scenarios/      Scenario implementations (numberGuess, heist, resourceRivals)
+  server/         Backend match management (runner, artifacts, storage)
+  tournament/     Tournament orchestration (runTournament, artifacts, provenance, types)
+tests/            Test files using Vitest (*.test.ts) — 39 test files
+Documents/        Project documentation (21 spec/design documents)
 scripts/          Build/utility scripts (gen-sample-replay, validate-jsonl, shell scripts)
+scenarios/        Pre-generated heist scenario files (9 presets)
+examples/         Example HTTP agent server
 public/           Static assets (sample replay files)
 .github/          CI workflow and issue/PR templates
 ```
@@ -85,7 +90,8 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on every push to `main` and on 
 1. Checkout → Setup Node LTS → `npm ci`
 2. `npm run lint`
 3. `npm run typecheck`
-4. `npm test`
+4. `npm run build:engine`
+5. `npm test`
 
 All steps must pass for the pipeline to succeed. Run `npm run format:check` locally before committing (not yet in CI).
 
@@ -105,23 +111,34 @@ All steps must pass for the pipeline to succeed. Run `npm run format:check` loca
 
 ## Key Files
 
-| File                              | Purpose                                                     |
-| --------------------------------- | ----------------------------------------------------------- |
-| `src/index.ts`                    | Main entry point (re-exports)                               |
-| `src/engine/runMatch.ts`          | Core match execution engine                                 |
-| `src/tournament/runTournament.ts` | Round-robin tournament orchestration                        |
-| `src/contract/types.ts`           | Event types and domain types                                |
-| `src/contract/interfaces.ts`      | Agent, Scenario, and runner config interfaces               |
-| `src/app/replay/page.tsx`         | Web replay viewer                                           |
-| `src/lib/replay/`                 | Replay library (parser, redaction, commentary, moments)     |
-| `tests/smoke.test.ts`             | Smoke test verifying test setup                             |
-| `eslint.config.js`                | ESLint flat config with project rules                       |
-| `tsconfig.json`                   | TypeScript compiler options (Next.js + tests)               |
-| `tsconfig.build.json`             | TypeScript build config for engine/CLI                      |
-| `.prettierrc.json`                | Prettier formatting rules                                   |
-| `.github/workflows/ci.yml`        | CI pipeline definition                                      |
-| `CONTRIBUTING.md`                 | Contribution guidelines                                     |
-| `SECURITY.md`                     | Security vulnerability reporting (security@deployfaith.xyz) |
+| File                                | Purpose                                                        |
+| ----------------------------------- | -------------------------------------------------------------- |
+| `src/index.ts`                      | Main entry point (re-exports)                                  |
+| `src/engine/runMatch.ts`            | Core match execution engine                                    |
+| `src/engine/runMatchWithGateway.ts` | HTTP gateway-based match runner                                |
+| `src/tournament/runTournament.ts`   | Round-robin tournament orchestration                           |
+| `src/tournament/artifacts.ts`       | Tournament artifact generation (manifests, standings, bundles) |
+| `src/contract/types.ts`             | Event types and domain types                                   |
+| `src/contract/interfaces.ts`        | Agent, Scenario, and runner config interfaces                  |
+| `src/scenarios/numberGuess/`        | NumberGuess scenario                                           |
+| `src/scenarios/heist/`              | Heist stealth/objective scenario                               |
+| `src/scenarios/resourceRivals/`     | ResourceRivals hidden-information bidding scenario             |
+| `src/games/heist/`                  | Heist game framework (types, generator, validator, preview)    |
+| `src/gateway/`                      | Remote agent communication (HTTP + local adapters)             |
+| `src/cli/verify-match.ts`           | Match integrity verification CLI                               |
+| `src/cli/verify-tournament.ts`      | Tournament integrity verification CLI                          |
+| `src/cli/scenario.ts`               | Scenario CLI (list, generate, validate, preview)               |
+| `src/core/hash.ts`                  | SHA-256 hashing for artifact integrity                         |
+| `src/app/replay/page.tsx`           | Web replay viewer                                              |
+| `src/lib/replay/`                   | Replay library (parser, redaction, commentary, moments)        |
+| `src/lib/redaction/`                | Event redaction (`_private` field stripping)                   |
+| `eslint.config.js`                  | ESLint flat config with project rules                          |
+| `tsconfig.json`                     | TypeScript compiler options (Next.js + tests)                  |
+| `tsconfig.build.json`               | TypeScript build config for engine/CLI                         |
+| `.prettierrc.json`                  | Prettier formatting rules                                      |
+| `.github/workflows/ci.yml`          | CI pipeline definition                                         |
+| `CONTRIBUTING.md`                   | Contribution guidelines                                        |
+| `SECURITY.md`                       | Security vulnerability reporting (security@deployfaith.xyz)    |
 
 ## Secrets Policy
 

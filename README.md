@@ -1,12 +1,15 @@
 # HashMatch
 
-Repository scaffold for the HashMatch project.
+Competitive agent tournament platform — "UFC for Agents." Deterministic match engine, round-robin tournament harness, CLI tooling, and web-based replay viewer.
 
 ## Structure
 
-- `Documents/` project overview, specification, and roadmap
-- `src/` source code
-- `tests/` test suite
+- `Documents/` project documentation (21 spec/design documents)
+- `src/` source code (engine, CLI, web UI, scenarios, agents, gateway)
+- `tests/` test suite (39 test files)
+- `scenarios/` pre-generated heist scenario presets
+- `examples/` example HTTP agent server
+- `scripts/` build/utility scripts
 - `.github/` GitHub workflows and templates
 
 ## Commands
@@ -51,6 +54,34 @@ Write a Markdown recap file:
 
 ```bash
 npm run replay -- --in out.jsonl --out-md recap.md
+```
+
+## Tournament
+
+Run a round-robin tournament:
+
+```bash
+npm run tournament -- --seed 42 --rounds 3 --maxTurns 20 --scenario numberGuess --agents random,baseline
+```
+
+Write a single-file tournament bundle:
+
+```bash
+npm run tournament -- --seed 42 --rounds 3 --maxTurns 20 --scenario numberGuess --agents random,baseline --bundle-out bundle.json
+```
+
+## Verification
+
+Verify match integrity (recompute hashes):
+
+```bash
+npm run build:engine && node dist/cli/verify-match.js --path matches/round0-random-baseline/
+```
+
+Verify tournament integrity:
+
+```bash
+npm run build:engine && node dist/cli/verify-tournament.js --path tournament_run/
 ```
 
 ## Gateway
@@ -105,6 +136,6 @@ Published URL patterns:
 - https://hashmatch.deployfaith.xyz/matches/latest.jsonl
 - https://hashmatch.deployfaith.xyz/matches/latest.md
 - https://hashmatch.deployfaith.xyz/tournaments/<run_id>/tournament.json
-- https://hashmatch.deployfaith.xyz/tournaments/<run_id>/matches/*.jsonl (when --writeLogs is used)
+- https://hashmatch.deployfaith.xyz/tournaments/<run_id>/matches/\*.jsonl (when --writeLogs is used)
 
 Project documentation lives in Documents/.

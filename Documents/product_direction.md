@@ -15,14 +15,12 @@ Long-term: **buy-ins and prize pools**, with real stakes (stablecoin only when p
 ## 2. Two Non-Negotiables
 
 1. **Entertainment is mandatory**
-
-   * Storylines, rivalries, “fight night” energy, prime-time presentation.
-   * Matches must be watchable, not just benchmark-y.
+   - Storylines, rivalries, “fight night” energy, prime-time presentation.
+   - Matches must be watchable, not just benchmark-y.
 
 2. **Trust is mandatory**
-
-   * Outcomes must be verifiable.
-   * We need to be able to prove matches weren”™t rigged or tampered with.
+   - Outcomes must be verifiable.
+   - We need to be able to prove matches weren”™t rigged or tampered with.
 
 If we ever have to trade one off against the other, the answer is: **don”™t ship that mode yet**.
 
@@ -30,21 +28,21 @@ If we ever have to trade one off against the other, the answer is: **don”™t 
 
 HashMatch serves two overlapping audiences:
 
-* **Spectators (fans):** here for drama, action, highlights, analysis, and personalities.
-* **Builders (competitors):** here to build/train/coach agents, compete, and earn reputation.
+- **Spectators (fans):** here for drama, action, highlights, analysis, and personalities.
+- **Builders (competitors):** here to build/train/coach agents, compete, and earn reputation.
 
 The pitch:
 
-* **Builders:** “Build, train, coach and lead your agents to victory.”
-* **Spectators:** “Come for the entertainment ”” you don”™t need to code to enjoy it.”
+- **Builders:** “Build, train, coach and lead your agents to victory.”
+- **Spectators:** “Come for the entertainment ”” you don”™t need to code to enjoy it.”
 
 ## 4. What a Match Is
 
 A match is a **head-to-head contest between two custom agents** in a defined scenario.
 
-* 1v1 is the core format for the main league.
-* Teams and brackets are primary extensions.
-* Sandbox may include free-for-alls or experimental formats.
+- 1v1 is the core format for the main league.
+- Teams and brackets are primary extensions.
+- Sandbox may include free-for-alls or experimental formats.
 
 Match length is intentionally TBD.
 
@@ -54,10 +52,10 @@ Current direction: **there are no ties** for official competition.
 
 Exact mechanisms are TBD and may vary by scenario/mode:
 
-* best-of series
-* sudden death
-* scenario-defined tie-break mini-round
-* deterministic efficiency tie-break (time/moves/resources)
+- best-of series
+- sudden death
+- scenario-defined tie-break mini-round
+- deterministic efficiency tie-break (time/moves/resources)
 
 The core engine should not hard-code any single tie-break rule.
 
@@ -65,26 +63,26 @@ The core engine should not hard-code any single tie-break rule.
 
 We expect multiple “rule worlds” (names TBD). Conceptually:
 
-* **Sanctioned / Tournament:** ironclad integrity (especially with money/prizes)
-* **Exhibition:** entertainment experiments (controlled chaos allowed)
-* **Sandbox:** open experimentation (looser rules; can be anonymous)
+- **Sanctioned / Tournament:** ironclad integrity (especially with money/prizes)
+- **Exhibition:** entertainment experiments (controlled chaos allowed)
+- **Sandbox:** open experimentation (looser rules; can be anonymous)
 
 Mode profiles will eventually control:
 
-* randomness policy
-* allowed tools / internet access
-* resource budgets (time/memory)
-* visibility / reveal rules (what spectators see live)
-* verification requirements and receipts
+- randomness policy
+- allowed tools / internet access
+- resource budgets (time/memory)
+- visibility / reveal rules (what spectators see live)
+- verification requirements and receipts
 
 ## 7. Trust Model (High Level)
 
 Trust is built from **reproducibility** + **provenance**.
 
-* Deterministic runner (seeded RNG only)
-* Complete JSONL event log (“logs are truth”)
-* Version stamping (scenario/agent/runner versions)
-* Eventually: hashes + signatures (“receipts”)
+- Deterministic runner (seeded RNG only)
+- Complete JSONL event log (“logs are truth”)
+- Version stamping (scenario/agent/runner versions)
+- Eventually: hashes + signatures (“receipts”)
 
 Public verification should be possible for sanctioned matches.
 
@@ -94,8 +92,8 @@ Hidden-information scenarios are desired in some capacity.
 
 Core principle:
 
-* Do **not** leak secrets mid-match.
-* Keep public summaries safe; reveal secrets at match end.
+- Do **not** leak secrets mid-match.
+- Keep public summaries safe; reveal secrets at match end.
 
 Spectator viewers must handle asymmetric observations carefully.
 
@@ -111,35 +109,37 @@ Admins operate in Truth + Telemetry (run/publish/dispute). Spectators consume Te
 
 ## 10. Identity & Community Direction
 
-* Tournaments are **not anonymous**.
-* We want teams, rivalries, and recognizable competitors.
-* Sandbox may allow anonymous participation.
+- Tournaments are **not anonymous**.
+- We want teams, rivalries, and recognizable competitors.
+- Sandbox may allow anonymous participation.
 
 ## 11. Economy Direction
 
-* Development: **points only**
-* Production: **stablecoin only** for prize pools (careful, trust-first)
+- Development: **points only**
+- Production: **stablecoin only** for prize pools (careful, trust-first)
 
 Exact escrow/payout mechanisms are intentionally TBD.
 
 ## 12. Open Decisions (Intentionally TBD)
 
-These must be decided deliberately; we are not locking them “on a whim.”
+These must be decided deliberately; we are not locking them "on a whim."
 
 1. Final mode profile names and precise constraints
 2. Randomness policy for sanctioned play (none vs seeded vs scenario-specific)
-3. Tie-break rules by scenario/mode
-4. Spectator reveal rules (what is visible live vs after)
+3. ~~Tie-break rules by scenario/mode~~ — **Resolved:** win=3/draw=1/loss=0, tie-breakers: head-to-head → scoreDiff → totalPointsScored → seed coinflip (see `tournament_rules.md` §8–9)
+4. ~~Spectator reveal rules (what is visible live vs after)~~ — **Resolved:** `_private` field-level redaction convention implemented; three viewer modes (spectator/postMatch/director); see `specification.md` §5.4
 5. External tools / internet access (which modes, and how to record tool I/O)
 6. Admin intervention / safety hatch policy (pause/abort/restart) and logging
 7. Match length standards (snackable vs medium vs episode)
 
 ## 13. Build Implications (Right Now)
 
-What we should build next without needing the TBDs:
+The following are now implemented:
 
-* Tournament harness (batch runs + standings) using deterministic seeds
-* Replay viewer that renders JSONL logs (watchability MVP)
-* Artifact manifests + version stamping (integrity foundation)
+- ✅ Tournament harness (batch runs + standings) using deterministic seeds
+- ✅ Replay viewer that renders JSONL logs (watchability MVP)
+- ✅ Artifact manifests + version stamping (integrity foundation)
+- ✅ Three scenarios (NumberGuess, ResourceRivals, Heist)
+- ✅ Verification CLIs (verify-match, verify-tournament)
 
-These move us toward “league feel” while keeping the big product decisions flexible.
+Remaining work focuses on signed receipts, bundle validation, tournament operations, and online infrastructure.

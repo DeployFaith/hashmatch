@@ -66,19 +66,19 @@ Guards are deterministic state machines, **not** competing agents.
 
 All interactions resolve deterministically based on entity type + item used. The table is data-authorable — scenario params define which entities exist, required items, and side effects.
 
-| Entity       | Item Used          | Result                                              |
-| ------------ | ------------------ | --------------------------------------------------- |
-| Locked door  | Matching keycard   | Opens (no noise)                                    |
-| Locked door  | Lockpick           | Opens (noise generated)                             |
-| Locked door  | Nothing            | Fail + penalty noise                                |
-| Terminal     | Nothing            | Hack attempt (multi-turn progress bar or alarm)     |
-| Vault        | Required code item | Opens (high noise)                                  |
-| Camera       | EMP                | Disabled for N turns                                |
-| Camera       | Nothing            | Fail — no effect, agent detected if in range        |
-| Guard        | Nothing            | Fail → immediate alert escalation                   |
-| Loot item    | Nothing            | Picked up, added to inventory                       |
-| Keycard      | Nothing            | Picked up, added to inventory                       |
-| Tool (EMP)   | Nothing            | Picked up, added to inventory                       |
+| Entity      | Item Used          | Result                                          |
+| ----------- | ------------------ | ----------------------------------------------- |
+| Locked door | Matching keycard   | Opens (no noise)                                |
+| Locked door | Lockpick           | Opens (noise generated)                         |
+| Locked door | Nothing            | Fail + penalty noise                            |
+| Terminal    | Nothing            | Hack attempt (multi-turn progress bar or alarm) |
+| Vault       | Required code item | Opens (high noise)                              |
+| Camera      | EMP                | Disabled for N turns                            |
+| Camera      | Nothing            | Fail — no effect, agent detected if in range    |
+| Guard       | Nothing            | Fail → immediate alert escalation               |
+| Loot item   | Nothing            | Picked up, added to inventory                   |
+| Keycard     | Nothing            | Picked up, added to inventory                   |
+| Tool (EMP)  | Nothing            | Picked up, added to inventory                   |
 
 Additional interactions may be defined per scenario via the params blob. The engine resolves interactions by looking up `(entityType, itemId | null)` in the interaction table.
 
@@ -87,25 +87,27 @@ Additional interactions may be defined per scenario via the params blob. The eng
 **Primary win condition:** Reach the extraction room while holding all required objective items.
 
 **Failure conditions:**
+
 - Turns exhausted (time out)
 - Alert hits max level (capture/lockdown)
 
 **Scoring** (for ranking beyond binary win/loss):
 
-| Component                  | Value                              | Purpose               |
-| -------------------------- | ---------------------------------- | --------------------- |
-| `objectiveSecured`         | Large fixed points (e.g., 1000)    | Primary goal          |
-| `extractionBonus`          | Fixed points (e.g., 500)           | Completed the mission |
-| `turnsRemainingMultiplier` | `turnsLeft × N`                    | Rewards efficiency    |
-| `lootMultiplier`           | `loot.scoreValue × multiplier`     | Optional side goals   |
-| `alertPenaltyPerLevel`     | Negative per alert level at end    | Penalizes sloppiness  |
-| `invalidActionPenalty`     | Negative per invalid action        | Penalizes bad play    |
+| Component                  | Value                           | Purpose               |
+| -------------------------- | ------------------------------- | --------------------- |
+| `objectiveSecured`         | Large fixed points (e.g., 1000) | Primary goal          |
+| `extractionBonus`          | Fixed points (e.g., 500)        | Completed the mission |
+| `turnsRemainingMultiplier` | `turnsLeft × N`                 | Rewards efficiency    |
+| `lootMultiplier`           | `loot.scoreValue × multiplier`  | Optional side goals   |
+| `alertPenaltyPerLevel`     | Negative per alert level at end | Penalizes sloppiness  |
+| `invalidActionPenalty`     | Negative per invalid action     | Penalizes bad play    |
 
 Scoring weights are tunable per scenario preset. Defaults are locked in code.
 
 ## 8. Broadcast / Watchability
 
 **Headline metrics** (always visible to spectators):
+
 - Alert level — tension meter (the "health bar equivalent")
 - Objectives: X/Y secured
 - Turns remaining — the clock
@@ -113,14 +115,14 @@ Scoring weights are tunable per scenario preset. Defaults are locked in code.
 
 **Moment hooks** (for `moments.json` and commentary):
 
-| Moment ID            | Trigger                                               |
-| -------------------- | ----------------------------------------------------- |
-| `alert_escalation`   | Any event bumping alert level                         |
-| `near_miss`          | Agent adjacent to guard, no detection                 |
-| `vault_cracked`      | Major objective event (vault opened)                  |
-| `blunder`            | Invalid action or failed interaction triggering alarm |
-| `clutch_extraction`  | Objective + extraction with ≤3 turns remaining        |
-| `speed_run`          | Extraction in <40% of turn budget                     |
+| Moment ID           | Trigger                                               |
+| ------------------- | ----------------------------------------------------- |
+| `alert_escalation`  | Any event bumping alert level                         |
+| `near_miss`         | Agent adjacent to guard, no detection                 |
+| `vault_cracked`     | Major objective event (vault opened)                  |
+| `blunder`           | Invalid action or failed interaction triggering alarm |
+| `clutch_extraction` | Objective + extraction with ≤3 turns remaining        |
+| `speed_run`         | Extraction in <40% of turn budget                     |
 
 ## 9. Map Generation (Procedural)
 
@@ -151,16 +153,16 @@ Generated maps must satisfy all of the following:
 
 ## 11. Generator Knobs
 
-| Knob                   | Values / Range                          | Notes                             |
-| ---------------------- | --------------------------------------- | --------------------------------- |
-| `rooms`                | min/max count, branchiness              | Controls map size and complexity  |
-| `security`             | guards on/off + count, cameras on/off + count | Threat density              |
-| `hazards`              | on/off + severity                       | Environmental dangers             |
-| `timeLimit`            | strict / lenient (`maxTurns`)           | Turn budget                       |
-| `loot`                 | none / low / medium / high              | Optional side objectives          |
-| `tools`                | allowed / forbidden                     | May be division-dependent         |
-| `objectiveComplexity`  | Number of code fragments required       | Vault unlock requirements         |
-| `difficultyPresets`    | easy / medium / hard                    | Composite presets combining above |
+| Knob                  | Values / Range                                | Notes                             |
+| --------------------- | --------------------------------------------- | --------------------------------- |
+| `rooms`               | min/max count, branchiness                    | Controls map size and complexity  |
+| `security`            | guards on/off + count, cameras on/off + count | Threat density                    |
+| `hazards`             | on/off + severity                             | Environmental dangers             |
+| `timeLimit`           | strict / lenient (`maxTurns`)                 | Turn budget                       |
+| `loot`                | none / low / medium / high                    | Optional side objectives          |
+| `tools`               | allowed / forbidden                           | May be division-dependent         |
+| `objectiveComplexity` | Number of code fragments required             | Vault unlock requirements         |
+| `difficultyPresets`   | easy / medium / hard                          | Composite presets combining above |
 
 ## 12. Params Schema
 
@@ -177,6 +179,7 @@ The params blob lives inside `scenario.json.params` and contains:
 TypeScript types will be defined in `src/games/heist/types.ts`.
 
 **Key schema decisions:**
+
 - Doors are the adjacency source of truth (rooms don't declare adjacent).
 - Code fragments / hack outputs are items with type `"intel"` (no room spawn — granted by terminal interaction).
 - Noise/alert model: thresholds array, decay rate, and cumulative tracking are all explicit in params.
@@ -184,6 +187,34 @@ TypeScript types will be defined in `src/games/heist/types.ts`.
 ## 13. Open Decisions (resolve in code)
 
 - **Detection model:** Range-only in v0. Directional cones deferred to v1+.
-- **Multi-agent:** Solo (agent vs environment) for v0. Parallel competition (two agents independently, same map, compare scores) for v1.
+- **Multi-agent:** Solo (agent vs environment) for v0. Parallel competition (two agents independently, same map, compare scores) implemented via `src/engine/heistCompetitive.ts`.
 - **Stealth:** Implicit via `wait` + room cover properties in v0. Explicit `hide` action in v1+.
 - **Scoring weights:** Tunable per preset. Lock defaults in code — presets override.
+
+## 14. Implementation Status (Repo Audit)
+
+Last audited: 2026-02-07
+
+The Heist game framework is **fully implemented**.
+
+| Component                                        | Status | Evidence                                                        |
+| ------------------------------------------------ | ------ | --------------------------------------------------------------- |
+| Params schema + TypeScript types                 | ✅     | `src/games/heist/types.ts`, `src/games/heist/generatorTypes.ts` |
+| Procedural map generator                         | ✅     | `src/games/heist/generator.ts`                                  |
+| Validator (BFS reachability + dependency DAG)    | ✅     | `src/games/heist/validator.ts`, `src/games/heist/validation.ts` |
+| Preview (ASCII minimap + text description)       | ✅     | `src/games/heist/preview.ts`                                    |
+| Heist scenario (game rules + scoring)            | ✅     | `src/scenarios/heist/index.ts`                                  |
+| Heist competitive runner                         | ✅     | `src/engine/heistCompetitive.ts`                                |
+| CLI: `scenario gen\|validate\|preview\|describe` | ✅     | `src/cli/scenario.ts`                                           |
+| Curated presets (3 themes × 3 seeds)             | ✅     | `scenarios/heist/` (9 files)                                    |
+| Ollama LLM agent adapter                         | ✅     | `src/agents/ollama/heistAdapter.ts`                             |
+| Tests                                            | ✅     | 7 files: `tests/heist-*.test.ts`                                |
+
+### Differences from this spec
+
+| Spec                                                 | Actual                                                                                         |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| TypeScript types in `src/games/heist/types.ts` (§12) | Implemented as specified                                                                       |
+| CLI uses `hm scenario` (§12)                         | CLI uses `src/cli/scenario.ts` invoked via `npm run build:engine && node dist/cli/scenario.js` |
+| Multi-agent parallel competition (§13, v1)           | Implemented in `src/engine/heistCompetitive.ts` (`combineHeistRuns()`)                         |
+| Difficulty presets: easy/medium/hard (§11)           | Implemented as easy/normal/hard/expert in generator                                            |

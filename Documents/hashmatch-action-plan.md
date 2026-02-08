@@ -8,9 +8,11 @@
 
 ## Preamble: Where We Are
 
-The project has a working core loop: a deterministic tournament harness runs round-robin matches, writes structured output folders, and an interactive web replay viewer renders them with spoiler protection, redaction modes, and filtering. One scenario (NumberGuess) and two agents (random, baseline) exist. Twelve coherent design documents define the full system architecture.
+> **Status update (2026-02-07):** Phases 0–3 are substantially complete. Three scenarios exist (NumberGuess, ResourceRivals, Heist). The Heist game framework is fully implemented with procedural generation, validation, and CLI. See per-phase status notes below.
 
-What's missing is signed receipts, bundle validation/local registry tooling, and the remaining show-layer experiments (scene/storyboard prompts).
+The project has a working core loop: a deterministic tournament harness runs round-robin matches, writes structured output folders, and an interactive web replay viewer renders them with spoiler protection, redaction modes, and filtering. Three scenarios (NumberGuess, ResourceRivals, Heist) and multiple agents (random, baseline, noop, randomBidder, conservative, ollama) exist. Twenty-one design documents define the full system architecture.
+
+What's remaining: signed receipts, bundle validation/local registry tooling, scene/storyboard prompts (show layer), tournament operations, and online infrastructure.
 
 The plan below is ordered by dependency and strategic value. It begins with decisions that must be locked before any code ships, then sequences implementation work with explicit parallelism where safe.
 
@@ -26,12 +28,12 @@ The plan below is ordered by dependency and strategic value. It begins with deci
 
 Recommended resolution:
 
-| Artifact | Canonical Name | Notes |
-|----------|---------------|-------|
+| Artifact            | Canonical Name             | Notes                                                                                                                                           |
+| ------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | Tournament manifest | `tournament_manifest.json` | Current code dual-writes `tournament_manifest.json` (canonical) and legacy `tournament.json` for one release, then deprecates `tournament.json` |
-| Match manifest | `match_manifest.json` | Implemented ”” keep this name as canonical |
-| Match summary | `match_summary.json` | Already consistent ”” no change |
-| Standings | `standings.json` | Already consistent ”” no change |
+| Match manifest      | `match_manifest.json`      | Implemented ”” keep this name as canonical                                                                                                      |
+| Match summary       | `match_summary.json`       | Already consistent ”” no change                                                                                                                 |
+| Standings           | `standings.json`           | Already consistent ”” no change                                                                                                                 |
 
 **Where to record:** `specification.md` §3”“4 as the canonical artifact names. Update `tournament_harness_v0.md`, `artifact_packaging.md`, `roadmap.md` to match.
 
@@ -42,10 +44,10 @@ Recommended resolution:
 Recommended resolution:
 
 | Outcome | Points |
-|---------|--------|
-| Win | 3 |
-| Draw | 1 |
-| Loss | 0 |
+| ------- | ------ |
+| Win     | 3      |
+| Draw    | 1      |
+| Loss    | 0      |
 
 This is what the code already does. It rewards winning over drawing, which aligns with the "no ties" product direction.
 
@@ -66,24 +68,28 @@ This is what the code already does. It rewards winning over drawing, which align
 Recommended resolution:
 
 **General rules:**
+
 - Hash algorithm: SHA-256
 - Hash input: raw bytes of the file as written to disk ”” never parsed/re-serialized
 - Encoding: UTF-8, no BOM
 - Hashes are represented as lowercase hex strings
 
 **JSONL files (`match.jsonl`):**
+
 - Every line ends with `\n` (LF, 0x0A)
 - The file ends with a final `\n` (i.e., no content after the last newline)
 - No trailing spaces on any line
 - One JSON object per line, serialized by the stable serializer
 
 **JSON manifest files (`match_manifest.json`, `tournament_manifest.json`):**
+
 - Written by the project's stable JSON serializer (`src/core/json.ts`)
 - Deterministic key ordering
 - Hash the literal bytes as written
 - File ends with a final `\n`
 
 **Hash scope for manifests:**
+
 - Define a `manifestCore` concept: the subset of manifest fields included in hash computation
 - `createdAt` and other human-convenience timestamps are excluded from `manifestCore`
 - `manifestHash` is computed over the canonical `manifestCore` bytes, not the full file
@@ -143,6 +149,7 @@ agents[].contentHash
 ```
 
 **Implementation notes:**
+
 - Use the stable JSON serializer for deterministic output
 - Terminate file with `\n`
 - This is a truth-layer artifact
@@ -176,6 +183,7 @@ createdAt (excluded from hash scope)
 **What:** Compute and store hashes for truth artifacts.
 
 **Hashes to compute per match:**
+
 - `logHash`: SHA-256 of `match.jsonl` raw bytes
 - `manifestHash`: SHA-256 of `match_manifest.json` manifestCore bytes
 
@@ -191,6 +199,7 @@ createdAt (excluded from hash scope)
 ```
 
 **Optional per-tournament:**
+
 - `truthBundleHash`: SHA-256 over concatenated (sorted) per-match logHash values
 
 ### 1.4 ”” `verify-match` CLI
@@ -204,6 +213,7 @@ verify-match --path matches/round0-agentA-agentB/
 ```
 
 **Behavior:**
+
 1. Read `match.jsonl` and `match_manifest.json`
 2. Recompute `logHash` and `manifestHash`
 3. Read stored hashes from `match_summary.json`
@@ -223,6 +233,7 @@ verify-tournament --path tournament_run/
 ```
 
 **Behavior:**
+
 1. Validate tournament folder structure (required files present)
 2. Run `verify-match` logic for every match
 3. Recompute standings from match summaries using the declared scoring model
@@ -233,7 +244,9 @@ verify-tournament --path tournament_run/
 
 ---
 
-## Phase 2: Scenario #2 (Parallel Track)
+## Phase 2: Scenario #2 (Parallel Track) — ✅ Done
+
+> **Status (2026-02-07):** ResourceRivals is implemented as the hidden-information scenario (`src/scenarios/resourceRivals/`). It uses `_private` field-level redaction, exercises score swings, and is tested in `tests/resourceRivals.test.ts`. Additionally, the Heist scenario (`src/scenarios/heist/`) provides a third scenario with procedural generation.
 
 **Goal:** A second scenario that exercises hidden information, score swings, and the redaction/reveal pipeline. This is both a content deliverable and a verification test vector.
 
@@ -242,6 +255,7 @@ verify-tournament --path tournament_run/
 ### 2.1 ”” Scenario Design
 
 **Requirements:**
+
 - Multi-turn strategic interaction (not guessing)
 - Hidden information (private observations per agent)
 - Score swings and reversals are structurally possible
@@ -252,6 +266,7 @@ verify-tournament --path tournament_run/
 **Suggested direction:** A resource-management or territory-control game where agents make allocation decisions with partial visibility of the opponent's state. The key is that spectators can follow the public state while private decisions create tension that resolves at reveal.
 
 **Design checklist (from `scenario_design_guidelines.md`):**
+
 - [ ] Observation model defined (public vs private fields)
 - [ ] Action space defined
 - [ ] Transition function deterministic under seed
@@ -287,7 +302,9 @@ Run the new scenario through the full pipeline and verify:
 
 ---
 
-## Phase 3: Watchability Upgrade
+## Phase 3: Watchability Upgrade — ✅ Done
+
+> **Status (2026-02-07):** Moment detection with 6 heuristics is implemented (`src/lib/replay/detectMoments.ts`). `moments.json` and `highlights.json` are produced per match by the tournament harness. Viewer auto-play with speed control and keyboard shortcuts is implemented.
 
 **Goal:** Matches feel like something you'd want to watch, not just inspect.
 
@@ -297,14 +314,14 @@ Run the new scenario through the full pipeline and verify:
 
 **Upgrade `src/lib/replay/detectMoments.ts` to detect:**
 
-| Moment Type | Heuristic |
-|-------------|-----------|
-| Score swing | Score delta exceeds threshold within N turns |
-| Critical error | `AgentError` event or invalid action at high-stakes turn |
+| Moment Type       | Heuristic                                                  |
+| ----------------- | ---------------------------------------------------------- |
+| Score swing       | Score delta exceeds threshold within N turns               |
+| Critical error    | `AgentError` event or invalid action at high-stakes turn   |
 | Near-win reversal | Agent within X points of winning, then opponent closes gap |
-| Last-turn win | Match outcome decided on final turn |
-| Blunder | Invalid action that demonstrably costs points |
-| Comeback | Agent recovers from >Y point deficit to win |
+| Last-turn win     | Match outcome decided on final turn                        |
+| Blunder           | Invalid action that demonstrably costs points              |
+| Comeback          | Agent recovers from >Y point deficit to win                |
 
 **Implementation:** Same shared library, used by both viewer (on-the-fly) and harness (optional `moments.json` output).
 
@@ -370,6 +387,7 @@ Checks: required files present, classification correct, hashes match if declared
 ### 4.3 ”” Doc Reconciliation Pass
 
 Update all 12 documents to reflect:
+
 - Canonical filenames (Lock 1)
 - Scoring model (Lock 2)
 - Hashing rules (Lock 3)
@@ -387,6 +405,7 @@ This should be a single, deliberate pass ”” not incremental drift fixes.
 ### 5.1 ”” Agent Project Template
 
 A minimal starter repo/directory with:
+
 - Agent contract interface
 - Example agent (copy of baselineAgent with comments)
 - Local test harness invocation example
@@ -395,6 +414,7 @@ A minimal starter repo/directory with:
 ### 5.2 ”” Scenario Authoring Guide
 
 A practical companion to `scenario_design_guidelines.md`:
+
 - Step-by-step "create a scenario" tutorial
 - NumberGuess as annotated example
 - Scenario #2 as annotated example (once complete)
@@ -463,6 +483,7 @@ Phase 0: Decision Locks (BLOCKING ”” nothing else starts until these are rec
 ```
 
 Key parallelism:
+
 - **Scenario #2** starts as soon as match_manifest.json lands, runs parallel with verify-tournament
 - **Watchability** starts as soon as hashing lands and Scenario #2 produces matches
 - **Packaging** starts after Phase 1 is stable
@@ -473,15 +494,15 @@ Key parallelism:
 
 At the end of this plan:
 
-| Milestone | "Done" Means |
-|-----------|-------------|
-| Decision Locks | All 4 locks recorded in spec docs, contradictions deleted |
-| Trust Foundation | Every match has a manifest + hashes, verify CLI gives pass/fail |
-| Scenario #2 | Hidden-info scenario runs in tournaments, exercises redaction pipeline |
-| Watchability | Moments detect score swings/blunders/reversals, viewer can auto-play |
-| Packaging | Broadcast bundles are self-describing, validated, and shareable |
-| Developer On-Ramp | A stranger can build an agent and run it locally from the README |
-| Fight Night | A tournament can be packaged and "presented" as an event |
+| Milestone         | "Done" Means                                                           | Status                                                                             |
+| ----------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Decision Locks    | All 4 locks recorded in spec docs, contradictions deleted              | ✅ Done                                                                            |
+| Trust Foundation  | Every match has a manifest + hashes, verify CLI gives pass/fail        | ✅ Done                                                                            |
+| Scenario #2       | Hidden-info scenario runs in tournaments, exercises redaction pipeline | ✅ Done (ResourceRivals + Heist)                                                   |
+| Watchability      | Moments detect score swings/blunders/reversals, viewer can auto-play   | ✅ Done                                                                            |
+| Packaging         | Broadcast bundles are self-describing, validated, and shareable        | 🟨 Partial (broadcast manifest done; local registry + bundle validation remaining) |
+| Developer On-Ramp | A stranger can build an agent and run it locally from the README       | ✬ Not started                                                                      |
+| Fight Night       | A tournament can be packaged and "presented" as an event               | ✬ Not started                                                                      |
 
 ---
 

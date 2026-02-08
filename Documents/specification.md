@@ -6,7 +6,7 @@ It is not an API reference. It defines the components, data flows, and the minim
 
 ## 0. Guiding Constraints
 
-- Offline first (no servers/DB required for core loop)
+- Core loop works without servers/DB (current implementation is offline-first; product direction is evolving toward live-first — see `hashmatch_live_platform_direction_decision_architecture.md`)
 - Deterministic outputs for sanctioned modes
 - Portable artifact bundles
 - Spectator watchability is a requirement
@@ -333,11 +333,14 @@ The system must support:
 - receipt validation
 - optional re-run reproduction
 
-## 13. Non”‘Goals (For Now)
+## 13. Non"'Goals (For Now)
 
-- online platform features
 - live betting
 - on-chain settlement
+
+The following are future work that is now directionally planned (see `hashmatch_live_platform_direction_decision_architecture.md`):
+
+- live platform features (matches watched via URLs in real time)
 - real-time streaming infrastructure
 
-All of these are future layers on top of the offline core loop.
+These remain future layers on top of the current offline core loop.

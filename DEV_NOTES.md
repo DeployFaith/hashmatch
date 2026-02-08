@@ -11,16 +11,16 @@ No backend. All data is mock, validated by Zod, stored in-memory via Zustand.
 
 ## Tech Stack
 
-| Layer | Choice |
-|-------|--------|
-| Framework | Next.js 16 (App Router, Turbopack) |
-| Language | TypeScript (strict) |
-| Styling | Tailwind CSS v4 + custom theme tokens |
+| Layer      | Choice                                      |
+| ---------- | ------------------------------------------- |
+| Framework  | Next.js 16 (App Router, Turbopack)          |
+| Language   | TypeScript (strict)                         |
+| Styling    | Tailwind CSS v4 + custom theme tokens       |
 | Components | shadcn/ui-style primitives (Radix UI + cva) |
-| Icons | lucide-react |
-| State | Zustand (single store) |
-| Validation | Zod v4 (schemas for all models) |
-| Tests | Vitest (existing engine tests preserved) |
+| Icons      | lucide-react                                |
+| State      | Zustand (single store)                      |
+| Validation | Zod v4 (schemas for all models)             |
+| Tests      | Vitest (existing engine tests preserved)    |
 
 ## Project Structure
 
@@ -66,7 +66,17 @@ src/
 │   │   └── index.ts
 │   ├── replay/             # Replay viewer logic
 │   │   ├── parser.ts       # Zod schemas for engine events + JSONL parser
+│   │   ├── parseJsonl.ts   # Raw JSONL line parsing with seq ordering
 │   │   ├── adapter.ts      # Engine events → UI view model adapter
+│   │   ├── event.ts        # Event normalization and schema
+│   │   ├── redaction.ts    # Event redaction for visibility control
+│   │   ├── detectMoments.ts # Moment detection (6 heuristic types)
+│   │   ├── generateHighlights.ts # Highlight script generation
+│   │   ├── commentary.ts   # Commentary file loading and querying
+│   │   ├── bundle.ts       # Tournament bundle handling
+│   │   ├── validateJsonl.ts # JSONL validation
+│   │   ├── eventSource.ts  # Event streaming from file or network
+│   │   ├── fixtures/       # Sample match data for testing
 │   │   └── index.ts
 │   ├── store.ts            # Zustand store (data + theme + selectors + replay)
 │   └── utils.ts            # cn() utility (clsx + tailwind-merge)
@@ -75,6 +85,7 @@ src/
 ## State Management
 
 Single Zustand store (`useAppStore`) holds:
+
 - **Data arrays**: agents, matches, events, runs, flows (shallow-copied from mock)
 - **Replay metadata**: `replayMeta` — provenance info keyed by matchId
 - **Theme**: `"dark" | "light"` with `setTheme` and `toggleTheme`
@@ -89,13 +100,13 @@ Dark/light theme implemented via CSS custom properties in `globals.css` using Ta
 
 ## Scripts
 
-| Command | Purpose |
-|---------|---------|
-| `npm run dev` | Start Next.js dev server |
-| `npm run build` | Production build (Next.js) |
-| `npm run lint` | ESLint (src + tests) |
-| `npm run typecheck` | TypeScript type check |
-| `npm test` | Run Vitest tests |
+| Command                | Purpose                                   |
+| ---------------------- | ----------------------------------------- |
+| `npm run dev`          | Start Next.js dev server                  |
+| `npm run build`        | Production build (Next.js)                |
+| `npm run lint`         | ESLint (src + tests)                      |
+| `npm run typecheck`    | TypeScript type check                     |
+| `npm test`             | Run Vitest tests                          |
 | `npm run build:engine` | Build engine code (tsc, outputs to dist/) |
 
 ## Match outputs (local)
@@ -137,6 +148,7 @@ The replay viewer loads engine JSONL event logs and renders them as spectator-fr
 ### Filtering
 
 The Timeline tab includes an `EventFilterBar` component with controls for:
+
 - Event type (dropdown)
 - Agent ID (dropdown)
 - Turn number (dropdown)
@@ -151,15 +163,15 @@ Filters apply to both the grouped Timeline view and the flat EventFeed below it.
 
 ### Key files
 
-| File | Purpose |
-|------|---------|
-| `src/lib/replay/parser.ts` | Zod schemas for engine events + JSONL parser |
-| `src/lib/replay/adapter.ts` | Engine events → UI view model adapter |
-| `src/lib/replay/index.ts` | Re-exports |
-| `src/components/replay-loader.tsx` | File upload + sample fetch UI |
-| `src/components/event-filter-bar.tsx` | Filter controls + filter logic |
-| `src/app/replay/page.tsx` | Replay loading page |
-| `public/replays/number-guess-demo.jsonl` | Sample replay file |
+| File                                     | Purpose                                      |
+| ---------------------------------------- | -------------------------------------------- |
+| `src/lib/replay/parser.ts`               | Zod schemas for engine events + JSONL parser |
+| `src/lib/replay/adapter.ts`              | Engine events → UI view model adapter        |
+| `src/lib/replay/index.ts`                | Re-exports                                   |
+| `src/components/replay-loader.tsx`       | File upload + sample fetch UI                |
+| `src/components/event-filter-bar.tsx`    | Filter controls + filter logic               |
+| `src/app/replay/page.tsx`                | Replay loading page                          |
+| `public/replays/number-guess-demo.jsonl` | Sample replay file                           |
 
 ## Where to Extend
 

@@ -166,15 +166,17 @@ Potential components:
 
 Infrastructure must not be required to run a tournament.
 
-## Milestone 7 — Heist Game Framework: ⬜ Not Started
+## Milestone 7 — Heist Game Framework: ✅ Done
 
-- Heist params schema + TypeScript types: ⬜
-- Heist generator (room graph + entity placement): ⬜
-- Heist validator (BFS reachability + dependency DAG): ⬜
-- Heist preview (ASCII minimap): ⬜
-- CLI: `hm scenario gen|validate|preview|describe --game heist`: ⬜
-- Curated presets (`warehouse_breakin`, `prison_escape`, `museum_night`): ⬜
-- Tests (determinism, validation, hard-lock rejection): ⬜
+- Heist params schema + TypeScript types: ✅ `src/games/heist/types.ts`, `src/games/heist/generatorTypes.ts`
+- Heist generator (room graph + entity placement): ✅ `src/games/heist/generator.ts`
+- Heist validator (BFS reachability + dependency DAG): ✅ `src/games/heist/validator.ts`, `src/games/heist/validation.ts`
+- Heist preview (ASCII minimap + text description): ✅ `src/games/heist/preview.ts`
+- CLI: `scenario gen|validate|preview|describe --game heist`: ✅ `src/cli/scenario.ts`
+- Curated presets (`warehouse_breakin`, `prison_escape`, `museum_night`): ✅ `scenarios/heist/` (9 files, 3 seeds per preset)
+- Heist scenario (game rules + scoring): ✅ `src/scenarios/heist/index.ts`
+- Heist competitive runner: ✅ `src/engine/heistCompetitive.ts`
+- Tests (determinism, validation, hard-lock rejection, presets, CLI, competitive runner): ✅ 7 test files (`tests/heist-*.test.ts`)
 
 ## Cross”‘Cutting Workstreams
 
@@ -284,11 +286,15 @@ All spec documents are written and checked in under `Documents/`.
 
 ### Milestone 6 ”” Online Infrastructure: ✬ Not Started
 
+### Milestone 7 — Heist Game Framework: ✅ Done
+
+See milestone definition above. All items implemented with 7 dedicated test files.
+
 ### Cross-Cutting Workstreams
 
-- **Scenario Library:** NumberGuess and Resource Rivals (hidden-information bidding game with `_private` field-level redaction).
+- **Scenario Library:** Three scenarios implemented: NumberGuess (basic), ResourceRivals (hidden-information bidding with `_private` field-level redaction), and Heist (stealth/objective with procedural generation). Five agent types available: random, baseline, noop, randomBidder, conservative. Ollama LLM agent integration exists for heist scenarios.
 - **Safety & Policy:** Mode profiles are defined in docs but not enforced by the harness.
-- **Developer Experience:** No agent templates or quickstart guide.
+- **Developer Experience:** HTTP agent example exists (`examples/http-agent/`). No standalone agent templates or quickstart guide yet.
 
 ## Status Notes
 
