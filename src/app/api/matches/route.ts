@@ -1,45 +1,28 @@
 import { existsSync } from "node:fs";
-import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { readdir } from "node:fs/promises";
 import { NextResponse } from "next/server";
 import { isSafeMatchId } from "@/engine/matchId";
-import { listExhibitionMatchDirectories } from "@/server/exhibitionStorage";
-import { getMatchStorageRoot } from "@/server/matchStorage";
-import type { MatchListItem, MatchStatusRecord, MatchSummaryRecord } from "@/lib/matches/types";
+import {
+  readMatchStatus,
+  resolveMatchDir,
+  resolveMatchesRoot,
+  type MatchLifecycleStatusRecord,
+} from "@/server/matchLifecycle";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-async function readJsonFile<T>(path: string): Promise<T | null> {
-  try {
-    const raw = await readFile(path, "utf-8");
-    return JSON.parse(raw) as T;
-  } catch {
-    return null;
-  }
+interface MatchListEntry {
+  matchId: string;
+  status: MatchLifecycleStatusRecord["status"];
+  scenario: string;
+  agents: string[];
+  startedAt: string | null;
+  finishedAt: string | null;
 }
 
-function resolveScenarioName(manifest: Record<string, unknown> | null): string | undefined {
-  if (!manifest) {
-    return undefined;
-  }
-  const scenario = manifest.scenario;
-  if (scenario && typeof scenario === "object") {
-    const scenarioId = (scenario as { id?: unknown }).id;
-    if (typeof scenarioId === "string") {
-      return scenarioId;
-    }
-  }
-  return undefined;
-}
-
-function extractSummaryTimestamp(summary: MatchSummaryRecord): number | null {
-  const summaryAny = summary as MatchSummaryRecord & {
-    createdAt?: string;
-    startedAt?: string;
-    endedAt?: string;
-  };
-  const candidate = summaryAny.createdAt ?? summaryAny.startedAt ?? summaryAny.endedAt ?? null;
+function extractStatusTimestamp(entry: MatchListEntry): number | null {
+  const candidate = entry.finishedAt ?? entry.startedAt;
   if (!candidate) {
     return null;
   }
@@ -48,13 +31,12 @@ function extractSummaryTimestamp(summary: MatchSummaryRecord): number | null {
 }
 
 export async function GET(): Promise<Response> {
-  const root = getMatchStorageRoot();
+  const root = resolveMatchesRoot();
   if (!existsSync(root)) {
-    const exhibitionEntries = await loadExhibitionEntries();
-    return NextResponse.json(exhibitionEntries);
+    return NextResponse.json({ matches: [] });
   }
 
-  let entries: MatchListItem[] = [];
+  let entries: MatchListEntry[] = [];
   try {
     const dirents = await readdir(root, { withFileTypes: true });
     const matchDirs = dirents.filter((dirent) => dirent.isDirectory()).map((dirent) => dirent.name);
@@ -64,44 +46,31 @@ export async function GET(): Promise<Response> {
         if (!isSafeMatchId(matchId)) {
           return null;
         }
-        const matchDir = join(root, matchId);
-        const summary = await readJsonFile<MatchSummaryRecord>(
-          join(matchDir, "match_summary.json"),
-        );
-        if (!summary) {
+        const matchDir = resolveMatchDir(matchId);
+        const status = await readMatchStatus(matchDir);
+        if (!status) {
           return null;
         }
-
-        const status = await readJsonFile<MatchStatusRecord>(join(matchDir, "match_status.json"));
-        const manifest = await readJsonFile<Record<string, unknown>>(
-          join(matchDir, "match_manifest.json"),
-        );
         return {
-          matchId: summary.matchId ?? matchId,
-          scenarioName: resolveScenarioName(manifest),
-          status,
-          summary,
-        } satisfies MatchListItem;
+          matchId: status.matchId ?? matchId,
+          status: status.status,
+          scenario: status.scenario,
+          agents: status.agents,
+          startedAt: status.startedAt,
+          finishedAt: status.finishedAt,
+        } satisfies MatchListEntry;
       }),
     );
 
-    entries = results.filter(Boolean) as MatchListItem[];
+    entries = results.filter(Boolean) as MatchListEntry[];
   } catch {
     entries = [];
   }
 
-  const exhibitionEntries = await loadExhibitionEntries();
-  const entriesById = new Map(entries.map((entry) => [entry.matchId, entry]));
-  for (const entry of exhibitionEntries) {
-    if (!entriesById.has(entry.matchId)) {
-      entriesById.set(entry.matchId, entry);
-    }
-  }
-
-  const ordered = Array.from(entriesById.values())
+  const ordered = entries
     .map((entry) => ({
       entry,
-      timestamp: extractSummaryTimestamp(entry.summary),
+      timestamp: extractStatusTimestamp(entry),
     }))
     .sort((a, b) => {
       if (a.timestamp !== null && b.timestamp !== null) {
@@ -120,33 +89,5 @@ export async function GET(): Promise<Response> {
     })
     .map(({ entry }) => entry);
 
-  return NextResponse.json(ordered);
-}
-
-async function loadExhibitionEntries(): Promise<MatchListItem[]> {
-  const matchDirs = await listExhibitionMatchDirectories();
-  if (matchDirs.length === 0) {
-    return [];
-  }
-
-  const results = await Promise.all(
-    matchDirs.map(async (matchDir) => {
-      const summary = await readJsonFile<MatchSummaryRecord>(join(matchDir, "match_summary.json"));
-      if (!summary) {
-        return null;
-      }
-      const manifest = await readJsonFile<Record<string, unknown>>(
-        join(matchDir, "match_manifest.json"),
-      );
-      const matchId = summary.matchId;
-      return {
-        matchId,
-        scenarioName: resolveScenarioName(manifest),
-        status: null,
-        summary,
-      } satisfies MatchListItem;
-    }),
-  );
-
-  return results.filter(Boolean) as MatchListItem[];
+  return NextResponse.json({ matches: ordered });
 }

@@ -3,46 +3,17 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { GET as listMatches } from "../src/app/api/matches/route.js";
-import { GET as getMatchDetail } from "../src/app/api/matches/[matchId]/route.js";
-import type { MatchSummaryRecord } from "../src/lib/matches/types.js";
+import { GET as getMatchStatus } from "../src/app/api/matches/[matchId]/status/route.js";
+import type { MatchLifecycleStatusRecord } from "../src/server/matchLifecycle.js";
 
 let tempDir = "";
-let exhibitionDir = "";
 
 const MATCH_ID = "m_abc123def456";
 
-function writeMatchArtifacts(matchId: string): void {
-  const matchDir = join(tempDir, matchId);
+function writeMatchStatus(matchId: string, status: MatchLifecycleStatusRecord): void {
+  const matchDir = join(tempDir, "matches", matchId);
   mkdirSync(matchDir, { recursive: true });
-
-  const summary: MatchSummaryRecord = {
-    matchId,
-    matchKey: matchId,
-    seed: 123,
-    agentIds: ["noop-0", "noop-1"],
-    scores: {
-      "noop-0": 10,
-      "noop-1": 5,
-    },
-    timeoutsPerAgent: {
-      "noop-0": 0,
-      "noop-1": 0,
-    },
-    winner: "noop-0",
-    turns: 12,
-    reason: "completed",
-    hashes: {
-      logHash: "hash-log",
-      manifestHash: "hash-manifest",
-    },
-  };
-
-  writeFileSync(join(matchDir, "match_summary.json"), JSON.stringify(summary), "utf-8");
-  writeFileSync(
-    join(matchDir, "match_manifest.json"),
-    JSON.stringify({ scenario: { id: "Heist" } }),
-    "utf-8",
-  );
+  writeFileSync(join(matchDir, "match_status.json"), JSON.stringify(status), "utf-8");
 }
 
 function hasPrivateKey(value: unknown): boolean {
@@ -67,34 +38,38 @@ function hasPrivateKey(value: unknown): boolean {
 
 beforeEach(() => {
   tempDir = mkdtempSync(join(tmpdir(), "match-spectator-"));
-  exhibitionDir = mkdtempSync(join(tmpdir(), "match-exhibitions-"));
-  process.env.MATCH_STORAGE_DIR = tempDir;
-  process.env.EXHIBITION_STORAGE_DIR = exhibitionDir;
+  process.env.HASHMATCH_DATA_DIR = tempDir;
 });
 
 afterEach(() => {
   if (tempDir) {
     rmSync(tempDir, { recursive: true, force: true });
   }
-  if (exhibitionDir) {
-    rmSync(exhibitionDir, { recursive: true, force: true });
-  }
-  delete process.env.MATCH_STORAGE_DIR;
-  delete process.env.EXHIBITION_STORAGE_DIR;
+  delete process.env.HASHMATCH_DATA_DIR;
 });
 
 describe("spectator API responses", () => {
   it("never include _private keys", async () => {
-    writeMatchArtifacts(MATCH_ID);
+    writeMatchStatus(MATCH_ID, {
+      matchId: MATCH_ID,
+      status: "running",
+      scenario: "numberGuess",
+      agents: ["noop-0", "noop-1"],
+      startedAt: "2024-01-01T00:00:00.000Z",
+      finishedAt: null,
+      verified: null,
+      totalTurns: 12,
+      currentTurn: 3,
+    });
 
     const listResponse = await listMatches();
     const listPayload = (await listResponse.json()) as unknown;
     expect(hasPrivateKey(listPayload)).toBe(false);
 
-    const detailResponse = await getMatchDetail(new Request("http://localhost"), {
+    const statusResponse = await getMatchStatus(new Request("http://localhost"), {
       params: Promise.resolve({ matchId: MATCH_ID }),
     });
-    const detailPayload = (await detailResponse.json()) as unknown;
-    expect(hasPrivateKey(detailPayload)).toBe(false);
+    const statusPayload = (await statusResponse.json()) as unknown;
+    expect(hasPrivateKey(statusPayload)).toBe(false);
   });
 });

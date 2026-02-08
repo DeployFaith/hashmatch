@@ -3,7 +3,7 @@ import tseslint from "typescript-eslint";
 export default [
   {
     // Ignore build artifacts and generated output
-    ignores: ["dist/**", ".next/**", "out/**", "coverage/**"],
+    ignores: ["dist/**", "dist-scripts/**", ".next/**", "out/**", "coverage/**"],
   },
   {
     files: ["src/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}"],

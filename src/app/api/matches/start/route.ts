@@ -1,14 +1,16 @@
+import { spawn } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { spawn } from "node:child_process";
 import { NextResponse } from "next/server";
-import { getMatchStorageRoot } from "@/server/matchStorage";
+import { verifyMatchDirectory } from "@/cli/verify-match";
+import { buildOperatorMatchId } from "@/server/operatorMatch";
 import {
-  buildOperatorMatchId,
-  readOperatorMatchStatus,
-  writeOperatorMatchStatus,
-  type OperatorMatchStatus,
-} from "@/server/operatorMatch";
+  ensureMatchesRoot,
+  readMatchStatus,
+  resolveMatchDir,
+  writeMatchStatusAtomic,
+  type MatchLifecycleStatusRecord,
+} from "@/server/matchLifecycle";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +22,8 @@ interface StartMatchPayload {
   scenario: string;
   agents: string[];
   seed?: number;
+  totalTurns?: number;
+  turns?: number;
 }
 
 function isValidSeed(seed: unknown): seed is number {
@@ -36,6 +40,7 @@ function parsePayload(
   const scenario = record.scenario;
   const agents = record.agents;
   const seed = record.seed;
+  const totalTurns = record.totalTurns ?? record.turns;
 
   if (typeof scenario !== "string" || scenario.trim().length === 0) {
     return { ok: false, error: "Scenario is required" };
@@ -49,6 +54,12 @@ function parsePayload(
   if (seed !== undefined && !isValidSeed(seed)) {
     return { ok: false, error: "Seed must be a non-negative integer" };
   }
+  if (
+    totalTurns !== undefined &&
+    !(typeof totalTurns === "number" && Number.isInteger(totalTurns) && totalTurns > 0)
+  ) {
+    return { ok: false, error: "totalTurns must be a positive integer" };
+  }
 
   return {
     ok: true,
@@ -56,6 +67,7 @@ function parsePayload(
       scenario: scenario.trim(),
       agents: agents.map((agent) => agent.trim()),
       ...(seed !== undefined ? { seed } : {}),
+      ...(totalTurns !== undefined ? { totalTurns: totalTurns as number } : {}),
     },
   };
 }
@@ -64,11 +76,19 @@ function resolveSeed(seed: StartMatchPayload["seed"]): number {
   return isValidSeed(seed) ? seed : DEFAULT_SEED;
 }
 
+function resolveTotalTurns(totalTurns: StartMatchPayload["totalTurns"]): number {
+  if (typeof totalTurns === "number" && Number.isInteger(totalTurns) && totalTurns > 0) {
+    return totalTurns;
+  }
+  return DEFAULT_TURNS;
+}
+
 function createRunnerArgs(
   matchId: string,
   payload: StartMatchPayload,
   outDir: string,
   seed: number,
+  totalTurns: number,
 ): string[] {
   return [
     join(process.cwd(), "dist", "cli", "run-match.js"),
@@ -77,7 +97,7 @@ function createRunnerArgs(
     "--seed",
     String(seed),
     "--turns",
-    String(DEFAULT_TURNS),
+    String(totalTurns),
     "--outDir",
     outDir,
     "--matchId",
@@ -105,51 +125,65 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const now = new Date();
-  const matchId = buildOperatorMatchId(now, parsed.data.scenario);
-  const outDir = join(getMatchStorageRoot(), matchId);
-  const statusPath = join(outDir, "match_status.json");
+  const matchId = buildOperatorMatchId(now);
+  const matchDir = resolveMatchDir(matchId);
 
-  if (existsSync(outDir)) {
-    const existingStatus = readOperatorMatchStatus(statusPath);
-    if (existingStatus?.status === "running") {
-      return NextResponse.json({ error: "Match is already running" }, { status: 409 });
-    }
+  ensureMatchesRoot();
+  if (existsSync(matchDir)) {
+    return NextResponse.json({ error: "Match directory already exists" }, { status: 409 });
   }
 
-  mkdirSync(outDir, { recursive: true });
+  mkdirSync(matchDir, { recursive: true });
 
-  const startedAt = now.toISOString();
+  const totalTurns = resolveTotalTurns(parsed.data.totalTurns);
   const seed = resolveSeed(parsed.data.seed);
-  const statusPayload: OperatorMatchStatus = {
+  const baseStatus: MatchLifecycleStatusRecord = {
     matchId,
-    status: "running",
+    status: "waiting",
     scenario: parsed.data.scenario,
     agents: parsed.data.agents,
-    startedAt,
-    seed,
+    startedAt: null,
+    finishedAt: null,
+    verified: null,
+    totalTurns,
+    currentTurn: null,
   };
-  writeOperatorMatchStatus(statusPath, statusPayload);
+  await writeMatchStatusAtomic(matchDir, baseStatus);
 
-  const runnerArgs = createRunnerArgs(matchId, parsed.data, outDir, seed);
+  const startedAt = now.toISOString();
+  const runningStatus: MatchLifecycleStatusRecord = {
+    ...baseStatus,
+    status: "running",
+    startedAt,
+  };
+  await writeMatchStatusAtomic(matchDir, runningStatus);
+
+  const runnerArgs = createRunnerArgs(matchId, parsed.data, matchDir, seed, totalTurns);
   const child = spawn(process.execPath, runnerArgs, {
     detached: false,
     stdio: "ignore",
   });
 
-  const finalizeStatus = (exitCode: number | null, error?: string) => {
-    const latestStatus = readOperatorMatchStatus(statusPath) ?? statusPayload;
+  const finalizeStatus = async () => {
+    const latestStatus = (await readMatchStatus(matchDir)) ?? runningStatus;
     const finishedAt = new Date().toISOString();
-    writeOperatorMatchStatus(statusPath, {
+    const report = await verifyMatchDirectory(matchDir);
+    const verified = report.status === "pass";
+    const finalStatus: MatchLifecycleStatusRecord = {
       ...latestStatus,
-      status: exitCode === 0 ? "completed" : "crashed",
+      status: "finished",
       finishedAt,
-      ...(typeof exitCode === "number" ? { exitCode } : {}),
-      ...(error ? { error } : {}),
-    });
+      verified,
+    };
+    await writeMatchStatusAtomic(matchDir, finalStatus);
   };
 
-  child.on("exit", (code) => finalizeStatus(code));
-  child.on("error", (error) => finalizeStatus(null, error.message));
+  child.on("exit", (_code) => {
+    void finalizeStatus();
+  });
+  child.on("error", () => {
+    void finalizeStatus();
+  });
 
-  return NextResponse.json({ matchId, status: "started" });
+  return NextResponse.json({ matchId });
 }
