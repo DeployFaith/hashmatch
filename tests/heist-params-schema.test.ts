@@ -138,6 +138,14 @@ describe("HeistScenarioParamsSchema", () => {
     expect(result.ok).toBe(false);
   });
 
+  it("requires positions when layoutVersion is set", () => {
+    const result = validateHeistScenarioParams({
+      ...minimalParams,
+      layoutVersion: 1,
+    });
+    expect(result.ok).toBe(false);
+  });
+
   it("rejects doors with unknown endpoints", () => {
     const result = validateHeistScenarioParams({
       ...minimalParams,

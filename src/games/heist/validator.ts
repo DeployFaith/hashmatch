@@ -19,6 +19,11 @@ import {
 } from "./validation.js";
 
 type HeistScenarioInput = HeistScenarioParams | HeistScenarioParamsSchemaType;
+type HeistLayoutValidationOptions = {
+  aspectRatioLimit?: number;
+};
+
+const DEFAULT_LAYOUT_ASPECT_RATIO_LIMIT = 4;
 
 const mapSchemaIssueCode = (issue: z.ZodIssue): string => {
   if (issue.message.startsWith("Door ") && issue.message.includes("references unknown room")) {
@@ -171,7 +176,10 @@ const computeReachableRoomsIgnoringLocks = (
   return reachable;
 };
 
-export const validateHeistScenario = (scenario: HeistScenarioInput): ValidationResult => {
+export const validateHeistScenario = (
+  scenario: HeistScenarioInput,
+  options: HeistLayoutValidationOptions = {},
+): ValidationResult => {
   const result = HeistScenarioParamsSchema.safeParse(scenario);
   if (!result.success) {
     return {
@@ -317,6 +325,127 @@ export const validateHeistScenario = (scenario: HeistScenarioInput): ValidationR
         message: `Required item ${door.requiredItem} is locked behind door ${door.id}.`,
         path: "map.doors",
         details: { doorId: door.id, requiredItem: door.requiredItem },
+      });
+    }
+  }
+
+  const roomsWithPositions = params.map.rooms.filter((room) => room.position);
+  const hasLayoutPositions = roomsWithPositions.length === params.map.rooms.length;
+  if (hasLayoutPositions) {
+    const positionsById = new Map(
+      roomsWithPositions.map((room) => [room.id, room.position ?? { x: 0, y: 0 }]),
+    );
+    const occupied = new Map<string, string>();
+
+    for (const room of roomsWithPositions) {
+      const position = room.position ?? { x: 0, y: 0 };
+      const key = `${position.x},${position.y}`;
+      const existing = occupied.get(key);
+      if (existing) {
+        errors.push({
+          code: HeistValidationCodes.LayoutOverlap,
+          message: `Rooms ${existing} and ${room.id} overlap at (${position.x}, ${position.y}).`,
+          path: "map.rooms",
+          details: { roomA: existing, roomB: room.id, position },
+        });
+      } else {
+        occupied.set(key, room.id);
+      }
+    }
+
+    for (const door of params.map.doors) {
+      const roomAPos = positionsById.get(door.roomA);
+      const roomBPos = positionsById.get(door.roomB);
+      if (!roomAPos || !roomBPos) {
+        continue;
+      }
+      const distance = Math.abs(roomAPos.x - roomBPos.x) + Math.abs(roomAPos.y - roomBPos.y);
+      if (distance !== 1) {
+        errors.push({
+          code: HeistValidationCodes.LayoutDoorNotAdjacent,
+          message: `Door ${door.id} connects non-adjacent rooms ${door.roomA} and ${door.roomB}.`,
+          path: "map.doors",
+          details: {
+            doorId: door.id,
+            roomA: door.roomA,
+            roomB: door.roomB,
+            positionA: roomAPos,
+            positionB: roomBPos,
+          },
+        });
+      }
+    }
+
+    if (roomsWithPositions.length > 0) {
+      let minX = Number.POSITIVE_INFINITY;
+      let maxX = Number.NEGATIVE_INFINITY;
+      let minY = Number.POSITIVE_INFINITY;
+      let maxY = Number.NEGATIVE_INFINITY;
+      for (const room of roomsWithPositions) {
+        const pos = room.position ?? { x: 0, y: 0 };
+        minX = Math.min(minX, pos.x);
+        maxX = Math.max(maxX, pos.x);
+        minY = Math.min(minY, pos.y);
+        maxY = Math.max(maxY, pos.y);
+      }
+      const width = Math.max(1, maxX - minX + 1);
+      const height = Math.max(1, maxY - minY + 1);
+      const ratio = Math.max(width, height) / Math.min(width, height);
+      const aspectRatioLimit = options.aspectRatioLimit ?? DEFAULT_LAYOUT_ASPECT_RATIO_LIMIT;
+      if (ratio > aspectRatioLimit) {
+        errors.push({
+          code: HeistValidationCodes.LayoutAspectRatio,
+          message: `Layout aspect ratio ${ratio.toFixed(
+            2,
+          )} exceeds limit of ${aspectRatioLimit}.`,
+          path: "map.rooms",
+          details: { width, height, ratio, aspectRatioLimit },
+        });
+      }
+    }
+
+    const visited = new Set<string>();
+    const queue: string[] = [];
+    const [firstRoom] = roomsWithPositions;
+    if (firstRoom) {
+      visited.add(firstRoom.id);
+      queue.push(firstRoom.id);
+    }
+    while (queue.length > 0) {
+      const current = queue.shift();
+      if (!current) {
+        break;
+      }
+      for (const door of params.map.doors) {
+        const neighborId =
+          door.roomA === current
+            ? door.roomB
+            : door.roomB === current
+              ? door.roomA
+              : undefined;
+        if (!neighborId || visited.has(neighborId)) {
+          continue;
+        }
+        const currentPos = positionsById.get(current);
+        const neighborPos = positionsById.get(neighborId);
+        if (!currentPos || !neighborPos) {
+          continue;
+        }
+        const distance =
+          Math.abs(currentPos.x - neighborPos.x) + Math.abs(currentPos.y - neighborPos.y);
+        if (distance !== 1) {
+          continue;
+        }
+        visited.add(neighborId);
+        queue.push(neighborId);
+      }
+    }
+    if (visited.size !== roomsWithPositions.length) {
+      errors.push({
+        code: HeistValidationCodes.LayoutDisconnected,
+        message: "Layout positions are not connected via adjacent doors.",
+        path: "map.rooms",
+        details: { visited: visited.size, total: roomsWithPositions.length },
       });
     }
   }

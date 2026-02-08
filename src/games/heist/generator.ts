@@ -22,6 +22,17 @@ import type { HeistGeneratorConfig } from "./generatorTypes.js";
 
 const DEFAULT_BRANCHING_FACTOR = 2;
 const DEFAULT_LOOP_COUNT = 1;
+const DEFAULT_LAYOUT_MAX_ATTEMPTS = 10;
+
+type RoomPosition = { x: number; y: number };
+type Direction = { x: number; y: number };
+
+const CARDINAL_DIRECTIONS: Direction[] = [
+  { x: 0, y: -1 },
+  { x: 1, y: 0 },
+  { x: 0, y: 1 },
+  { x: -1, y: 0 },
+];
 
 const DEFAULT_RULES = {
   noiseTable: {
@@ -281,6 +292,146 @@ function buildDoorGraph(
   return graph;
 }
 
+function buildAdjacencyGraph(
+  rooms: HeistRoom[],
+  doors: HeistDoor[],
+): Map<string, string[]> {
+  const graph = new Map<string, string[]>();
+  for (const room of rooms) {
+    graph.set(room.id, []);
+  }
+  for (const door of doors) {
+    graph.get(door.roomA)?.push(door.roomB);
+    graph.get(door.roomB)?.push(door.roomA);
+  }
+  for (const [roomId, neighbors] of graph.entries()) {
+    graph.set(roomId, [...neighbors].sort((a, b) => a.localeCompare(b)));
+  }
+  return graph;
+}
+
+function shuffle<T>(values: T[], rng: () => number): T[] {
+  const result = [...values];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = randomInt(rng, 0, i);
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+function findShortestPathIds(
+  graph: Map<string, string[]>,
+  startId: string,
+  goalId: string,
+): string[] | null {
+  if (startId === goalId) {
+    return [startId];
+  }
+  const visited = new Set<string>([startId]);
+  const queue: string[] = [startId];
+  const previous = new Map<string, string>();
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current) {
+      break;
+    }
+    const neighbors = graph.get(current) ?? [];
+    for (const neighbor of neighbors) {
+      if (visited.has(neighbor)) {
+        continue;
+      }
+      visited.add(neighbor);
+      previous.set(neighbor, current);
+      if (neighbor === goalId) {
+        queue.length = 0;
+        break;
+      }
+      queue.push(neighbor);
+    }
+  }
+
+  if (!previous.has(goalId)) {
+    return null;
+  }
+
+  const path: string[] = [goalId];
+  let cursor = goalId;
+  while (cursor !== startId) {
+    const prev = previous.get(cursor);
+    if (!prev) {
+      break;
+    }
+    path.push(prev);
+    cursor = prev;
+  }
+  path.reverse();
+  return path;
+}
+
+function buildParentOrder(
+  graph: Map<string, string[]>,
+  startId: string,
+  rng: () => number,
+): { order: string[]; parentById: Map<string, string> } {
+  const visited = new Set<string>([startId]);
+  const queue: string[] = [startId];
+  const parentById = new Map<string, string>();
+  const order: string[] = [startId];
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current) {
+      break;
+    }
+    const neighbors = shuffle(graph.get(current) ?? [], rng);
+    for (const neighbor of neighbors) {
+      if (visited.has(neighbor)) {
+        continue;
+      }
+      visited.add(neighbor);
+      parentById.set(neighbor, current);
+      order.push(neighbor);
+      queue.push(neighbor);
+    }
+  }
+
+  return { order, parentById };
+}
+
+function manhattanDistance(a: RoomPosition, b: RoomPosition): number {
+  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+}
+
+function computeBoundingBox(
+  positions: Iterable<RoomPosition>,
+  candidate?: RoomPosition,
+): { minX: number; maxX: number; minY: number; maxY: number } {
+  let minX = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  for (const position of positions) {
+    minX = Math.min(minX, position.x);
+    maxX = Math.max(maxX, position.x);
+    minY = Math.min(minY, position.y);
+    maxY = Math.max(maxY, position.y);
+  }
+  if (candidate) {
+    minX = Math.min(minX, candidate.x);
+    maxX = Math.max(maxX, candidate.x);
+    minY = Math.min(minY, candidate.y);
+    maxY = Math.max(maxY, candidate.y);
+  }
+  if (!Number.isFinite(minX)) {
+    minX = 0;
+    maxX = 0;
+    minY = 0;
+    maxY = 0;
+  }
+  return { minX, maxX, minY, maxY };
+}
+
 function computeReachableRooms(
   rooms: HeistRoom[],
   doors: HeistDoor[],
@@ -480,6 +631,221 @@ function attachTerminalIntel(
   }
 }
 
+function assignRoomPositions(
+  rooms: HeistRoom[],
+  doors: HeistDoor[],
+  seed: Seed,
+  maxAttempts: number,
+): HeistRoom[] {
+  const roomById = new Map(rooms.map((room) => [room.id, room]));
+  const graph = buildAdjacencyGraph(rooms, doors);
+  const spawnId = rooms.find((room) => room.type === "spawn")?.id ?? rooms[0]?.id;
+  const vaultId = rooms.find((room) => room.type === "vault")?.id;
+
+  if (!spawnId || !vaultId) {
+    throw new Error("Heist layout requires spawn and vault rooms.");
+  }
+
+  const spinePath = findShortestPathIds(graph, spawnId, vaultId) ?? [spawnId, vaultId];
+  const spineSet = new Set(spinePath);
+  const degreeByRoom = new Map(
+    [...graph.entries()].map(([roomId, neighbors]) => [roomId, neighbors.length]),
+  );
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const layoutRng = createRng(seed + attempt + 1);
+    const { order: bfsOrder, parentById } = buildParentOrder(graph, spawnId, layoutRng);
+    for (let i = 1; i < spinePath.length; i++) {
+      parentById.set(spinePath[i], spinePath[i - 1]);
+    }
+
+    const placementOrder = [
+      spawnId,
+      ...spinePath.filter((id) => id !== spawnId),
+      ...bfsOrder.filter((id) => id !== spawnId && !spineSet.has(id)),
+    ];
+
+    const positions = new Map<string, RoomPosition>();
+    const occupied = new Set<string>();
+    positions.set(spawnId, { x: 0, y: 0 });
+    occupied.add("0,0");
+
+    let failed = false;
+
+    const pickBestCandidate = (
+      room: HeistRoom,
+      candidates: { position: RoomPosition; direction: Direction }[],
+      parentId: string,
+      placedNeighbors: string[],
+    ): RoomPosition => {
+      const parentPos = positions.get(parentId) ?? { x: 0, y: 0 };
+      const grandparentId = parentById.get(parentId);
+      const grandparentPos = grandparentId ? positions.get(grandparentId) : undefined;
+      const incomingDir = grandparentPos
+        ? { x: parentPos.x - grandparentPos.x, y: parentPos.y - grandparentPos.y }
+        : undefined;
+      const vaultPos = positions.get(vaultId);
+      const spawnPos = positions.get(spawnId) ?? { x: 0, y: 0 };
+
+      const scored = candidates.map((candidate) => {
+        const { position, direction } = candidate;
+        const adjacentCount = placedNeighbors.reduce((count, neighborId) => {
+          const neighborPos = positions.get(neighborId);
+          if (!neighborPos) {
+            return count;
+          }
+          return count + (manhattanDistance(position, neighborPos) === 1 ? 1 : 0);
+        }, 0);
+        const bounding = computeBoundingBox(positions.values(), position);
+        const onEdge =
+          position.x === bounding.minX ||
+          position.x === bounding.maxX ||
+          position.y === bounding.minY ||
+          position.y === bounding.maxY;
+        let score = 0;
+
+        score += adjacentCount;
+
+        if (incomingDir) {
+          const sameDirection =
+            direction.x === incomingDir.x && direction.y === incomingDir.y;
+          const perpendicular =
+            direction.x === 0 ? incomingDir.x !== 0 : direction.y === 0 && incomingDir.y !== 0;
+          if (room.type === "hallway") {
+            score += sameDirection ? 3 : perpendicular ? 1 : 0;
+          }
+          if (room.type === "utility") {
+            score += perpendicular ? 2 : 0;
+          }
+          if (room.type === "decoy") {
+            score += perpendicular ? 1 : 0;
+          }
+          if (spineSet.has(room.id)) {
+            score += sameDirection ? 2 : 0;
+          }
+        }
+
+        if (room.type === "security" && vaultPos) {
+          const distance = manhattanDistance(position, vaultPos);
+          score += Math.max(0, 3 - distance);
+        }
+
+        if (room.type === "vault") {
+          score += manhattanDistance(position, spawnPos);
+          score += onEdge ? -2 : 2;
+        }
+
+        if (room.type === "extraction") {
+          if (vaultPos) {
+            score += manhattanDistance(position, vaultPos);
+          }
+          score += onEdge ? 2 : -1;
+        }
+
+        if (room.type === "decoy") {
+          const parentOnSpine = spineSet.has(parentId);
+          const degree = degreeByRoom.get(room.id) ?? 0;
+          score += parentOnSpine ? 2 : 0;
+          score += degree <= 1 ? 1 : 0;
+        }
+
+        return { position, score };
+      });
+
+      const maxScore = Math.max(...scored.map((entry) => entry.score));
+      const bestCandidates = scored.filter((entry) => entry.score === maxScore);
+      return bestCandidates[randomInt(layoutRng, 0, bestCandidates.length - 1)].position;
+    };
+
+    for (const roomId of placementOrder) {
+      if (roomId === spawnId) {
+        continue;
+      }
+      const room = roomById.get(roomId);
+      if (!room) {
+        failed = true;
+        break;
+      }
+      const parentId = parentById.get(roomId);
+      if (!parentId || !positions.has(parentId)) {
+        failed = true;
+        break;
+      }
+      const parentPos = positions.get(parentId);
+      if (!parentPos) {
+        failed = true;
+        break;
+      }
+
+      const neighbors = graph.get(roomId) ?? [];
+      const placedNeighbors = neighbors.filter((neighborId) => positions.has(neighborId));
+
+      const anchorIds: string[] = [];
+      let ancestorId: string | undefined = parentId;
+      while (ancestorId) {
+        anchorIds.push(ancestorId);
+        ancestorId = parentById.get(ancestorId);
+      }
+
+      let candidatePool: { position: RoomPosition; direction: Direction }[] = [];
+      for (const anchorId of anchorIds) {
+        const anchorPos = positions.get(anchorId);
+        if (!anchorPos) {
+          continue;
+        }
+        const candidates = CARDINAL_DIRECTIONS.map((direction) => ({
+          position: { x: anchorPos.x + direction.x, y: anchorPos.y + direction.y },
+          direction,
+        })).filter((candidate) => {
+          const key = `${candidate.position.x},${candidate.position.y}`;
+          if (occupied.has(key)) {
+            return false;
+          }
+          return manhattanDistance(candidate.position, parentPos) === 1;
+        });
+
+        if (candidates.length > 0) {
+          candidatePool = candidates;
+          break;
+        }
+      }
+
+      if (candidatePool.length === 0) {
+        failed = true;
+        break;
+      }
+
+      const selected = pickBestCandidate(room, candidatePool, parentId, placedNeighbors);
+      positions.set(roomId, selected);
+      occupied.add(`${selected.x},${selected.y}`);
+    }
+
+    if (failed || positions.size !== rooms.length) {
+      continue;
+    }
+
+    let doorAdjacencyOk = true;
+    for (const door of doors) {
+      const posA = positions.get(door.roomA);
+      const posB = positions.get(door.roomB);
+      if (!posA || !posB || manhattanDistance(posA, posB) !== 1) {
+        doorAdjacencyOk = false;
+        break;
+      }
+    }
+    if (!doorAdjacencyOk) {
+      continue;
+    }
+
+    return rooms.map((room) => ({
+      ...room,
+      position: positions.get(room.id) ?? { x: 0, y: 0 },
+    }));
+  }
+
+  throw new Error("Failed to assign spatial layout within attempt limit.");
+}
+
 function createWinCondition(
   extractionRoomId: string,
   requiredObjectives: string[],
@@ -493,15 +859,15 @@ function createWinCondition(
   };
 }
 
-function buildScenario(
-  config: HeistGeneratorConfig,
-  rng: () => number,
-): HeistScenarioParams {
+function buildScenario(config: HeistGeneratorConfig, seed: Seed): HeistScenarioParams {
+  const rng = createRng(seed);
   const roomCount = resolveRoomCount(config, rng);
   const branchingFactor = config.branchingFactor ?? DEFAULT_BRANCHING_FACTOR;
   const loopCount = config.loopCount ?? DEFAULT_LOOP_COUNT;
   const { rooms, roomByType } = createRooms(roomCount, rng);
   const doors = connectRooms(rooms, rng, branchingFactor, loopCount);
+  const layoutMaxAttempts = config.layoutMaxAttempts ?? DEFAULT_LAYOUT_MAX_ATTEMPTS;
+  const roomsWithPositions = assignRoomPositions(rooms, doors, seed, layoutMaxAttempts);
 
   const spawnId = roomByType.spawn[0];
   const vaultRoomId = roomByType.vault[0];
@@ -563,7 +929,8 @@ function buildScenario(
   };
 
   return {
-    map: { rooms, doors } satisfies HeistMap,
+    layoutVersion: 1,
+    map: { rooms: roomsWithPositions, doors } satisfies HeistMap,
     entities,
     items,
     rules: DEFAULT_RULES,
@@ -590,6 +957,6 @@ export function generateHeistScenario(
       ...rawConfig.securityDensity,
     },
   };
-  const rng = createRng(seed ?? embeddedSeed ?? 0);
-  return buildScenario(normalizedConfig, rng);
+  const resolvedSeed = seed ?? embeddedSeed ?? 0;
+  return buildScenario(normalizedConfig, resolvedSeed);
 }

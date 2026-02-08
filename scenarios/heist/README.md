@@ -13,5 +13,5 @@ Hard difficulty. 10-15 rooms. 3 guards, 3 cameras, 3 terminals.
 Theme: After-hours museum heist.
 
 ## Regenerating
-hm scenario gen --game heist --preset warehouse_breakin --seed 42 --out scenarios/heist/ --validate
+hm scenario gen --game heist --preset warehouse_breakin --seed 3 --out scenarios/heist/ --validate
 Commit message: "Add curated Heist presets with determinism + validation smoke tests"

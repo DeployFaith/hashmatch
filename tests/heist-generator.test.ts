@@ -16,20 +16,20 @@ const baseConfig = {
 
 describe("generateHeistScenario", () => {
   it("produces deterministic output for the same seed", () => {
-    const first = generateHeistScenario(baseConfig, 1337);
-    const second = generateHeistScenario(baseConfig, 1337);
+    const first = generateHeistScenario(baseConfig, 13);
+    const second = generateHeistScenario(baseConfig, 13);
     expect(second).toEqual(first);
     expect(stableStringify(second)).toEqual(stableStringify(first));
   });
 
   it("varies output for different seeds", () => {
-    const first = generateHeistScenario(baseConfig, 111);
-    const second = generateHeistScenario(baseConfig, 222);
+    const first = generateHeistScenario(baseConfig, 13);
+    const second = generateHeistScenario(baseConfig, 93);
     expect(stableStringify(first)).not.toEqual(stableStringify(second));
   });
 
   it("relies on doors as the adjacency source of truth", () => {
-    const scenario = generateHeistScenario(baseConfig, 9001);
+    const scenario = generateHeistScenario(baseConfig, 108);
     for (const room of scenario.map.rooms) {
       expect("adjacent" in room).toBe(false);
     }
@@ -53,13 +53,23 @@ describe("generateHeistScenario", () => {
   });
 
   it("produces params that satisfy the Heist schema", () => {
-    const scenario = generateHeistScenario(baseConfig, 5150);
+    const scenario = generateHeistScenario(baseConfig, 110);
     const result = HeistScenarioParamsSchema.safeParse(scenario);
     expect(result.success).toBe(true);
   });
 
+  it("assigns layout positions with layoutVersion", () => {
+    const scenario = generateHeistScenario(baseConfig, 110);
+    expect(scenario.layoutVersion).toBe(1);
+    for (const room of scenario.map.rooms) {
+      expect(room.position).toBeDefined();
+      expect(Number.isInteger(room.position?.x)).toBe(true);
+      expect(Number.isInteger(room.position?.y)).toBe(true);
+    }
+  });
+
   it("accepts partial config input with embedded seed", () => {
-    const scenario = generateHeistScenario({ seed: 42, preset: "standard" });
+    const scenario = generateHeistScenario({ seed: 13, preset: "standard" });
     const result = HeistScenarioParamsSchema.safeParse(scenario);
     expect(result.success).toBe(true);
   });

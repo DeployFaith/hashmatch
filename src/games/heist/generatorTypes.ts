@@ -20,4 +20,5 @@ export interface HeistGeneratorConfig {
   timeLimit?: number;
   difficultyPreset?: HeistDifficultyPreset;
   skin?: HeistSkin;
+  layoutMaxAttempts?: number;
 }

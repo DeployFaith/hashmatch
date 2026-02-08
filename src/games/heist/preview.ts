@@ -42,6 +42,54 @@ const formatRoomLabel = (params: HeistScenarioParams, room: HeistRoom): string =
   return `[${typeLabel}: ${name}]`;
 };
 
+const hasRoomPositions = (rooms: HeistRoom[]): boolean =>
+  rooms.every((room) => room.position && Number.isFinite(room.position.x) && Number.isFinite(room.position.y));
+
+const formatSpatialMap = (params: HeistScenarioParams, rooms: HeistRoom[]): string[] => {
+  const roomsByPosition = new Map<string, HeistRoom>();
+  let minX = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+
+  for (const room of rooms) {
+    if (!room.position) {
+      continue;
+    }
+    const { x, y } = room.position;
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y);
+    maxY = Math.max(maxY, y);
+    roomsByPosition.set(`${x},${y}`, room);
+  }
+
+  if (!Number.isFinite(minX) || !Number.isFinite(minY)) {
+    return [];
+  }
+
+  const cellWidth = 16;
+  const formatCell = (room?: HeistRoom): string => {
+    if (!room) {
+      return " ".repeat(cellWidth);
+    }
+    const typeLabel = ROOM_TYPE_LABELS[room.type];
+    const label = `${typeLabel}:${room.id}`;
+    return label.length > cellWidth ? label.slice(0, cellWidth) : label.padEnd(cellWidth, " ");
+  };
+
+  const lines: string[] = [];
+  for (let y = maxY; y >= minY; y--) {
+    const rowCells: string[] = [];
+    for (let x = minX; x <= maxX; x++) {
+      rowCells.push(formatCell(roomsByPosition.get(`${x},${y}`)));
+    }
+    lines.push(rowCells.join(" "));
+  }
+
+  return lines;
+};
+
 const buildRoomGraph = (
   rooms: HeistRoom[],
   doors: HeistDoor[],
@@ -192,6 +240,7 @@ export function generatePreview(params: HeistScenarioParams): string {
   const theme = params.skin?.themeName ?? "Untitled Operation";
   const graph = buildRoomGraph(params.map.rooms, params.map.doors);
   const root = params.map.rooms.find((room) => room.type === "spawn") ?? params.map.rooms[0];
+  const hasSpatialLayout = hasRoomPositions(params.map.rooms);
   const treeLike =
     params.map.doors.length === Math.max(0, params.map.rooms.length - 1) &&
     root &&
@@ -201,9 +250,11 @@ export function generatePreview(params: HeistScenarioParams): string {
   lines.push("");
   lines.push(`MAP (${roomCount} rooms, ${doorCount} doors):`);
   if (roomCount > 0 && doorCount > 0) {
-    const mapLines = treeLike
-      ? formatTreeMap(params, params.map.rooms, graph)
-      : formatAdjacencyMap(params, params.map.rooms, graph);
+    const mapLines = hasSpatialLayout
+      ? formatSpatialMap(params, params.map.rooms)
+      : treeLike
+        ? formatTreeMap(params, params.map.rooms, graph)
+        : formatAdjacencyMap(params, params.map.rooms, graph);
     lines.push(...mapLines.map((line) => `  ${line}`));
   } else {
     lines.push("  (no map data)");

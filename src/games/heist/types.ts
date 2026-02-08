@@ -22,6 +22,11 @@ export interface HeistDoor {
 export interface HeistRoom {
   id: string;
   type: HeistRoomType;
+  /**
+   * Grid position used for spatial layouts.
+   * Required when layoutVersion >= 1.
+   */
+  position?: { x: number; y: number };
   properties?: Record<string, unknown>;
 }
 
@@ -139,6 +144,10 @@ export interface HeistSkin {
 }
 
 export interface HeistScenarioParams {
+  /**
+   * Spatial layout schema version (layoutVersion >= 1 requires room positions).
+   */
+  layoutVersion?: number;
   map: HeistMap;
   entities: HeistEntity[];
   items: HeistItem[];
@@ -152,6 +161,12 @@ const HeistRoomSchema = z
   .object({
     id: z.string().min(1),
     type: z.enum(["spawn", "vault", "extraction", "security", "utility", "hallway", "decoy"]),
+    position: z
+      .object({
+        x: z.number().int(),
+        y: z.number().int(),
+      })
+      .optional(),
     properties: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
@@ -316,6 +331,7 @@ const HeistMapSchema = z
 
 export const HeistScenarioParamsSchema = z
   .object({
+    layoutVersion: z.number().int().nonnegative().optional(),
     map: HeistMapSchema,
     entities: z.array(HeistEntitySchema),
     items: z.array(HeistItemSchema),
@@ -344,6 +360,17 @@ export const HeistScenarioParamsSchema = z
         addDuplicateIssue("room", room.id);
       }
       roomIds.add(room.id);
+    }
+
+    if ((params.layoutVersion ?? 0) >= 1) {
+      for (const room of params.map.rooms) {
+        if (!room.position) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Room ${room.id} is missing a position for layoutVersion ${params.layoutVersion}`,
+          });
+        }
+      }
     }
 
     for (const door of params.map.doors) {
