@@ -636,7 +636,7 @@ function adjudicateTerminal(
 
   let updatedInventory = agent.inventory;
   let hacked = terminalAlreadyHacked;
-  let grantedItems: string[] = [];
+  const grantedItems: string[] = [];
   const willHack = !terminalAlreadyHacked && nextProgress >= terminal.hackTurns;
 
   if (willHack) {
