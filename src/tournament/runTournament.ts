@@ -10,14 +10,8 @@ import { createNoopAgent } from "../agents/noopAgent.js";
 import { createRandomBidderAgent } from "../agents/resourceRivals/randomBidder.js";
 import { createConservativeAgent } from "../agents/resourceRivals/conservativeAgent.js";
 import { buildOllamaHeistMetadata, createOllamaHeistAgent } from "../agents/ollama/index.js";
-import type {
-  MatchKey,
-  MatchSpec,
-  MatchSummary,
-  StandingsRow,
-  TournamentConfig,
-  TournamentResult,
-} from "./types.js";
+import type { MatchKey, MatchSpec, MatchSummary, TournamentConfig, TournamentResult } from "./types.js";
+import { computeStandings } from "./standings.js";
 
 // ---------------------------------------------------------------------------
 // Registries (v0.1 — built-in only)
@@ -89,9 +83,6 @@ export function getAgentProvenanceDescriptor(
 // Points
 // ---------------------------------------------------------------------------
 
-const POINTS_WIN = 3;
-const POINTS_DRAW = 1;
-const POINTS_LOSS = 0;
 
 // ---------------------------------------------------------------------------
 // Deterministic seeding
@@ -239,74 +230,4 @@ export async function runTournament(config: TournamentConfig): Promise<Tournamen
     tournamentResult.matchLogs = matchLogs;
   }
   return tournamentResult;
-}
-
-// ---------------------------------------------------------------------------
-// Standings computation
-// ---------------------------------------------------------------------------
-
-function computeStandings(agentIds: AgentId[], matches: MatchSummary[]): StandingsRow[] {
-  const map = new Map<AgentId, StandingsRow>();
-
-  for (const id of agentIds) {
-    map.set(id, {
-      agentId: id,
-      matches: 0,
-      wins: 0,
-      losses: 0,
-      draws: 0,
-      points: 0,
-      scoreFor: 0,
-      scoreAgainst: 0,
-      scoreDiff: 0,
-    });
-  }
-
-  for (const m of matches) {
-    const [idA, idB] = m.agentIds;
-    const rowA = map.get(idA)!;
-    const rowB = map.get(idB)!;
-    const scoreA = m.scores[idA] ?? 0;
-    const scoreB = m.scores[idB] ?? 0;
-
-    rowA.matches++;
-    rowB.matches++;
-    rowA.scoreFor += scoreA;
-    rowA.scoreAgainst += scoreB;
-    rowB.scoreFor += scoreB;
-    rowB.scoreAgainst += scoreA;
-
-    if (m.winner === idA) {
-      rowA.wins++;
-      rowA.points += POINTS_WIN;
-      rowB.losses++;
-      rowB.points += POINTS_LOSS;
-    } else if (m.winner === idB) {
-      rowB.wins++;
-      rowB.points += POINTS_WIN;
-      rowA.losses++;
-      rowA.points += POINTS_LOSS;
-    } else {
-      rowA.draws++;
-      rowA.points += POINTS_DRAW;
-      rowB.draws++;
-      rowB.points += POINTS_DRAW;
-    }
-  }
-
-  // Update scoreDiff
-  for (const row of map.values()) {
-    row.scoreDiff = row.scoreFor - row.scoreAgainst;
-  }
-
-  // Sort: points desc, then scoreDiff desc, then agentId asc
-  return Array.from(map.values()).sort((a, b) => {
-    if (b.points !== a.points) {
-      return b.points - a.points;
-    }
-    if (b.scoreDiff !== a.scoreDiff) {
-      return b.scoreDiff - a.scoreDiff;
-    }
-    return a.agentId.localeCompare(b.agentId);
-  });
 }
