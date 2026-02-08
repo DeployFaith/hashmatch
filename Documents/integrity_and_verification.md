@@ -192,24 +192,43 @@ These rules ensure cross-platform portable verification.
 
 - Hashes provide integrity: proof that nothing changed since publication
 - Hashes do NOT provide authenticity: they don't prove who published it
-- Authenticity requires signed receipts (future work)
+- Authenticity requires signed receipts (implemented)
 
 ## 6. Receipts (Signatures)
 
 A **receipt** is a signed statement that binds the published artifacts.
 
-### 6.1 Receipt Contents (Draft)
+### 6.1 Receipt Contents (Implemented)
+
+**Receipt envelope:**
+
+* `version` (currently `1`)
+* `algorithm` (`ed25519`)
+* `payload` (see below)
+* `signature` (hex signature over the payload)
+* `publicKey` (hex-encoded organizer key)
+* `signedAt` (optional ISO timestamp)
+
+**Match payload:**
 
 * `matchId`
 * `manifestHash`
 * `logHash`
-* `runner.version`
+* `runnerVersion`
 * `issuedBy` (organizer identity)
-* `signature` (over the above)
+
+**Tournament payload:**
+
+* `tournamentId`
+* `truthBundleHash`
+* `matchCount`
+* `issuedBy` (organizer identity)
 
 ### 6.2 Keys
 
-Early phases can use a single organizer key.
+Receipts use **Ed25519** signatures. Keys are stored and loaded in **PEM** format.
+
+The v0 model assumes a **single organizer key** per league/tournament.
 
 Future:
 
@@ -384,8 +403,8 @@ Last audited: 2026-02-07
 
 **Phase B status:**
 
-* Verification CLI: ✅ implemented (`verify-match`, `verify-tournament`).
-* Signed receipts: ✬ not implemented.
-* Receipt validation: ✬ not implemented.
+* Verification CLI: ✅ implemented (`verify-match`, `verify-tournament`, `verify-receipt`).
+* Signed receipts: ✅ implemented (`src/core/receipt.ts`, `sign-tournament`).
+* Receipt validation: ✅ implemented (`verify-receipt`).
 
 **Phase C:** Not started.

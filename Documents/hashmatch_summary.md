@@ -130,7 +130,7 @@ All scoring/tie-breaks are recorded in `tournament_manifest.json`.
 HashMatch guarantees trust via:
 
 - **SHA-256 hashes**: `logHash`, `manifestHash`, etc.
-- **Receipts (future)**: Signed attestations
+- **Receipts**: Ed25519 signed attestations (implemented)
 - **Replayability**: Deterministic execution = rerunable
 - **ManifestCore**: Subset of fields used in hash computation
 
@@ -168,7 +168,7 @@ Hashes follow strict byte-level rules for cross-platform consistency.
 | Replay Viewer MVP             | ✅ Done                                                            |
 | Heist Game Framework          | ✅ Done                                                            |
 | Artifact Packaging            | 🟨 Partial (local registry + bundle validation remaining)          |
-| Receipts + Verification Tools | 🟨 Partial (hashing + verify CLIs done; signed receipts remaining) |
+| Receipts + Verification Tools | ✅ Done                                                            |
 | Tournament Operations         | ✬ Not started                                                      |
 | Live Broadcast                | ✬ Not started                                                      |
 

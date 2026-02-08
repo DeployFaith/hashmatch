@@ -269,15 +269,16 @@ All spec documents are written and checked in under `Documents/`.
 - Local registry index: ✬ not implemented.
 - Bundle validation tooling: ✬ not implemented (JSONL validation exists for individual files).
 
-### Milestone 4 ”” Receipts & Verification Tooling: 🟨 Partial
+### Milestone 4 ”” Receipts & Verification Tooling: ✅ Done
 
 - SHA-256 hash computation: ✅ `src/core/hash.ts` (`sha256Hex`, `hashFile`, `hashManifestCore`)
 - Per-match `logHash` and `manifestHash` in `match_summary.json`: ✅
 - Tournament-level `truthBundleHash`: ✅ written to `tournament_manifest.json`
 - `verify-match` CLI: ✅ `src/cli/verify-match.ts`, tested in `tests/verify-match.test.ts`
 - `verify-tournament` CLI: ✅ `src/cli/verify-tournament.ts`, tested in `tests/verify-tournament.test.ts`
-- Signed receipts: ✬ not implemented.
-- Receipt validation: ✬ not implemented.
+- Signed receipts: ✅ `src/core/receipt.ts`, `src/cli/sign-tournament.ts`
+- Receipt validation: ✅ `src/cli/verify-receipt.ts`, tested in `tests/verify-receipt.test.ts`
+- Key generation: ✅ `src/cli/generate-keys.ts`
 
 ### Milestone 5 ”” Tournament Operations: ✬ Not Started
 

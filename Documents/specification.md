@@ -81,6 +81,7 @@ Verifier responsibilities:
 
 - compute hashes
 - validate receipts
+- run `verify-receipt` to check signatures + hash consistency
 - optionally reproduce matches
 
 ## 2. Artifact Layers

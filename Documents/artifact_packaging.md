@@ -176,6 +176,9 @@ Hashing and signing are defined in `integrity_and_verification.md`. See `integri
 Packaging rules:
 
 * truth files should be hashed consistently (same algorithm)
+* receipts are implemented:
+  - `receipt.json` per match directory
+  - `tournament_receipt.json` at the tournament root
 * receipt should bind at least `match.jsonl` + `match_manifest.json`
 * telemetry hashes are optional convenience
 * show artifacts should not be required to validate truth
