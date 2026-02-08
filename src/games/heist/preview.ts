@@ -16,6 +16,17 @@ const ROOM_TYPE_LABELS: Record<HeistRoom["type"], string> = {
   decoy: "DECOY",
 };
 
+const ROOM_TYPE_SYMBOLS: Record<string, string> = {
+  spawn: "S",
+  vault: "V",
+  extraction: "X",
+  security: "!",
+  utility: "U",
+  hallway: ".",
+  hub: "+",
+  decoy: "?",
+};
+
 const ENTITY_LABELS: Record<HeistEntity["type"], string> = {
   guard: "guard",
   camera: "camera",
@@ -45,12 +56,16 @@ const formatRoomLabel = (params: HeistScenarioParams, room: HeistRoom): string =
 const hasRoomPositions = (rooms: HeistRoom[]): boolean =>
   rooms.every((room) => room.position && Number.isFinite(room.position.x) && Number.isFinite(room.position.y));
 
-const formatSpatialMap = (params: HeistScenarioParams, rooms: HeistRoom[]): string[] => {
+const formatSpatialMap = (
+  rooms: HeistRoom[],
+  doors: HeistDoor[],
+): { lines: string[]; warnings: string[] } => {
   const roomsByPosition = new Map<string, HeistRoom>();
   let minX = Number.POSITIVE_INFINITY;
   let maxX = Number.NEGATIVE_INFINITY;
   let minY = Number.POSITIVE_INFINITY;
   let maxY = Number.NEGATIVE_INFINITY;
+  const warnings: string[] = [];
 
   for (const room of rooms) {
     if (!room.position) {
@@ -61,33 +76,88 @@ const formatSpatialMap = (params: HeistScenarioParams, rooms: HeistRoom[]): stri
     maxX = Math.max(maxX, x);
     minY = Math.min(minY, y);
     maxY = Math.max(maxY, y);
-    roomsByPosition.set(`${x},${y}`, room);
+    const key = `${x},${y}`;
+    if (roomsByPosition.has(key)) {
+      warnings.push(`Duplicate room position at (${x}, ${y}).`);
+    }
+    roomsByPosition.set(key, room);
   }
 
   if (!Number.isFinite(minX) || !Number.isFinite(minY)) {
-    return [];
+    return { lines: [], warnings };
   }
 
-  const cellWidth = 16;
-  const formatCell = (room?: HeistRoom): string => {
+  const roomCell = (room?: HeistRoom): string => {
     if (!room) {
-      return " ".repeat(cellWidth);
+      return "   ";
     }
-    const typeLabel = ROOM_TYPE_LABELS[room.type];
-    const label = `${typeLabel}:${room.id}`;
-    return label.length > cellWidth ? label.slice(0, cellWidth) : label.padEnd(cellWidth, " ");
+    const symbol = ROOM_TYPE_SYMBOLS[room.type] ?? "?";
+    return `[${symbol}]`;
+  };
+  const doorByKey = new Map<string, HeistDoor>();
+  for (const door of doors) {
+    const key = [door.roomA, door.roomB].sort().join("|");
+    doorByKey.set(key, door);
+  }
+  const getDoor = (roomA?: HeistRoom, roomB?: HeistRoom): HeistDoor | undefined => {
+    if (!roomA || !roomB) {
+      return undefined;
+    }
+    const key = [roomA.id, roomB.id].sort().join("|");
+    return doorByKey.get(key);
+  };
+  const horizontalConnector = (door?: HeistDoor): string => {
+    if (!door) {
+      return "   ";
+    }
+    if (door.alarmed) {
+      return "-*-";
+    }
+    if (door.locked) {
+      return "-#-";
+    }
+    return "---";
+  };
+  const verticalConnector = (door?: HeistDoor): string => {
+    if (!door) {
+      return "   ";
+    }
+    if (door.alarmed) {
+      return " * ";
+    }
+    if (door.locked) {
+      return " # ";
+    }
+    return " | ";
   };
 
   const lines: string[] = [];
   for (let y = maxY; y >= minY; y--) {
     const rowCells: string[] = [];
     for (let x = minX; x <= maxX; x++) {
-      rowCells.push(formatCell(roomsByPosition.get(`${x},${y}`)));
+      const current = roomsByPosition.get(`${x},${y}`);
+      rowCells.push(roomCell(current));
+      if (x < maxX) {
+        const next = roomsByPosition.get(`${x + 1},${y}`);
+        rowCells.push(horizontalConnector(getDoor(current, next)));
+      }
     }
-    lines.push(rowCells.join(" "));
+    lines.push(rowCells.join(""));
+    if (y > minY) {
+      const connectorCells: string[] = [];
+      for (let x = minX; x <= maxX; x++) {
+        const current = roomsByPosition.get(`${x},${y}`);
+        const next = roomsByPosition.get(`${x},${y - 1}`);
+        connectorCells.push(verticalConnector(getDoor(current, next)));
+        if (x < maxX) {
+          connectorCells.push("   ");
+        }
+      }
+      lines.push(connectorCells.join(""));
+    }
   }
 
-  return lines;
+  return { lines, warnings };
 };
 
 const buildRoomGraph = (
@@ -233,7 +303,24 @@ const describeNarrative = (params: HeistScenarioParams): string =>
   params.skin?.flavorText ??
   `A tense infiltration across ${params.map.rooms.length} rooms with ${params.winCondition.requiredObjectives.length} objectives.`;
 
-export function generatePreview(params: HeistScenarioParams): string {
+type PreviewOptions = {
+  verbose?: boolean;
+};
+
+const formatGuardPatrols = (params: HeistScenarioParams): string[] => {
+  const guardEntities = params.entities.filter((entity) => entity.type === "guard");
+  if (guardEntities.length === 0) {
+    return ["  (no guard patrol routes)"];
+  }
+  return guardEntities.map((guard) => {
+    const route = guard.patrolRoute
+      .map((roomId, index) => `${index + 1}:${roomId}`)
+      .join(" -> ");
+    return `  ${guard.id}: ${route}`;
+  });
+};
+
+export function generatePreview(params: HeistScenarioParams, options: PreviewOptions = {}): string {
   const lines: string[] = [];
   const roomCount = params.map.rooms.length;
   const doorCount = params.map.doors.length;
@@ -251,13 +338,30 @@ export function generatePreview(params: HeistScenarioParams): string {
   lines.push(`MAP (${roomCount} rooms, ${doorCount} doors):`);
   if (roomCount > 0 && doorCount > 0) {
     const mapLines = hasSpatialLayout
-      ? formatSpatialMap(params, params.map.rooms)
-      : treeLike
-        ? formatTreeMap(params, params.map.rooms, graph)
-        : formatAdjacencyMap(params, params.map.rooms, graph);
-    lines.push(...mapLines.map((line) => `  ${line}`));
+      ? formatSpatialMap(params.map.rooms, params.map.doors)
+      : {
+          lines: treeLike
+            ? formatTreeMap(params, params.map.rooms, graph)
+            : formatAdjacencyMap(params, params.map.rooms, graph),
+          warnings: ["Room positions missing; falling back to adjacency layout."],
+        };
+    if (mapLines.warnings.length > 0) {
+      for (const warning of mapLines.warnings) {
+        lines.push(`  WARNING: ${warning}`);
+      }
+    }
+    lines.push(...mapLines.lines.map((line) => `  ${line}`));
   } else {
     lines.push("  (no map data)");
+  }
+  if (roomCount > 0) {
+    const roomIds = params.map.rooms.map((room) => room.id).join(", ");
+    lines.push(`ROOM IDS: ${roomIds}`);
+  }
+  if (options.verbose) {
+    lines.push("");
+    lines.push("GUARD PATROLS:");
+    lines.push(...formatGuardPatrols(params));
   }
   lines.push("");
   lines.push(`ENTITIES: ${formatEntitySummary(params.entities)}`);

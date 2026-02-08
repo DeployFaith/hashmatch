@@ -3,8 +3,10 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { stableStringify } from "../core/json.js";
 import { generateDescription, generatePreview } from "../games/heist/preview.js";
+import { generateHeistDebugView } from "../games/heist/debugView.js";
 import { generateHeistScenario, HEIST_PRESETS } from "../games/heist/generator.js";
 import type { HeistGeneratorConfig } from "../games/heist/generatorTypes.js";
+import { generateLayoutReport } from "../games/heist/layoutReport.js";
 import type { HeistScenarioParams } from "../games/heist/types.js";
 import { validateHeistScenario } from "../games/heist/validator.js";
 
@@ -110,6 +112,37 @@ const parsePathArg = (
   return { ok: false, error: "Missing --path." };
 };
 
+const parseDebugViewArgs = (
+  argv: string[],
+): { ok: true; file: string; out: string } | { ok: false; error: string } => {
+  let game: string | undefined;
+  let file: string | undefined;
+  let out: string | undefined;
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--game" && i + 1 < argv.length) {
+      game = argv[++i];
+    } else if (arg === "--file" && i + 1 < argv.length) {
+      file = argv[++i];
+    } else if (arg === "--out" && i + 1 < argv.length) {
+      out = argv[++i];
+    }
+  }
+  if (!game) {
+    return { ok: false, error: "Missing --game." };
+  }
+  if (game !== "heist") {
+    return { ok: false, error: `Unsupported game: ${game}.` };
+  }
+  if (!file) {
+    return { ok: false, error: "Missing --file." };
+  }
+  if (!out) {
+    return { ok: false, error: "Missing --out." };
+  }
+  return { ok: true, file, out };
+};
+
 const readScenarioFile = (path: string): ScenarioFile => {
   const raw = readFileSync(path, "utf-8");
   const parsed = JSON.parse(raw) as ScenarioFile;
@@ -147,7 +180,10 @@ export function runScenarioCli(argv: string[], cwd = process.cwd()): ScenarioCli
   const command = argv[0];
 
   if (!command) {
-    writeLine(stderr, "Missing command. Available: gen, validate, preview, describe.");
+    writeLine(
+      stderr,
+      "Missing command. Available: gen, validate, preview, describe, debug-view, layout-report.",
+    );
     return { code: 1, stdout: stdout.join(""), stderr: stderr.join("") };
   }
 
@@ -246,9 +282,10 @@ export function runScenarioCli(argv: string[], cwd = process.cwd()): ScenarioCli
         }
         return { code: 1, stdout: stdout.join(""), stderr: stderr.join("") };
       }
+      const verbose = argv.includes("--verbose");
       const output =
         command === "preview"
-          ? generatePreview(scenario.params)
+          ? generatePreview(scenario.params, { verbose })
           : `${generateDescription(scenario.params)}\n`;
       writeLine(stdout, output);
       return { code: 0, stdout: stdout.join(""), stderr: stderr.join("") };
@@ -256,6 +293,64 @@ export function runScenarioCli(argv: string[], cwd = process.cwd()): ScenarioCli
       writeLine(
         stderr,
         error instanceof Error ? error.message : "Failed to read scenario file.",
+      );
+      return { code: 1, stdout: stdout.join(""), stderr: stderr.join("") };
+    }
+  }
+
+  if (command === "debug-view") {
+    const parsed = parseDebugViewArgs(argv.slice(1));
+    if (!parsed.ok) {
+      writeLine(stderr, parsed.error);
+      return { code: 1, stdout: stdout.join(""), stderr: stderr.join("") };
+    }
+    try {
+      const scenario = readScenarioFile(resolve(cwd, parsed.file));
+      const validation = validateHeistScenario(scenario.params);
+      if (!validation.ok) {
+        writeLine(stderr, "Scenario validation failed:");
+        for (const line of formatValidationErrors(validation.errors)) {
+          writeLine(stderr, line);
+        }
+        return { code: 1, stdout: stdout.join(""), stderr: stderr.join("") };
+      }
+      const svg = generateHeistDebugView(scenario.params);
+      const outputPath = resolve(cwd, parsed.out);
+      mkdirSync(dirname(outputPath), { recursive: true });
+      writeFileSync(outputPath, svg, "utf-8");
+      writeLine(stdout, `Wrote ${outputPath}`);
+      return { code: 0, stdout: stdout.join(""), stderr: stderr.join("") };
+    } catch (error) {
+      writeLine(
+        stderr,
+        error instanceof Error ? error.message : "Failed to generate debug view.",
+      );
+      return { code: 1, stdout: stdout.join(""), stderr: stderr.join("") };
+    }
+  }
+
+  if (command === "layout-report") {
+    const parsed = parsePathArg(argv.slice(1));
+    if (!parsed.ok) {
+      writeLine(stderr, parsed.error);
+      return { code: 1, stdout: stdout.join(""), stderr: stderr.join("") };
+    }
+    try {
+      const scenario = readScenarioFile(resolve(cwd, parsed.path));
+      const validation = validateHeistScenario(scenario.params);
+      if (!validation.ok) {
+        writeLine(stderr, "Scenario validation failed:");
+        for (const line of formatValidationErrors(validation.errors)) {
+          writeLine(stderr, line);
+        }
+        return { code: 1, stdout: stdout.join(""), stderr: stderr.join("") };
+      }
+      writeLine(stdout, generateLayoutReport(scenario.params));
+      return { code: 0, stdout: stdout.join(""), stderr: stderr.join("") };
+    } catch (error) {
+      writeLine(
+        stderr,
+        error instanceof Error ? error.message : "Failed to generate layout report.",
       );
       return { code: 1, stdout: stdout.join(""), stderr: stderr.join("") };
     }

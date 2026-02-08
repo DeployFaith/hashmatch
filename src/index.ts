@@ -47,6 +47,8 @@ export type {
 
 export { generateHeistScenario, HEIST_PRESETS } from "./games/heist/generator.js";
 export { generateDescription, generatePreview } from "./games/heist/preview.js";
+export { generateHeistDebugView } from "./games/heist/debugView.js";
+export { generateLayoutReport } from "./games/heist/layoutReport.js";
 
 export type {
   AgentAdapter,
