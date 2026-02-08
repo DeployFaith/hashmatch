@@ -1,12 +1,20 @@
 import { describe, expect, it } from "vitest";
+import type { Agent, AgentConfig, AgentContext, GameBriefing } from "../src/contract/interfaces.js";
+import type { AgentId, JsonValue, ObservationEmittedEvent } from "../src/contract/types.js";
 import { runMatch } from "../src/engine/runMatch.js";
-import { createNumberGuessScenario } from "../src/scenarios/numberGuess/index.js";
-import { createHeistScenario } from "../src/scenarios/heist/index.js";
-import { createResourceRivalsScenario } from "../src/scenarios/resourceRivals/index.js";
 import { createRandomAgent } from "../src/agents/randomAgent.js";
 import { createBaselineAgent } from "../src/agents/baselineAgent.js";
-import type { GameBriefing } from "../src/contract/interfaces.js";
-import type { JsonValue, ObservationEmittedEvent } from "../src/contract/types.js";
+import { createNumberGuessScenario } from "../src/scenarios/numberGuess/index.js";
+import {
+  createHeistScenario,
+  type HeistAction,
+  type HeistObservation,
+} from "../src/scenarios/heist/index.js";
+import {
+  createResourceRivalsScenario,
+  type ResourceRivalsAction,
+  type ResourceRivalsObservation,
+} from "../src/scenarios/resourceRivals/index.js";
 import { getHeistBriefing } from "../src/scenarios/heist/briefing.js";
 import { getResourceRivalsBriefing } from "../src/scenarios/resourceRivals/briefing.js";
 import { getNumberGuessBriefing } from "../src/scenarios/numberGuess/briefing.js";
@@ -21,9 +29,31 @@ function getObservationEvents(events: { type: string }[]): ObservationEmittedEve
 
 function extractGameRules(obs: JsonValue): GameBriefing | undefined {
   if (typeof obs === "object" && obs !== null && !Array.isArray(obs) && "gameRules" in obs) {
-    return obs.gameRules as GameBriefing;
+    return obs.gameRules as unknown as GameBriefing;
   }
   return undefined;
+}
+
+function createHeistWaitAgent(id: AgentId): Agent<HeistObservation, HeistAction> {
+  return {
+    id,
+    init(_config: AgentConfig) {},
+    act(_observation: HeistObservation, _ctx: AgentContext): HeistAction {
+      return { type: "wait" };
+    },
+  };
+}
+
+function createResourceRivalsBidAgent(
+  id: AgentId,
+): Agent<ResourceRivalsObservation, ResourceRivalsAction> {
+  return {
+    id,
+    init(_config: AgentConfig) {},
+    act(_observation: ResourceRivalsObservation, _ctx: AgentContext): ResourceRivalsAction {
+      return { bid: 0 };
+    },
+  };
 }
 
 /** Keys that must never appear inside a briefing (heuristic leak check). */
@@ -110,7 +140,7 @@ describe("GameBriefing — Heist", () => {
   const scenario = createHeistScenario();
 
   it("turn-1 observation includes gameRules with correct gameId", async () => {
-    const agent = createRandomAgent("agent-1");
+    const agent = createHeistWaitAgent("agent-1");
     const result = await runMatch(scenario, [agent], { seed: 42, maxTurns: 5 });
     const observations = getObservationEvents(result.events);
     const turn1Obs = observations.filter((o) => o.turn === 1);
@@ -127,7 +157,7 @@ describe("GameBriefing — Heist", () => {
   });
 
   it("turn-2+ observations do NOT include gameRules", async () => {
-    const agent = createRandomAgent("agent-1");
+    const agent = createHeistWaitAgent("agent-1");
     const result = await runMatch(scenario, [agent], { seed: 42, maxTurns: 5 });
     const observations = getObservationEvents(result.events);
     const laterObs = observations.filter((o) => o.turn > 1);
@@ -154,7 +184,7 @@ describe("GameBriefing — Heist", () => {
 
 describe("GameBriefing — ResourceRivals", () => {
   const scenario = createResourceRivalsScenario();
-  const agents = [createRandomAgent("r1"), createBaselineAgent("b1")];
+  const agents = [createResourceRivalsBidAgent("r1"), createResourceRivalsBidAgent("b1")];
 
   it("turn-1 observations include gameRules with correct gameId", async () => {
     const result = await runMatch(scenario, agents, { seed: 42, maxTurns: 20 });
