@@ -135,7 +135,7 @@ export async function buildMatchManifestProvenanceFromConfig(
     if (agentContentHashes.has(agentKey)) {
       continue;
     }
-    const agentPath = AGENT_PATHS[agentKey];
+    const agentPath = resolveAgentPath(agentKey);
     if (!agentPath) {
       throw new Error(`Missing agent provenance mapping for "${agentKey}"`);
     }
@@ -187,6 +187,13 @@ export async function buildMatchManifestProvenanceFromConfig(
   });
 
   return { scenario, agentsById };
+}
+
+function resolveAgentPath(agentKey: string): string | undefined {
+  if (agentKey.startsWith("llm:ollama:")) {
+    return "agents/ollama";
+  }
+  return AGENT_PATHS[agentKey];
 }
 
 export async function buildMatchManifestProvenance(

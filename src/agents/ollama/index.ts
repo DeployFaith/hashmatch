@@ -28,8 +28,8 @@ function resolveAllowTools(): boolean {
   return raw === "1" || raw.toLowerCase() === "true";
 }
 
-export function buildOllamaHeistMetadata(): Record<string, JsonValue> {
-  const model = process.env.OLLAMA_MODEL?.trim() || DEFAULT_MODEL;
+export function buildOllamaHeistMetadata(modelOverride?: string): Record<string, JsonValue> {
+  const model = modelOverride?.trim() || process.env.OLLAMA_MODEL?.trim() || DEFAULT_MODEL;
   const temperature = resolveTemperature().value;
   return {
     toolsAllowed: resolveAllowTools(),

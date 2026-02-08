@@ -9,7 +9,10 @@ import { createBaselineAgent } from "../agents/baselineAgent.js";
 import { createNoopAgent } from "../agents/noopAgent.js";
 import { createRandomBidderAgent } from "../agents/resourceRivals/randomBidder.js";
 import { createConservativeAgent } from "../agents/resourceRivals/conservativeAgent.js";
-import { buildOllamaHeistMetadata, createOllamaHeistAgent } from "../agents/ollama/index.js";
+import { buildOllamaHeistMetadata } from "../agents/ollama/index.js";
+import { createOllamaAgent } from "../agents/ollama/createOllamaAgent.js";
+import type { OllamaConfig } from "../agents/ollama/ollamaClient.js";
+import { getScenarioAdapter } from "../agents/llm/adapters.js";
 import type {
   MatchKey,
   MatchSpec,
@@ -35,6 +38,11 @@ interface AgentRegistration {
   provenance?: AgentProvenanceDescriptor | (() => AgentProvenanceDescriptor);
 }
 
+interface AgentFactoryOptions {
+  scenarioKey?: string;
+  slotIndex?: number;
+}
+
 const scenarioRegistry: Record<string, ScenarioFactory> = {
   heist: createHeistScenario,
   numberGuess: createNumberGuessScenario,
@@ -47,11 +55,108 @@ const agentRegistry: Record<string, AgentRegistration> = {
   noop: { factory: createNoopAgent },
   randomBidder: { factory: createRandomBidderAgent },
   conservative: { factory: createConservativeAgent },
-  "ollama-heist": {
-    factory: createOllamaHeistAgent,
-    provenance: () => ({ metadata: buildOllamaHeistMetadata() }),
-  },
 };
+
+const knownLlmProviders = ["ollama"];
+const llmAgentKeys = ["llm:ollama:<model>", "ollama-heist"];
+const DEFAULT_OLLAMA_MODEL = "qwen2.5:3b";
+let ollamaHeistDeprecatedWarned = false;
+
+function resolveTemperature(): { value: number; options?: Record<string, unknown> } {
+  const raw = process.env.OLLAMA_TEMPERATURE;
+  if (!raw || raw.trim().length === 0) {
+    return { value: 0.3 };
+  }
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) {
+    return { value: 0.3 };
+  }
+  return { value: parsed, options: { temperature: parsed } };
+}
+
+function resolveOllamaModel(
+  keyModel: string | undefined,
+  slotIndex?: number,
+  allowGlobalOverride = true,
+): string {
+  if (slotIndex !== undefined) {
+    const override = process.env[`OLLAMA_MODEL_${slotIndex}`];
+    if (override && override.trim().length > 0) {
+      return override.trim();
+    }
+  }
+  if (keyModel && keyModel.trim().length > 0) {
+    return keyModel.trim();
+  }
+  if (allowGlobalOverride) {
+    const globalModel = process.env.OLLAMA_MODEL;
+    if (globalModel && globalModel.trim().length > 0) {
+      return globalModel.trim();
+    }
+  }
+  return DEFAULT_OLLAMA_MODEL;
+}
+
+function resolveOllamaConfig(keyModel: string | undefined, slotIndex?: number): OllamaConfig {
+  const model = resolveOllamaModel(keyModel, slotIndex);
+  const { options } = resolveTemperature();
+  const endpoint = process.env.OLLAMA_ENDPOINT?.trim();
+  return {
+    model,
+    ...(endpoint ? { endpoint } : {}),
+    ...(options ? { options } : {}),
+  };
+}
+
+function resolveLlmAgentFactory(
+  provider: string,
+  model: string,
+  scenarioKey: string | undefined,
+  slotIndex?: number,
+): AgentFactory {
+  if (!scenarioKey) {
+    throw new Error(
+      "llm: agents require --scenario to select behavior. Example: --scenario heist --agentA llm:ollama:qwen2.5:3b. This requires --scenario.",
+    );
+  }
+
+  if (!knownLlmProviders.includes(provider)) {
+    throw new Error(
+      `Unknown LLM provider "${provider}". Available providers: ${knownLlmProviders.join(", ")}`,
+    );
+  }
+
+  const adapter = getScenarioAdapter(scenarioKey);
+
+  if (provider === "ollama") {
+    const config = resolveOllamaConfig(model, slotIndex);
+    return (id: AgentId) => createOllamaAgent(id, config, adapter);
+  }
+
+  throw new Error(`Provider "${provider}" is registered but has no factory. This is a bug.`);
+}
+
+function listAvailableAgentKeys(): string {
+  return [...Object.keys(agentRegistry), ...llmAgentKeys].join(", ");
+}
+
+function parseLlmKey(key: string): { provider: string; model: string } {
+  const rest = key.slice(4);
+  const separatorIndex = rest.indexOf(":");
+  if (separatorIndex === -1) {
+    throw new Error(
+      `Invalid LLM agent key "${key}". Use format llm:<provider>:<model> (example: llm:ollama:qwen2.5:3b).`,
+    );
+  }
+  const provider = rest.slice(0, separatorIndex);
+  const model = rest.slice(separatorIndex + 1);
+  if (!provider || !model) {
+    throw new Error(
+      `Invalid LLM agent key "${key}". Use format llm:<provider>:<model> (example: llm:ollama:qwen2.5:3b).`,
+    );
+  }
+  return { provider, model };
+}
 
 /** Resolve a scenario factory by key. Throws if unknown. */
 export function getScenarioFactory(key: string): ScenarioFactory {
@@ -64,16 +169,40 @@ export function getScenarioFactory(key: string): ScenarioFactory {
 }
 
 /** Resolve an agent factory by key. Throws if unknown. */
-export function getAgentFactory(key: string): AgentFactory {
+export function getAgentFactory(key: string, options: AgentFactoryOptions = {}): AgentFactory {
+  if (key.startsWith("llm:")) {
+    const { provider, model } = parseLlmKey(key);
+    return resolveLlmAgentFactory(provider, model, options.scenarioKey, options.slotIndex);
+  }
+
+  if (key === "ollama-heist") {
+    if (!ollamaHeistDeprecatedWarned) {
+      ollamaHeistDeprecatedWarned = true;
+      // eslint-disable-next-line no-console
+      console.warn('⚠️  Agent key "ollama-heist" is deprecated. Use "llm:ollama" with --scenario.');
+    }
+    const model = resolveOllamaModel(undefined, options.slotIndex);
+    return resolveLlmAgentFactory("ollama", model, options.scenarioKey ?? "heist", options.slotIndex);
+  }
+
   const registration = agentRegistry[key];
   if (!registration) {
-    const available = Object.keys(agentRegistry).join(", ");
-    throw new Error(`Unknown agent "${key}". Available: ${available}`);
+    throw new Error(`Unknown agent "${key}". Available: ${listAvailableAgentKeys()}`);
   }
   return registration.factory;
 }
 
 export function getAgentProvenanceDescriptor(key: string): AgentProvenanceDescriptor | undefined {
+  if (key === "ollama-heist") {
+    const model = resolveOllamaModel(undefined);
+    return { metadata: buildOllamaHeistMetadata(model) };
+  }
+  if (key.startsWith("llm:")) {
+    const { provider, model } = parseLlmKey(key);
+    if (provider === "ollama") {
+      return { metadata: buildOllamaHeistMetadata(model) };
+    }
+  }
   const registration = agentRegistry[key];
   if (!registration?.provenance) {
     return undefined;
@@ -133,9 +262,9 @@ export async function runTournament(config: TournamentConfig): Promise<Tournamen
 
   // Validate
   const scenarioFactory = getScenarioFactory(scenarioKey);
-  const agentFactories = agentKeys.map((key) => ({
+  const agentFactories = agentKeys.map((key, index) => ({
     key,
-    factory: getAgentFactory(key),
+    factory: getAgentFactory(key, { scenarioKey, slotIndex: index }),
   }));
 
   const matches: MatchSummary[] = [];

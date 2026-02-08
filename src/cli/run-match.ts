@@ -246,24 +246,22 @@ async function main(): Promise<void> {
   }
 
   // Validate agents
-  const agentFactories = new Map<string, ReturnType<typeof getAgentFactory>>();
-  for (const key of agentKeys) {
+  const agentFactories = agentKeys.map((key, index) => {
     try {
-      agentFactories.set(key, getAgentFactory(key));
+      return { key, factory: getAgentFactory(key, { scenarioKey: args.scenario, slotIndex: index }) };
     } catch (err: unknown) {
       // eslint-disable-next-line no-console
       console.error(err instanceof Error ? err.message : String(err));
       process.exit(1);
     }
-  }
+  });
 
   const scenario = scenarioFactory();
-  const agents = agentKeys.map((key, index) => {
-    const factory = agentFactories.get(key);
-    if (!factory) {
-      throw new Error(`Missing agent factory for "${key}"`);
+  const agents = agentFactories.map((agentConfig, index) => {
+    if (!agentConfig) {
+      throw new Error(`Missing agent factory for "${agentKeys[index]}"`);
     }
-    return factory(`${key}-${index}`);
+    return agentConfig.factory(`${agentConfig.key}-${index}`);
   });
 
   // Opt-in provenance: only include if explicitly requested AND at least one field resolves.
