@@ -139,3 +139,9 @@ Published URL patterns:
 - https://hashmatch.deployfaith.xyz/tournaments/<run_id>/matches/\*.jsonl (when --writeLogs is used)
 
 Project documentation lives in Documents/.
+
+## Verify the signed exhibition bundle
+
+ npm ci
+ npm run validate-bundle -- --path data/exhibitions/heist-showcase-001 --require-signatures
+ npm run verify-receipt -- data/exhibitions/heist-showcase-001 --pub keys/exhibitions.pub.pem
