@@ -9,6 +9,8 @@ yarn-error.log*
 pnpm-debug.log*
 .env*
 *.tsbuildinfo
+*.pem
+*.key
 
 # OS
 .DS_Store
