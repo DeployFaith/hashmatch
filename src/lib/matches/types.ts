@@ -36,6 +36,15 @@ export interface MatchStatusRecord {
   error?: string;
 }
 
+export type MatchRunState = "running" | "completed" | "crashed" | "unknown";
+
+export interface MatchRunStatusResponse {
+  status: MatchRunState;
+  startedAt?: string;
+  finishedAt?: string;
+  exitCode?: number;
+}
+
 export interface MatchArtifactsIndex {
   summary: string;
   manifest?: string;

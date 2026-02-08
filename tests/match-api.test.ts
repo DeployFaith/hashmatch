@@ -4,7 +4,8 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { GET as listMatches } from "../src/app/api/matches/route.js";
 import { GET as getMatchDetail } from "../src/app/api/matches/[matchId]/route.js";
-import type { MatchSummaryRecord } from "../src/lib/matches/types.js";
+import { GET as getMatchStatus } from "../src/app/api/matches/[matchId]/status/route.js";
+import type { MatchStatusRecord, MatchSummaryRecord } from "../src/lib/matches/types.js";
 
 let tempDir = "";
 let exhibitionDir = "";
@@ -39,6 +40,12 @@ function writeMatchArtifacts(matchId: string): void {
     JSON.stringify({ scenario: { id: "Heist" } }),
     "utf-8",
   );
+}
+
+function writeMatchStatus(matchId: string, status: MatchStatusRecord): void {
+  const matchDir = join(tempDir, matchId);
+  mkdirSync(matchDir, { recursive: true });
+  writeFileSync(join(matchDir, "match_status.json"), JSON.stringify(status), "utf-8");
 }
 
 beforeEach(() => {
@@ -85,5 +92,50 @@ describe("GET /api/matches/[matchId]", () => {
     });
 
     expect(response.status).toBe(404);
+  });
+});
+
+describe("GET /api/matches/[matchId]/status", () => {
+  it("maps running status", async () => {
+    writeMatchArtifacts(MATCH_ID);
+    writeMatchStatus(MATCH_ID, {
+      matchId: MATCH_ID,
+      status: "running",
+      startedAt: "2024-01-01T00:00:00.000Z",
+    });
+
+    const response = await getMatchStatus(new Request("http://localhost"), {
+      params: Promise.resolve({ matchId: MATCH_ID }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      status: "running",
+      startedAt: "2024-01-01T00:00:00.000Z",
+    });
+  });
+
+  it("maps completed status", async () => {
+    const completedId = "m_abcd1234ef56";
+    writeMatchArtifacts(completedId);
+    writeMatchStatus(completedId, {
+      matchId: completedId,
+      status: "complete",
+      startedAt: "2024-01-01T00:00:00.000Z",
+      finishedAt: "2024-01-01T00:10:00.000Z",
+      exitCode: 0,
+    });
+
+    const response = await getMatchStatus(new Request("http://localhost"), {
+      params: Promise.resolve({ matchId: completedId }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      status: "completed",
+      startedAt: "2024-01-01T00:00:00.000Z",
+      finishedAt: "2024-01-01T00:10:00.000Z",
+      exitCode: 0,
+    });
   });
 });
