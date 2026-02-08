@@ -1,4 +1,4 @@
-import { CanonicalEventSchema, CanonicalUnknownEventSchema, normalizeJsonlLine } from "./event";
+import { CanonicalEventSchema, CanonicalUnknownEventSchema, normalizeJsonlLine } from "./event.js";
 
 export interface JsonlValidationOptions {
   allowUnknown?: boolean;

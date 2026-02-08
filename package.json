@@ -19,7 +19,12 @@
     "gen:sample-replay": "tsc -p tsconfig.scripts.json && node dist-scripts/scripts/gen-sample-replay.js",
     "validate:jsonl": "tsc -p tsconfig.scripts.json && node dist-scripts/scripts/validate-jsonl.js",
     "dev:turbo": "next dev",
-    "build:turbo": "next build"
+    "build:turbo": "next build",
+    "build:scripts": "tsc -p tsconfig.scripts.json",
+    "validate-bundle": "npm run -s build:scripts && node dist-scripts/src/cli/validate-bundle.js",
+    "verify-receipt": "npm run -s build:scripts && node dist-scripts/src/cli/verify-receipt.js",
+    "verify-tournament": "npm run -s build:scripts && node dist-scripts/src/cli/verify-tournament.js",
+    "sign-tournament": "npm run -s build:scripts && node dist-scripts/src/cli/sign-tournament.js"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",

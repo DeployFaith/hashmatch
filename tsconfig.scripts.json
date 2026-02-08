@@ -10,5 +10,12 @@
     "esModuleInterop": true,
     "resolveJsonModule": true
   },
-  "include": ["scripts/**/*.ts"]
+  "include": [
+    "scripts/**/*.ts",
+    "src/cli/**/*.ts",
+    "src/core/**/*.ts",
+    "src/contract/**/*.ts",
+    "src/tournament/**/*.ts",
+    "src/scenarios/**/*.ts"
+  ]
 }
