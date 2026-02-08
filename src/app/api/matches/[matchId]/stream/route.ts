@@ -35,6 +35,20 @@ interface StreamContext {
   encoder: TextEncoder;
 }
 
+function parseIncludeParams(request: Request): Set<string> {
+  const includes = new Set<string>();
+  const { searchParams } = new URL(request.url);
+  for (const value of searchParams.getAll("include")) {
+    for (const token of value.split(",")) {
+      const trimmed = token.trim();
+      if (trimmed) {
+        includes.add(trimmed);
+      }
+    }
+  }
+  return includes;
+}
+
 function parseLastEventId(request: Request): number | null {
   const raw = request.headers.get("last-event-id");
   if (!raw) {
@@ -107,6 +121,16 @@ async function readMatchStatus(statusPath: string): Promise<MatchStatus | null> 
   }
 }
 
+async function readMoments(matchDir: string): Promise<unknown[]> {
+  try {
+    const raw = await readFile(join(matchDir, "moments.json"), "utf-8");
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 async function readModeProfile(matchDir: string): Promise<ModeProfile | null> {
   const candidates = ["match_manifest.json", "match_summary.json"];
   for (const filename of candidates) {
@@ -155,13 +179,23 @@ function shouldSkipEvent(event: MatchEvent, lastEventId: number | null): boolean
   return event.seq <= lastEventId;
 }
 
-async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEventId: number | null): Promise<void> {
+async function streamMatchEvents(
+  ctx: StreamContext,
+  matchDir: string,
+  lastEventId: number | null,
+  includeMoments: boolean,
+): Promise<void> {
   const statusPath = join(matchDir, "match_status.json");
   let status = await readMatchStatus(statusPath);
   if (!status) {
     enqueueEvent(ctx, "error", { message: "Missing match_status.json" });
     closeStream(ctx);
     return;
+  }
+
+  if (includeMoments) {
+    const moments = await readMoments(matchDir);
+    enqueueEvent(ctx, "moments", moments);
   }
 
   const modeProfile = await readModeProfile(matchDir);
@@ -306,6 +340,7 @@ type RouteContext = { params: Promise<{ matchId: string }> };
 export async function GET(request: Request, context: RouteContext): Promise<Response> {
   const { matchId } = await context.params;
   const encoder = new TextEncoder();
+  const includeMoments = parseIncludeParams(request).has("moments");
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -334,7 +369,7 @@ export async function GET(request: Request, context: RouteContext): Promise<Resp
       };
       request.signal.addEventListener("abort", abortListener, { once: true });
 
-      void streamMatchEvents(ctx, matchDir, parseLastEventId(request)).catch(() => {
+      void streamMatchEvents(ctx, matchDir, parseLastEventId(request), includeMoments).catch(() => {
         if (!request.signal.aborted) {
           enqueueEvent(ctx, "error", { message: "Stream error" });
           closeStream(ctx);

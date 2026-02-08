@@ -1,17 +1,21 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { NextResponse } from "next/server";
 import { isSafeMatchId } from "@/engine/matchId";
 import { findExhibitionMatchDirectory } from "@/server/exhibitionStorage";
 import { getMatchStorageRoot } from "@/server/matchStorage";
 import type {
+  AgentProfile,
+  AgentProfileType,
   MatchArtifactsIndex,
   MatchDetailResponse,
   MatchStatusRecord,
   MatchSummaryRecord,
   VerificationResult,
 } from "@/lib/matches/types";
+import type { ReplayMoment } from "@/lib/replay";
+import type { StandingsRow } from "@/tournament/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,6 +41,116 @@ function resolveScenarioName(manifest: Record<string, unknown> | null): string |
     }
   }
   return undefined;
+}
+
+function resolveAgentProfileKey(index: number): string {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  if (index < alphabet.length) {
+    return `agent${alphabet[index]}`;
+  }
+  return `agent${index + 1}`;
+}
+
+function resolveAgentTypeFromMetadata(metadata: Record<string, unknown> | null): AgentProfileType | undefined {
+  if (!metadata) {
+    return undefined;
+  }
+  const rawType = metadata.agentType;
+  if (typeof rawType === "string") {
+    const normalized = rawType.trim().toLowerCase();
+    if (normalized === "scripted" || normalized === "llm" || normalized === "http") {
+      return normalized;
+    }
+  }
+  const llmProvider = metadata.llmProvider;
+  if (typeof llmProvider === "string" && llmProvider.trim().length > 0) {
+    return "llm";
+  }
+  const gateway = metadata.gateway;
+  if (typeof gateway === "string" && gateway.trim().toLowerCase() === "http") {
+    return "http";
+  }
+  return undefined;
+}
+
+function buildAgentTypeLookup(
+  manifest: Record<string, unknown> | null,
+): Map<string, AgentProfileType> {
+  const lookup = new Map<string, AgentProfileType>();
+  if (!manifest) {
+    return lookup;
+  }
+  const agents = manifest.agents;
+  if (!Array.isArray(agents)) {
+    return lookup;
+  }
+  for (const entry of agents) {
+    if (!entry || typeof entry !== "object") {
+      continue;
+    }
+    const agentId = (entry as { id?: unknown }).id;
+    if (typeof agentId !== "string") {
+      continue;
+    }
+    const metadataRaw = (entry as { metadata?: unknown }).metadata;
+    const metadata =
+      metadataRaw && typeof metadataRaw === "object" ? (metadataRaw as Record<string, unknown>) : null;
+    const agentType = resolveAgentTypeFromMetadata(metadata);
+    if (agentType) {
+      lookup.set(agentId, agentType);
+    }
+  }
+  return lookup;
+}
+
+async function findStandings(matchDir: string): Promise<StandingsRow[] | null> {
+  let currentDir = matchDir;
+  while (true) {
+    const standingsPath = join(currentDir, "standings.json");
+    const standings = await readJsonFile<StandingsRow[]>(standingsPath);
+    if (standings) {
+      return standings;
+    }
+    const parentDir = dirname(currentDir);
+    if (parentDir === currentDir) {
+      break;
+    }
+    currentDir = parentDir;
+  }
+  return null;
+}
+
+function buildAgentProfiles(
+  agentIds: string[],
+  standings: StandingsRow[] | null,
+  agentTypes: Map<string, AgentProfileType>,
+): Record<string, AgentProfile> {
+  const standingsById = new Map<string, StandingsRow>();
+  if (standings) {
+    for (const row of standings) {
+      standingsById.set(row.agentId, row);
+    }
+  }
+
+  return agentIds.reduce<Record<string, AgentProfile>>((acc, agentId, index) => {
+    const key = resolveAgentProfileKey(index);
+    const row = standingsById.get(agentId);
+    const profile: AgentProfile = {
+      agentId,
+      ...(row
+        ? {
+            record: { wins: row.wins, losses: row.losses, draws: row.draws },
+            points: row.points,
+          }
+        : {}),
+    };
+    const type = agentTypes.get(agentId);
+    if (type) {
+      profile.type = type;
+    }
+    acc[key] = profile;
+    return acc;
+  }, {});
 }
 
 function buildArtifactsIndex(matchDir: string): MatchArtifactsIndex {
@@ -92,6 +206,10 @@ export async function GET(
   const verification = await readJsonFile<VerificationResult>(
     join(matchDir, "verification_result.json"),
   );
+  const moments = (await readJsonFile<ReplayMoment[]>(join(matchDir, "moments.json"))) ?? [];
+  const standings = await findStandings(matchDir);
+  const agentTypes = buildAgentTypeLookup(manifest);
+  const agentProfiles = buildAgentProfiles(summary.agentIds, standings, agentTypes);
 
   const response: MatchDetailResponse = {
     matchId: summary.matchId ?? matchId,
@@ -100,6 +218,9 @@ export async function GET(
     summary,
     artifacts: buildArtifactsIndex(matchDir),
     verification,
+    agentProfiles,
+    moments,
+    standings,
   };
 
   return NextResponse.json(response);

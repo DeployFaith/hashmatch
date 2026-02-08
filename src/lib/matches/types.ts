@@ -1,3 +1,6 @@
+import type { ReplayMoment } from "@/lib/replay";
+import type { StandingsRow } from "@/tournament/types";
+
 export interface MatchSummaryHashes {
   logHash: string;
   manifestHash: string;
@@ -74,6 +77,21 @@ export interface MatchListItem {
   summary: MatchSummaryRecord;
 }
 
+export type AgentProfileType = "scripted" | "llm" | "http";
+
+export interface AgentRecord {
+  wins: number;
+  losses: number;
+  draws: number;
+}
+
+export interface AgentProfile {
+  agentId: string;
+  record?: AgentRecord;
+  points?: number;
+  type?: AgentProfileType;
+}
+
 export interface MatchDetailResponse {
   matchId: string;
   scenarioName?: string;
@@ -81,4 +99,7 @@ export interface MatchDetailResponse {
   summary: MatchSummaryRecord;
   artifacts: MatchArtifactsIndex;
   verification?: VerificationResult | null;
+  agentProfiles: Record<string, AgentProfile>;
+  moments: ReplayMoment[];
+  standings: StandingsRow[] | null;
 }
