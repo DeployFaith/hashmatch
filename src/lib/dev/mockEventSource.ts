@@ -188,7 +188,7 @@ export function createMockLiveEventSource(
   const listeners = new Set<() => void>();
 
   let emittedEvents: ReplayEvent[] = [];
-  let errors: ParseError[] = [];
+  const errors: ParseError[] = [];
   let status: "loading" | "complete" | "error" = "loading";
   let liveStatus: SSEMatchStatusData | undefined;
   let completeInfo: SSEMatchCompleteData | undefined;
