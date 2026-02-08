@@ -151,7 +151,7 @@ function parseTournamentManifest(value: unknown): { manifest?: TournamentManifes
   if (errors.length > 0) {
     return { errors };
   }
-  return { manifest: value as TournamentManifest, errors };
+  return { manifest: value as unknown as TournamentManifest, errors };
 }
 
 function parseMatchSummary(value: unknown): { summary?: MatchSummary; errors: string[] } {
@@ -174,7 +174,7 @@ function parseMatchSummary(value: unknown): { summary?: MatchSummary; errors: st
   if (errors.length > 0) {
     return { errors };
   }
-  return { summary: value as MatchSummary, errors };
+  return { summary: value as unknown as MatchSummary, errors };
 }
 
 function parseStandings(value: unknown): { rows?: StandingsRow[]; errors: string[] } {
@@ -244,7 +244,7 @@ function parseBroadcastManifest(value: unknown): { manifest?: BroadcastManifest;
   if (errors.length > 0) {
     return { errors };
   }
-  return { manifest: value as BroadcastManifest, errors };
+  return { manifest: value as unknown as BroadcastManifest, errors };
 }
 
 function parseMatchReceiptPayload(value: unknown): { payload?: MatchReceiptPayload; errors: string[] } {
@@ -270,7 +270,7 @@ function parseMatchReceiptPayload(value: unknown): { payload?: MatchReceiptPaylo
   if (errors.length > 0) {
     return { errors };
   }
-  return { payload: value as MatchReceiptPayload, errors };
+  return { payload: value as unknown as MatchReceiptPayload, errors };
 }
 
 function parseTournamentReceiptPayload(
@@ -295,7 +295,7 @@ function parseTournamentReceiptPayload(
   if (errors.length > 0) {
     return { errors };
   }
-  return { payload: value as TournamentReceiptPayload, errors };
+  return { payload: value as unknown as TournamentReceiptPayload, errors };
 }
 
 function parseReceipt<T>(
