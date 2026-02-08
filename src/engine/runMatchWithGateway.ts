@@ -6,6 +6,7 @@ import type { GatewayObservationRequest } from "../gateway/types.js";
 import type { GatewayRuntimeConfig } from "../gateway/runtime.js";
 import { combineHeistRuns } from "./heistCompetitive.js";
 import { generateMatchId } from "./matchId.js";
+import { resolveMaxConsecutiveTimeouts, resolveMaxTurnTimeMs } from "./turnTimeout.js";
 
 function emit(
   events: MatchEvent[],
@@ -14,6 +15,26 @@ function emit(
   partial: Record<string, unknown> & { type: string },
 ): void {
   events.push({ ...partial, seq: seq.value++, matchId } as MatchEvent);
+}
+
+function applyForfeitScores(
+  scores: Record<AgentId, number>,
+  forfeitedBy: AgentId | undefined,
+): Record<AgentId, number> {
+  if (!forfeitedBy) {
+    return scores;
+  }
+  const forfeitingScore = scores[forfeitedBy] ?? 0;
+  const updated = { ...scores };
+  for (const [agentId, score] of Object.entries(scores)) {
+    if (agentId === forfeitedBy) {
+      continue;
+    }
+    if (score <= forfeitingScore) {
+      updated[agentId] = forfeitingScore + 1;
+    }
+  }
+  return updated;
 }
 
 function resolveGameId(scenario: Scenario<unknown, unknown, unknown>, gateway: GatewayRuntimeConfig): string {
@@ -31,6 +52,7 @@ function buildObservationRequest<TObs>(
   turnStartedAt: string,
   agentId: AgentId,
   observation: TObs,
+  deadlineMs: number,
   scenario: Scenario<unknown, unknown, unknown>,
 ): GatewayObservationRequest {
   return {
@@ -38,7 +60,7 @@ function buildObservationRequest<TObs>(
     matchId,
     turn,
     agentId,
-    deadlineMs: gateway.config.defaultDeadlineMs,
+    deadlineMs,
     turnStartedAt,
     gameId: resolveGameId(scenario, gateway),
     gameVersion: resolveGameVersion(gateway),
@@ -77,6 +99,15 @@ async function runMatchWithGatewayStandard<TState, TObs, TAct>(
   const matchId = config.matchId ?? generatedMatchId;
 
   const agentIds: AgentId[] = agents.map((a) => a.id);
+  const maxTurnTimeMs = resolveMaxTurnTimeMs(config);
+  const maxConsecutiveTimeouts = resolveMaxConsecutiveTimeouts(config);
+  const timeoutsPerAgent: Record<AgentId, number> = Object.fromEntries(
+    agentIds.map((agentId) => [agentId, 0]),
+  );
+  const consecutiveTimeouts = new Map<AgentId, number>(
+    agentIds.map((agentId) => [agentId, 0]),
+  );
+  let forfeitedBy: AgentId | undefined;
 
   const agentRngs = new Map<AgentId, () => number>();
   for (const agent of agents) {
@@ -147,10 +178,11 @@ async function runMatchWithGatewayStandard<TState, TObs, TAct>(
         turnStartedAt,
         agent.id,
         observation,
+        maxTurnTimeMs,
         scenario,
       );
 
-      const fallbackAction = null;
+      const fallbackAction = scenario.getDefaultAction();
       const adapter =
         gateway.mode === "local"
           ? createLocalAdapter((obs) => agent.act(obs as TObs, ctx), gateway.config)
@@ -174,14 +206,31 @@ async function runMatchWithGatewayStandard<TState, TObs, TAct>(
 
       gateway.transcriptWriter?.write(transcript);
 
-      if (transcript.status !== "ok") {
+      if (transcript.status === "timeout") {
+        timeoutsPerAgent[agent.id] = (timeoutsPerAgent[agent.id] ?? 0) + 1;
+        const nextConsecutive = (consecutiveTimeouts.get(agent.id) ?? 0) + 1;
+        consecutiveTimeouts.set(agent.id, nextConsecutive);
+        emit(events, seq, matchId, {
+          type: "AgentError",
+          agentId: agent.id,
+          turn,
+          message: `Agent exceeded maxTurnTimeMs (${maxTurnTimeMs}ms). Default action applied.`,
+          errorType: "timeout",
+        });
+        if (nextConsecutive >= maxConsecutiveTimeouts) {
+          forfeitedBy = agent.id;
+        }
+      } else if (transcript.status !== "ok") {
         emit(events, seq, matchId, {
           type: "AgentError",
           agentId: agent.id,
           turn,
           message: transcript.errorMessage ?? `Gateway ${transcript.status}`,
         });
+        consecutiveTimeouts.set(agent.id, 0);
         continue;
+      } else {
+        consecutiveTimeouts.set(agent.id, 0);
       }
 
       emit(events, seq, matchId, {
@@ -201,6 +250,10 @@ async function runMatchWithGatewayStandard<TState, TObs, TAct>(
       });
 
       state = result.state;
+
+      if (forfeitedBy) {
+        break;
+      }
     }
 
     emit(events, seq, matchId, {
@@ -208,10 +261,19 @@ async function runMatchWithGatewayStandard<TState, TObs, TAct>(
       turn,
       summary: scenario.summarize(state),
     });
+
+    if (forfeitedBy) {
+      break;
+    }
   }
 
-  const scores = scenario.score(state);
-  const reason = scenario.isTerminal(state) ? "completed" : "maxTurnsReached";
+  const baseScores = scenario.score(state);
+  const scores = applyForfeitScores(baseScores, forfeitedBy);
+  const reason = forfeitedBy
+    ? "agentForfeited"
+    : scenario.isTerminal(state)
+      ? "completed"
+      : "maxTurnsReached";
 
   const details = scenario.reveal?.(state);
   emit(events, seq, matchId, {
@@ -228,7 +290,16 @@ async function runMatchWithGatewayStandard<TState, TObs, TAct>(
     }
   }
 
-  return { matchId, seed: config.seed, scores, events, turns: turn };
+  return {
+    matchId,
+    seed: config.seed,
+    scores,
+    events,
+    turns: turn,
+    maxTurnTimeMs,
+    timeoutsPerAgent,
+    ...(forfeitedBy ? { forfeitedBy } : {}),
+  };
 }
 
 export async function runMatchWithGateway<TState, TObs, TAct>(

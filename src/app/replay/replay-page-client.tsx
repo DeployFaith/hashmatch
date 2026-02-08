@@ -96,6 +96,8 @@ interface MatchSummaryEntry {
   seed: number;
   agentIds: string[];
   scores: Record<string, number>;
+  timeoutsPerAgent: Record<string, number>;
+  forfeitedBy?: string;
   winner: string | null;
   turns: number;
   reason: string;

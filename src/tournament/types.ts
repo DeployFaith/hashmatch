@@ -10,6 +10,9 @@ export interface TournamentConfig {
   scenarioKey: string;
   agentKeys: string[];
   modeProfile?: JsonValue;
+  divisionConfig?: JsonValue;
+  maxTurnTimeMs?: number;
+  maxConsecutiveTimeouts?: number;
   harnessVersion?: string;
   /** If true, include full per-match event logs in the result. */
   includeEventLogs?: boolean;
@@ -39,6 +42,7 @@ export interface MatchManifestScenario {
 
 export interface MatchManifestConfig {
   maxTurns: number;
+  maxTurnTimeMs: number;
   seed: Seed;
   seedDerivationInputs: {
     tournamentSeed: Seed;
@@ -85,6 +89,8 @@ export interface MatchSummary {
   seed: Seed;
   agentIds: AgentId[];
   scores: Record<AgentId, number>;
+  timeoutsPerAgent: Record<AgentId, number>;
+  forfeitedBy?: AgentId;
   winner: AgentId | null;
   turns: number;
   reason: string;

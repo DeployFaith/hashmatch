@@ -78,9 +78,12 @@ export interface MatchArtifactsConfig {
   agentKeys: string[];
   seed: number;
   maxTurns: number;
+  maxTurnTimeMs: number;
   modeKey?: string;
   events: MatchEvent[];
   scores: Record<AgentId, number>;
+  timeoutsPerAgent: Record<AgentId, number>;
+  forfeitedBy?: AgentId;
   turns: number;
   reason: string;
   matchDir: string;
@@ -110,6 +113,7 @@ export async function writeMatchArtifacts(config: MatchArtifactsConfig): Promise
     }),
     config: {
       maxTurns: config.maxTurns,
+      maxTurnTimeMs: config.maxTurnTimeMs,
       seed: config.seed,
       seedDerivationInputs: {
         tournamentSeed: config.seed,
@@ -141,6 +145,8 @@ export async function writeMatchArtifacts(config: MatchArtifactsConfig): Promise
     seed: config.seed,
     agentIds,
     scores: config.scores,
+    timeoutsPerAgent: config.timeoutsPerAgent,
+    ...(config.forfeitedBy ? { forfeitedBy: config.forfeitedBy } : {}),
     winner: determineWinner(config.scores, agentIds),
     turns: config.turns,
     reason: config.reason,

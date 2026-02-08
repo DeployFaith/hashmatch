@@ -25,6 +25,10 @@ function writeMatchArtifacts(matchId: string): void {
       "random-0": 10,
       "baseline-1": 5,
     },
+    timeoutsPerAgent: {
+      "random-0": 0,
+      "baseline-1": 0,
+    },
     winner: "random-0",
     turns: 12,
     reason: "completed",

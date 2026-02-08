@@ -59,9 +59,14 @@ describe("Broadcast manifest (match artifacts)", () => {
         agentKeys: ["random", "baseline"],
         seed: 1,
         maxTurns: 10,
+        maxTurnTimeMs: 30000,
         events: makeBaseEvents(matchId, agentIds),
         scores: {
           [agentIds[0]]: 1,
+          [agentIds[1]]: 0,
+        },
+        timeoutsPerAgent: {
+          [agentIds[0]]: 0,
           [agentIds[1]]: 0,
         },
         turns: 1,
@@ -141,10 +146,15 @@ describe("Broadcast manifest (match artifacts)", () => {
         agentKeys: ["random", "baseline"],
         seed: 2,
         maxTurns: 10,
+        maxTurnTimeMs: 30000,
         events,
         scores: {
           [agentIds[0]]: 0,
           [agentIds[1]]: 1,
+        },
+        timeoutsPerAgent: {
+          [agentIds[0]]: 0,
+          [agentIds[1]]: 0,
         },
         turns: 1,
         reason: "completed",

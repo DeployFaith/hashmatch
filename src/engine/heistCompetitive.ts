@@ -6,7 +6,7 @@ export interface HeistSoloRun {
   result: MatchResult;
 }
 
-type MatchEndedReason = "completed" | "maxTurnsReached";
+type MatchEndedReason = "completed" | "maxTurnsReached" | "agentForfeited";
 
 type MatchEndSummary = {
   reason: MatchEndedReason;
@@ -57,6 +57,26 @@ function buildCombinedScores(
   return scores;
 }
 
+function applyForfeitScores(
+  scores: Record<AgentId, number>,
+  forfeitedBy: AgentId | undefined,
+): Record<AgentId, number> {
+  if (!forfeitedBy) {
+    return scores;
+  }
+  const forfeitingScore = scores[forfeitedBy] ?? 0;
+  const updated = { ...scores };
+  for (const [agentId, score] of Object.entries(scores)) {
+    if (agentId === forfeitedBy) {
+      continue;
+    }
+    if (score <= forfeitingScore) {
+      updated[agentId] = forfeitingScore + 1;
+    }
+  }
+  return updated;
+}
+
 function determineWinner(
   scores: Record<AgentId, number>,
   agentIds: AgentId[],
@@ -92,13 +112,17 @@ export function combineHeistRuns(
   const matchEndA = extractMatchEnd(runA.result);
   const matchEndB = extractMatchEnd(runB.result);
 
-  const scores = buildCombinedScores(agentIds, runs);
+  const forfeitedBy = runA.result.forfeitedBy ?? runB.result.forfeitedBy;
+  const baseScores = buildCombinedScores(agentIds, runs);
+  const scores = applyForfeitScores(baseScores, forfeitedBy);
   const winner = determineWinner(scores, agentIds);
 
   const reason: MatchEndedReason =
-    matchEndA.reason === "maxTurnsReached" || matchEndB.reason === "maxTurnsReached"
-      ? "maxTurnsReached"
-      : "completed";
+    matchEndA.reason === "agentForfeited" || matchEndB.reason === "agentForfeited"
+      ? "agentForfeited"
+      : matchEndA.reason === "maxTurnsReached" || matchEndB.reason === "maxTurnsReached"
+        ? "maxTurnsReached"
+        : "completed";
 
   const turns = Math.max(runA.result.turns, runB.result.turns);
 
@@ -166,5 +190,11 @@ export function combineHeistRuns(
     scores,
     events: normalizedEvents,
     turns,
+    maxTurnTimeMs: Math.max(runA.result.maxTurnTimeMs, runB.result.maxTurnTimeMs),
+    timeoutsPerAgent: {
+      ...runA.result.timeoutsPerAgent,
+      ...runB.result.timeoutsPerAgent,
+    },
+    ...(forfeitedBy ? { forfeitedBy } : {}),
   };
 }

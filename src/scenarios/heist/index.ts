@@ -350,6 +350,10 @@ export function createHeistScenario(
       };
     },
 
+    getDefaultAction(): HeistAction {
+      return { type: "wait" };
+    },
+
     reveal(state: HeistState): JsonValue {
       return {
         params: state.params as unknown as JsonValue,

@@ -131,6 +131,9 @@ export async function runTournament(config: TournamentConfig): Promise<Tournamen
     agentKeys,
     includeEventLogs,
     modeProfile,
+    divisionConfig,
+    maxTurnTimeMs,
+    maxConsecutiveTimeouts,
     harnessVersion,
   } = config;
 
@@ -170,6 +173,10 @@ export async function runTournament(config: TournamentConfig): Promise<Tournamen
         const result = await runMatch(scenario, orderedAgents, {
           seed: matchSeed,
           maxTurns,
+          modeProfile,
+          divisionConfig,
+          maxTurnTimeMs,
+          maxConsecutiveTimeouts,
         });
 
         if (includeEventLogs) {
@@ -195,6 +202,8 @@ export async function runTournament(config: TournamentConfig): Promise<Tournamen
           seed: matchSeed,
           agentIds: [agentAId, agentBId],
           scores: result.scores,
+          timeoutsPerAgent: result.timeoutsPerAgent,
+          ...(result.forfeitedBy ? { forfeitedBy: result.forfeitedBy } : {}),
           winner,
           turns: result.turns,
           reason,

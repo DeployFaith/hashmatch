@@ -3,6 +3,7 @@ import type { AgentId, JsonValue, MatchEvent, MatchResult } from "../contract/ty
 import { createRng, deriveSeed } from "../core/rng.js";
 import { combineHeistRuns } from "./heistCompetitive.js";
 import { generateMatchId } from "./matchId.js";
+import { resolveMaxConsecutiveTimeouts, resolveMaxTurnTimeMs } from "./turnTimeout.js";
 
 /** Append a partial event (sans seq/matchId) to the event list. */
 function emit(
@@ -12,6 +13,54 @@ function emit(
   partial: Record<string, unknown> & { type: string },
 ): void {
   events.push({ ...partial, seq: seq.value++, matchId } as MatchEvent);
+}
+
+async function raceWithTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+): Promise<{ timedOut: boolean; value?: T }> {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    return { timedOut: false, value: await promise };
+  }
+  let timeoutId: NodeJS.Timeout | undefined;
+  const timeoutPromise = new Promise<{ timedOut: true }>((resolve) => {
+    timeoutId = setTimeout(() => resolve({ timedOut: true }), timeoutMs);
+  });
+  const wrappedPromise = promise.then(
+    (value) => ({ timedOut: false as const, value }),
+    (error) => ({ timedOut: false as const, error }),
+  );
+  try {
+    const result = await Promise.race([wrappedPromise, timeoutPromise]);
+    if ("error" in result) {
+      throw result.error;
+    }
+    return result;
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
+function applyForfeitScores(
+  scores: Record<AgentId, number>,
+  forfeitedBy: AgentId | undefined,
+): Record<AgentId, number> {
+  if (!forfeitedBy) {
+    return scores;
+  }
+  const forfeitingScore = scores[forfeitedBy] ?? 0;
+  const updated = { ...scores };
+  for (const [agentId, score] of Object.entries(scores)) {
+    if (agentId === forfeitedBy) {
+      continue;
+    }
+    if (score <= forfeitingScore) {
+      updated[agentId] = forfeitingScore + 1;
+    }
+  }
+  return updated;
 }
 
 /**
@@ -34,6 +83,15 @@ async function runMatchStandard<TState, TObs, TAct>(
 
   // Stable agent ordering
   const agentIds: AgentId[] = agents.map((a) => a.id);
+  const maxTurnTimeMs = resolveMaxTurnTimeMs(config);
+  const maxConsecutiveTimeouts = resolveMaxConsecutiveTimeouts(config);
+  const timeoutsPerAgent: Record<AgentId, number> = Object.fromEntries(
+    agentIds.map((agentId) => [agentId, 0]),
+  );
+  const consecutiveTimeouts = new Map<AgentId, number>(
+    agentIds.map((agentId) => [agentId, 0]),
+  );
+  let forfeitedBy: AgentId | undefined;
 
   // Give each agent its own independent RNG stream
   const agentRngs = new Map<AgentId, () => number>();
@@ -93,10 +151,33 @@ async function runMatchStandard<TState, TObs, TAct>(
           turn,
           agentId: agent.id,
         };
-        action = await agent.act(observation, ctx);
+        const result = await raceWithTimeout(
+          Promise.resolve().then(() => agent.act(observation, ctx)),
+          maxTurnTimeMs,
+        );
+        if (result.timedOut) {
+          timeoutsPerAgent[agent.id] = (timeoutsPerAgent[agent.id] ?? 0) + 1;
+          const nextConsecutive = (consecutiveTimeouts.get(agent.id) ?? 0) + 1;
+          consecutiveTimeouts.set(agent.id, nextConsecutive);
+          emit(events, seq, matchId, {
+            type: "AgentError",
+            agentId: agent.id,
+            turn,
+            message: `Agent exceeded maxTurnTimeMs (${maxTurnTimeMs}ms). Default action applied.`,
+            errorType: "timeout",
+          });
+          action = scenario.getDefaultAction();
+          if (nextConsecutive >= maxConsecutiveTimeouts) {
+            forfeitedBy = agent.id;
+          }
+        } else {
+          consecutiveTimeouts.set(agent.id, 0);
+          action = result.value as TAct;
+        }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
         emit(events, seq, matchId, { type: "AgentError", agentId: agent.id, turn, message });
+        consecutiveTimeouts.set(agent.id, 0);
         continue;
       }
 
@@ -117,6 +198,10 @@ async function runMatchStandard<TState, TObs, TAct>(
       });
 
       state = result.state;
+
+      if (forfeitedBy) {
+        break;
+      }
     }
 
     emit(events, seq, matchId, {
@@ -124,10 +209,19 @@ async function runMatchStandard<TState, TObs, TAct>(
       turn,
       summary: scenario.summarize(state),
     });
+
+    if (forfeitedBy) {
+      break;
+    }
   }
 
-  const scores = scenario.score(state);
-  const reason = scenario.isTerminal(state) ? "completed" : "maxTurnsReached";
+  const baseScores = scenario.score(state);
+  const scores = applyForfeitScores(baseScores, forfeitedBy);
+  const reason = forfeitedBy
+    ? "agentForfeited"
+    : scenario.isTerminal(state)
+      ? "completed"
+      : "maxTurnsReached";
 
   const details = scenario.reveal?.(state);
   emit(events, seq, matchId, {
@@ -138,7 +232,16 @@ async function runMatchStandard<TState, TObs, TAct>(
     ...(details !== undefined && { details }),
   });
 
-  return { matchId, seed: config.seed, scores, events, turns: turn };
+  return {
+    matchId,
+    seed: config.seed,
+    scores,
+    events,
+    turns: turn,
+    maxTurnTimeMs,
+    timeoutsPerAgent,
+    ...(forfeitedBy ? { forfeitedBy } : {}),
+  };
 }
 
 export async function runMatch<TState, TObs, TAct>(

@@ -56,9 +56,9 @@ export interface ResourceRivalsObservation {
   };
 }
 
-export interface ResourceRivalsAction {
-  bid: number;
-}
+export type ResourceRivalsAction =
+  | { bid: number }
+  | { type: "bid"; amount: number };
 
 // ---------------------------------------------------------------------------
 // Defaults
@@ -155,7 +155,7 @@ export function createResourceRivalsScenario(
       agentId: AgentId,
       action: ResourceRivalsAction,
     ): AdjudicationResult<ResourceRivalsState> {
-      const bid = action.bid;
+      const bid = resolveBidAmount(action);
       const remaining = state.resources[agentId] ?? 0;
 
       // Validate bid
@@ -168,7 +168,7 @@ export function createResourceRivalsScenario(
           state: newState,
           feedback: {
             error: `Invalid bid: must be integer in [0, ${remaining}]`,
-            bid,
+            bid: bid ?? null,
           },
         };
       }
@@ -201,6 +201,10 @@ export function createResourceRivalsScenario(
       };
     },
 
+    getDefaultAction(): ResourceRivalsAction {
+      return { type: "bid", amount: 0 };
+    },
+
     reveal(state: ResourceRivalsState): JsonValue {
       return {
         finalResources: { ...state.resources },
@@ -219,6 +223,19 @@ export function createResourceRivalsScenario(
 // ---------------------------------------------------------------------------
 // Bid resolution
 // ---------------------------------------------------------------------------
+
+function resolveBidAmount(action: ResourceRivalsAction): number | undefined {
+  if (!action || typeof action !== "object") {
+    return undefined;
+  }
+  if ("bid" in action) {
+    return (action as { bid?: number }).bid;
+  }
+  if ("type" in action && (action as { type?: string }).type === "bid") {
+    return (action as { amount?: number }).amount;
+  }
+  return undefined;
+}
 
 /**
  * If all agents have submitted bids for the current objective, resolve the

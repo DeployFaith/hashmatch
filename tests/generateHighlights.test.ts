@@ -15,6 +15,7 @@ const matchSummary: MatchSummary = {
   seed: 1,
   agentIds: ["alpha", "bravo"],
   scores: { alpha: 12, bravo: 9 },
+  timeoutsPerAgent: { alpha: 0, bravo: 0 },
   winner: "alpha",
   turns: 10,
   reason: "completed",

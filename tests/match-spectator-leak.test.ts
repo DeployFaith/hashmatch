@@ -24,6 +24,10 @@ function writeMatchArtifacts(matchId: string): void {
       "noop-0": 10,
       "noop-1": 5,
     },
+    timeoutsPerAgent: {
+      "noop-0": 0,
+      "noop-1": 0,
+    },
     winner: "noop-0",
     turns: 12,
     reason: "completed",

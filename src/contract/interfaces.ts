@@ -51,6 +51,8 @@ export interface Scenario<TState = unknown, TObs = JsonValue, TAct = JsonValue> 
   score(state: TState): Record<AgentId, number>;
   /** JSON-serializable summary of state for the event log. */
   summarize(state: TState): JsonValue;
+  /** Default action to use when an agent fails to respond in time. */
+  getDefaultAction(): TAct;
   /** Optional end-of-match reveal (e.g. hidden secrets). Included in MatchEnded.details. */
   reveal?(state: TState): JsonValue;
 }
@@ -65,4 +67,8 @@ export interface MatchRunnerConfig {
   maxTurns: number;
   matchId?: string;
   provenance?: MatchProvenance;
+  maxTurnTimeMs?: number;
+  maxConsecutiveTimeouts?: number;
+  modeProfile?: JsonValue;
+  divisionConfig?: JsonValue;
 }

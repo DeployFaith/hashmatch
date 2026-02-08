@@ -27,9 +27,9 @@ export interface NumberGuessObservation {
   step: number;
 }
 
-export interface NumberGuessAction {
-  guess: number;
-}
+export type NumberGuessAction =
+  | { guess: number }
+  | { type: "guess"; value: number };
 
 // ---------------------------------------------------------------------------
 // Defaults
@@ -75,7 +75,7 @@ export function createNumberGuessScenario(
       agentId: AgentId,
       action: NumberGuessAction,
     ): AdjudicationResult<NumberGuessState> {
-      const guess = action.guess;
+      const guess = resolveGuessValue(action);
 
       // Validate action
       if (
@@ -92,12 +92,12 @@ export function createNumberGuessScenario(
               ...state.agentFeedback,
               [agentId]: {
                 ...state.agentFeedback[agentId],
-                lastGuess: guess,
+                lastGuess: guess ?? null,
                 feedback: "invalid" as const,
               },
             },
           },
-          feedback: { error: "Invalid guess: out of range or non-integer", guess },
+          feedback: { error: "Invalid guess: out of range or non-integer", guess: guess ?? null },
         };
       }
 
@@ -159,8 +159,25 @@ export function createNumberGuessScenario(
       };
     },
 
+    getDefaultAction(): NumberGuessAction {
+      return { type: "guess", value: -1 };
+    },
+
     reveal(state: NumberGuessState): JsonValue {
       return { _private: { secretNumber: state.secretNumber } };
     },
   };
+}
+
+function resolveGuessValue(action: NumberGuessAction): number | undefined {
+  if (!action || typeof action !== "object") {
+    return undefined;
+  }
+  if ("guess" in action) {
+    return (action as { guess?: number }).guess;
+  }
+  if ("type" in action && (action as { type?: string }).type === "guess") {
+    return (action as { value?: number }).value;
+  }
+  return undefined;
 }

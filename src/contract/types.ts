@@ -75,11 +75,12 @@ export interface AgentErrorEvent extends BaseEvent {
   agentId: AgentId;
   turn: number;
   message: string;
+  errorType?: string;
 }
 
 export interface MatchEndedEvent extends BaseEvent {
   type: "MatchEnded";
-  reason: "completed" | "maxTurnsReached";
+  reason: "completed" | "maxTurnsReached" | "agentForfeited";
   scores: Record<AgentId, number>;
   turns: number;
   /** Optional scenario-specific details revealed at match end (e.g. secret values). */
@@ -108,4 +109,7 @@ export interface MatchResult {
   scores: Record<AgentId, number>;
   events: MatchEvent[];
   turns: number;
+  maxTurnTimeMs: number;
+  timeoutsPerAgent: Record<AgentId, number>;
+  forfeitedBy?: AgentId;
 }

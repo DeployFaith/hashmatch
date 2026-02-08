@@ -10,6 +10,7 @@ import type { JsonValue } from "../contract/types.js";
 import { verifyMatchDirectory } from "../cli/verify-match.js";
 import { buildMatchManifestProvenance } from "./provenance.js";
 import type { MatchKey, MatchManifest, TournamentManifest, TournamentResult } from "./types.js";
+import { resolveMaxTurnTimeMs } from "../engine/turnTimeout.js";
 import {
   hashTruthBundle,
   sortBroadcastManifestFiles,
@@ -39,6 +40,7 @@ function buildMatchManifest(
   matchId: string,
   seed: number,
   agentIds: string[],
+  maxTurnTimeMs: number,
   provenance: {
     scenario: MatchManifest["scenario"];
     agentsById: Map<string, MatchManifest["agents"][number]>;
@@ -62,6 +64,7 @@ function buildMatchManifest(
     agents,
     config: {
       maxTurns: result.config.maxTurns,
+      maxTurnTimeMs,
       seed,
       seedDerivationInputs: {
         tournamentSeed: result.tournament.tournamentSeed,
@@ -138,6 +141,14 @@ export async function writeTournamentArtifacts(
   mkdirSync(outDir, { recursive: true });
 
   const provenance = await buildMatchManifestProvenance(result);
+  const effectiveMaxTurnTimeMs = resolveMaxTurnTimeMs({
+    seed: result.config.seed,
+    maxTurns: result.config.maxTurns,
+    modeProfile: result.config.modeProfile,
+    divisionConfig: result.config.divisionConfig,
+    maxTurnTimeMs: result.config.maxTurnTimeMs,
+    maxConsecutiveTimeouts: result.config.maxConsecutiveTimeouts,
+  });
   const tournamentManifest = buildTournamentManifest(result);
   const tournamentManifestJson = ensureSingleTrailingNewline(stableStringify(tournamentManifest));
   writeFileSync(join(outDir, "tournament_manifest.json"), tournamentManifestJson, "utf-8");
@@ -167,6 +178,7 @@ export async function writeTournamentArtifacts(
       summary.matchId,
       summary.seed,
       summary.agentIds,
+      effectiveMaxTurnTimeMs,
       provenance,
     );
     writeFileSync(
@@ -285,6 +297,14 @@ export async function writeTournamentArtifacts(
 export async function buildTournamentBundle(result: TournamentResult): Promise<TournamentBundleV1> {
   const summaryLookup = new Map(result.matchSummaries.map((summary) => [summary.matchKey, summary]));
   const provenance = await buildMatchManifestProvenance(result);
+  const effectiveMaxTurnTimeMs = resolveMaxTurnTimeMs({
+    seed: result.config.seed,
+    maxTurns: result.config.maxTurns,
+    modeProfile: result.config.modeProfile,
+    divisionConfig: result.config.divisionConfig,
+    maxTurnTimeMs: result.config.maxTurnTimeMs,
+    maxConsecutiveTimeouts: result.config.maxConsecutiveTimeouts,
+  });
 
   const matches = result.tournament.matches.map((spec) => {
     assertMatchLogs(spec.matchKey, result.matchLogs);
@@ -299,6 +319,7 @@ export async function buildTournamentBundle(result: TournamentResult): Promise<T
           summary.matchId,
           summary.seed,
           summary.agentIds,
+          effectiveMaxTurnTimeMs,
           provenance,
         )
       : undefined;
