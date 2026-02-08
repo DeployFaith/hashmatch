@@ -77,6 +77,8 @@ function summarize(event: ParsedMatchEvent): string {
       return `[${event.agentId}] received observation: ${truncateJson(event.observation, 80)}`;
     case "ActionSubmitted":
       return `[${event.agentId}] submitted action: ${truncateJson(event.action, 80)}`;
+    case "AgentRawOutput":
+      return `[${event.agentId}] raw output captured (${event.rawBytes} bytes)`;
     case "ActionAdjudicated": {
       const mark = event.valid ? "valid" : "INVALID";
       return `[${event.agentId}] action ${mark}: ${truncateJson(event.feedback, 80)}`;
@@ -99,6 +101,12 @@ function detailize(event: ParsedMatchEvent): string | undefined {
       return `Full observation: ${truncateJson(event.observation, 200)}`;
     case "ActionSubmitted":
       return `Full action: ${truncateJson(event.action, 200)}`;
+    case "AgentRawOutput":
+      return event.raw !== undefined
+        ? `Raw output: ${truncateJson(event.raw, 200)}`
+        : event._privateRaw !== undefined
+          ? `Raw output: ${truncateJson(event._privateRaw, 200)}`
+          : undefined;
     case "ActionAdjudicated":
       return `Feedback: ${truncateJson(event.feedback, 200)}`;
     case "StateUpdated":

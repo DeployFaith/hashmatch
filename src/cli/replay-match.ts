@@ -20,6 +20,7 @@ const KNOWN_TYPES = new Set([
   "TurnStarted",
   "ObservationEmitted",
   "ActionSubmitted",
+  "AgentRawOutput",
   "ActionAdjudicated",
   "StateUpdated",
   "AgentError",

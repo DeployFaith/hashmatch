@@ -1,3 +1,5 @@
+import type { ZodIssue } from "zod";
+
 /** Branded string types for domain clarity. */
 export type AgentId = string;
 export type MatchId = string;
@@ -11,6 +13,14 @@ export type JsonValue =
   | null
   | JsonValue[]
   | { [key: string]: JsonValue };
+
+export type NormalizationMethod =
+  | "direct-json"
+  | "fenced-json"
+  | "fenced-other"
+  | "brace-extract"
+  | "unwrapped"
+  | "failed";
 
 // ---------------------------------------------------------------------------
 // Events
@@ -56,12 +66,28 @@ export interface ActionSubmittedEvent extends BaseEvent {
   action: JsonValue;
 }
 
+export interface AgentRawOutputEvent extends BaseEvent {
+  type: "AgentRawOutput";
+  agentId: AgentId;
+  turn: number;
+  rawSha256: string;
+  rawBytes: number;
+  truncated: boolean;
+  raw?: string;
+  _privateRaw?: string;
+}
+
 export interface ActionAdjudicatedEvent extends BaseEvent {
   type: "ActionAdjudicated";
   agentId: AgentId;
   turn: number;
   valid: boolean;
   feedback: JsonValue;
+  method: NormalizationMethod;
+  warnings: string[];
+  errors: ZodIssue[] | null;
+  fallbackReason: string | null;
+  chosenAction: JsonValue;
 }
 
 export interface StateUpdatedEvent extends BaseEvent {
@@ -93,6 +119,7 @@ export type MatchEvent =
   | TurnStartedEvent
   | ObservationEmittedEvent
   | ActionSubmittedEvent
+  | AgentRawOutputEvent
   | ActionAdjudicatedEvent
   | StateUpdatedEvent
   | AgentErrorEvent

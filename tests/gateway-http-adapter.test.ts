@@ -8,7 +8,7 @@ const baseRequest = {
   matchId: "match-1",
   turn: 1,
   agentId: "agent-1",
-  deadlineMs: 50,
+  deadlineMs: 1000,
   turnStartedAt: new Date().toISOString(),
   gameId: "test-game",
   gameVersion: "0.1.0",

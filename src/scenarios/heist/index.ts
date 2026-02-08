@@ -1,6 +1,7 @@
 import type { AdjudicationResult, Scenario } from "../../contract/interfaces.js";
 import type { AgentId, JsonValue, Seed } from "../../contract/types.js";
 import type {
+  HeistAction,
   HeistDoor,
   HeistEntity,
   HeistItem,
@@ -52,15 +53,11 @@ export interface HeistObservation {
     extractionRoomId: string;
     terminalProgress: Record<string, number>;
     terminalHacked: Record<string, boolean>;
+    invalidActionFallback?: HeistAction;
   };
 }
 
-export type HeistAction =
-  | { type: "move"; toRoomId: string }
-  | { type: "pickup"; itemId: string }
-  | { type: "use_terminal"; terminalId: string }
-  | { type: "extract" }
-  | { type: "wait" };
+export type { HeistAction };
 
 // ---------------------------------------------------------------------------
 // Defaults
@@ -259,6 +256,9 @@ export function createHeistScenario(
           extractionRoomId: state.params.winCondition.extractionRoomId,
           terminalProgress: { ...state.terminalProgress },
           terminalHacked: { ...state.terminalHacked },
+          ...(state.params.rules.invalidActionFallback
+            ? { invalidActionFallback: state.params.rules.invalidActionFallback }
+            : {}),
         },
       };
     },

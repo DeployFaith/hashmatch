@@ -47,6 +47,11 @@ function syntheticEvents(): MatchEvent[] {
       turn: 1,
       valid: true,
       feedback: "higher",
+      method: "direct-json",
+      warnings: [],
+      errors: null,
+      fallbackReason: null,
+      chosenAction: { guess: 50 },
     },
     {
       type: "ObservationEmitted",
@@ -72,6 +77,11 @@ function syntheticEvents(): MatchEvent[] {
       turn: 1,
       valid: true,
       feedback: "correct",
+      method: "direct-json",
+      warnings: [],
+      errors: null,
+      fallbackReason: null,
+      chosenAction: { guess: 75 },
     },
     {
       type: "StateUpdated",

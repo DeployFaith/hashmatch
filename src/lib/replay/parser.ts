@@ -20,6 +20,17 @@ const BaseFields = {
   matchId: z.string(),
 };
 
+const NormalizationMethodSchema = z.enum([
+  "direct-json",
+  "fenced-json",
+  "fenced-other",
+  "brace-extract",
+  "unwrapped",
+  "failed",
+]);
+
+const ZodIssueSchema = z.record(z.string(), JsonValueSchema);
+
 export const MatchStartedSchema = z
   .object({
     ...BaseFields,
@@ -62,6 +73,20 @@ export const ActionSubmittedSchema = z
   })
   .passthrough();
 
+export const AgentRawOutputSchema = z
+  .object({
+    ...BaseFields,
+    type: z.literal("AgentRawOutput"),
+    agentId: z.string(),
+    turn: z.number().int(),
+    rawSha256: z.string(),
+    rawBytes: z.number().int(),
+    truncated: z.boolean(),
+    raw: z.string().optional(),
+    _privateRaw: z.string().optional(),
+  })
+  .passthrough();
+
 export const ActionAdjudicatedSchema = z
   .object({
     ...BaseFields,
@@ -70,6 +95,11 @@ export const ActionAdjudicatedSchema = z
     turn: z.number().int(),
     valid: z.boolean(),
     feedback: JsonValueSchema,
+    method: NormalizationMethodSchema.optional(),
+    warnings: z.array(z.string()).optional(),
+    errors: z.array(ZodIssueSchema).nullable().optional(),
+    fallbackReason: z.string().nullable().optional(),
+    chosenAction: JsonValueSchema.optional(),
   })
   .passthrough();
 
@@ -108,6 +138,7 @@ export const MatchEventSchema = z.union([
   TurnStartedSchema,
   ObservationEmittedSchema,
   ActionSubmittedSchema,
+  AgentRawOutputSchema,
   ActionAdjudicatedSchema,
   StateUpdatedSchema,
   AgentErrorSchema,

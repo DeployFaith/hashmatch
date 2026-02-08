@@ -1,5 +1,12 @@
 import type { Agent, AgentContext, MatchRunnerConfig, Scenario } from "../contract/interfaces.js";
-import type { AgentId, JsonValue, MatchEvent, MatchResult } from "../contract/types.js";
+import type {
+  AgentId,
+  JsonValue,
+  MatchEvent,
+  MatchResult,
+  NormalizationMethod,
+} from "../contract/types.js";
+import { getActionForensics } from "../core/agentActionMetadata.js";
 import { createRng, deriveSeed } from "../core/rng.js";
 import { createLocalAdapter } from "../gateway/localAdapter.js";
 import type { GatewayObservationRequest } from "../gateway/types.js";
@@ -233,20 +240,40 @@ async function runMatchWithGatewayStandard<TState, TObs, TAct>(
         consecutiveTimeouts.set(agent.id, 0);
       }
 
+      const actionForensics = getActionForensics(action);
+      const chosenAction = (actionForensics?.chosenAction ?? action) as TAct;
+
+      if (actionForensics) {
+        emit(events, seq, matchId, {
+          type: "AgentRawOutput",
+          agentId: agent.id,
+          turn,
+          rawSha256: actionForensics.rawSha256,
+          rawBytes: actionForensics.rawBytes,
+          truncated: actionForensics.truncated,
+          _privateRaw: actionForensics.rawText,
+        });
+      }
+
       emit(events, seq, matchId, {
         type: "ActionSubmitted",
         agentId: agent.id,
         turn,
-        action: action as JsonValue,
+        action: chosenAction as JsonValue,
       });
 
-      const result = scenario.adjudicate(state, agent.id, action);
+      const result = scenario.adjudicate(state, agent.id, chosenAction);
       emit(events, seq, matchId, {
         type: "ActionAdjudicated",
         agentId: agent.id,
         turn,
         valid: result.valid,
         feedback: result.feedback,
+        method: (actionForensics?.method ?? "direct-json") as NormalizationMethod,
+        warnings: actionForensics?.warnings ?? [],
+        errors: actionForensics?.errors ?? null,
+        fallbackReason: actionForensics?.fallbackReason ?? null,
+        chosenAction: chosenAction as JsonValue,
       });
 
       state = result.state;

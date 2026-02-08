@@ -9,6 +9,7 @@ import { heistAdapter, parseResponse } from "../src/agents/ollama/heistAdapter.j
 import { runMatch } from "../src/engine/runMatch.js";
 import { createHeistScenario } from "../src/scenarios/heist/index.js";
 import { toStableJsonl } from "../src/core/json.js";
+import { parseReplayJsonl } from "../src/lib/replay/parser.js";
 import type { OllamaChatMessage, OllamaConfig } from "../src/agents/ollama/ollamaClient.js";
 
 const originalAllowTools = process.env.HASHMATCH_ALLOW_TOOLS;
@@ -132,7 +133,7 @@ describe("heistAdapter.parseResponse", () => {
 
   it("returns null for garbage input", () => {
     const parsed = parseResponse("no json here");
-    expect(parsed).toBeNull();
+    expect(parsed).toEqual({ type: "wait" });
   });
 
   it("uses a legal fallback action", () => {
@@ -168,17 +169,17 @@ describe("heistAdapter.parseResponse", () => {
 
   it("returns null for garbage text with no JSON", () => {
     const parsed = parseResponse("I am confused about what to do");
-    expect(parsed).toBeNull();
+    expect(parsed).toEqual({ type: "wait" });
   });
 
   it("returns null for empty string", () => {
     const parsed = parseResponse("");
-    expect(parsed).toBeNull();
+    expect(parsed).toEqual({ type: "wait" });
   });
 
   it("returns null for invalid action type inside valid JSON", () => {
     const parsed = parseResponse('{"type":"fly","destination":"moon"}');
-    expect(parsed).toBeNull();
+    expect(parsed).toEqual({ type: "wait" });
   });
 
   it("unwraps response key wrapper", () => {
@@ -201,6 +202,58 @@ describe("heistAdapter.parseResponse", () => {
   it("parses plain fences without json tag", () => {
     const parsed = parseResponse('```\n{"type":"use_terminal","terminalId":"term-1"}\n```');
     expect(parsed).toEqual({ type: "use_terminal", terminalId: "term-1" });
+  });
+});
+
+describe("heistAdapter decoder forensics", () => {
+  beforeEach(() => {
+    process.env.HASHMATCH_ALLOW_TOOLS = "true";
+  });
+
+  it("logs raw outputs and adjudication details for malformed turns", async () => {
+    const responses = [
+      '{"type":"move","toRoomId":"room-2"}',
+      '```json\n{"type":"pickup","itemId":"keycard-1"}\n```',
+      "garbage response",
+      "",
+    ];
+
+    vi.spyOn(ollamaClient, "ollamaChat").mockImplementation(async () => {
+      return responses.shift() ?? "";
+    });
+
+    const scenario = createHeistScenario();
+    const agents = [createOllamaHeistAgent("ollama-a"), createOllamaHeistAgent("ollama-b")];
+    const result = await runMatch(scenario, agents, { seed: 33, maxTurns: 2 });
+
+    const rawOutputEvents = result.events.filter((event) => event.type === "AgentRawOutput");
+    expect(rawOutputEvents).toHaveLength(4);
+    for (const event of rawOutputEvents) {
+      expect(typeof event.rawSha256).toBe("string");
+      expect(event.rawBytes).toBeGreaterThanOrEqual(0);
+      expect(typeof event.truncated).toBe("boolean");
+      expect(typeof event._privateRaw).toBe("string");
+    }
+
+    const adjudicated = result.events.filter((event) => event.type === "ActionAdjudicated");
+    expect(adjudicated).toHaveLength(4);
+    for (const event of adjudicated) {
+      expect(event.method).toBeTruthy();
+      expect(event.chosenAction).toBeTruthy();
+      expect(event.fallbackReason === null || typeof event.fallbackReason === "string").toBe(true);
+    }
+
+    const waitActions = adjudicated.filter(
+      (event) => (event.chosenAction as { type?: string }).type === "wait",
+    );
+    expect(waitActions.length).toBeGreaterThan(0);
+    for (const event of waitActions) {
+      expect(event.fallbackReason).not.toBeNull();
+    }
+
+    const jsonl = toStableJsonl(result.events);
+    const replay = parseReplayJsonl(jsonl);
+    expect(replay.errors).toEqual([]);
   });
 });
 

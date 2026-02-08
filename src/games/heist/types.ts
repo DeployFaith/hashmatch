@@ -98,6 +98,13 @@ export interface HeistIntelItem {
 
 export type HeistItem = HeistKeycardItem | HeistToolItem | HeistLootItem | HeistIntelItem;
 
+export type HeistAction =
+  | { type: "move"; toRoomId: string }
+  | { type: "pickup"; itemId: string }
+  | { type: "use_terminal"; terminalId: string }
+  | { type: "extract" }
+  | { type: "wait" };
+
 export interface HeistRules {
   noiseTable: Record<string, number>;
   alertThresholds: number[];
@@ -105,6 +112,7 @@ export interface HeistRules {
   guardDetectionRange?: number;
   maxAlertLevel: number;
   captureOnMaxAlert: boolean;
+  invalidActionFallback?: HeistAction;
 }
 
 export interface HeistScoring {
@@ -250,6 +258,14 @@ const HeistItemSchema = z.discriminatedUnion("type", [
   HeistIntelItemSchema,
 ]);
 
+export const HeistActionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("move"), toRoomId: z.string().min(1) }),
+  z.object({ type: z.literal("pickup"), itemId: z.string().min(1) }),
+  z.object({ type: z.literal("use_terminal"), terminalId: z.string().min(1) }),
+  z.object({ type: z.literal("extract") }),
+  z.object({ type: z.literal("wait") }),
+]);
+
 const HeistRulesSchema = z
   .object({
     noiseTable: z.record(z.string(), z.number()),
@@ -258,6 +274,7 @@ const HeistRulesSchema = z
     guardDetectionRange: z.number().int().nonnegative().optional(),
     maxAlertLevel: z.number().int().nonnegative(),
     captureOnMaxAlert: z.boolean(),
+    invalidActionFallback: HeistActionSchema.optional(),
   })
   .strict();
 

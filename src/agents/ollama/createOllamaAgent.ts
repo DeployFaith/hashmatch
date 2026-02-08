@@ -6,7 +6,7 @@ import { ollamaChat } from "./ollamaClient.js";
 export interface ScenarioAdapter {
   systemPrompt: string;
   formatObservation(observation: unknown): string;
-  parseResponse(text: string): Record<string, unknown> | null;
+  parseResponse(text: string, observation: unknown): Record<string, unknown> | null;
   fallbackAction: Record<string, unknown>;
 }
 
@@ -74,7 +74,7 @@ export function createOllamaAgent(
         console.warn(`[ollama] ${response}. Falling back to safe actions.`);
       }
 
-      const parsed = adapter.parseResponse(response);
+      const parsed = adapter.parseResponse(response, observation);
 
       if (process.env.HASHMATCH_OLLAMA_DEBUG === "1") {
         // eslint-disable-next-line no-console

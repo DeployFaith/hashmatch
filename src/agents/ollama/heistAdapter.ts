@@ -1,4 +1,7 @@
 import type { HeistAction, HeistObservation } from "../../scenarios/heist/index.js";
+import { DEFAULT_UNWRAP_PATHS, decodeAgentAction } from "../../core/decodeAgentAction.js";
+import { attachActionForensics } from "../../core/agentActionMetadata.js";
+import { HeistActionSchema } from "../../games/heist/types.js";
 import type { ScenarioAdapter } from "./createOllamaAgent.js";
 
 const systemPrompt = `You are playing the Heist scenario. Each turn you must choose one action.
@@ -133,146 +136,36 @@ export function formatObservation(observation: unknown): string {
   return lines.join("\n");
 }
 
-function tryParseJson(text: string): Record<string, unknown> | null {
-  try {
-    const parsed = JSON.parse(text) as unknown;
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return parsed as Record<string, unknown>;
-    }
-  } catch {
-    return null;
+function resolveFallbackAction(observation?: unknown): HeistAction {
+  const obs = observation as Partial<HeistObservation> | undefined;
+  const fallback = obs?._private?.invalidActionFallback;
+  if (fallback && typeof fallback === "object" && "type" in fallback) {
+    return fallback as HeistAction;
   }
-  return null;
+  return fallbackAction;
 }
 
-function extractFirstJsonObject(text: string, startIndex: number): string | null {
-  let depth = 0;
-  let inString = false;
-  let escape = false;
-  for (let i = startIndex; i < text.length; i++) {
-    const ch = text[i];
-    if (escape) {
-      escape = false;
-      continue;
-    }
-    if (ch === "\\" && inString) {
-      escape = true;
-      continue;
-    }
-    if (ch === '"') {
-      inString = !inString;
-      continue;
-    }
-    if (inString) {
-      continue;
-    }
-    if (ch === "{") {
-      depth++;
-    } else if (ch === "}") {
-      depth--;
-      if (depth === 0) {
-        return text.slice(startIndex, i + 1);
-      }
-    }
-  }
-  return null;
-}
+export function parseResponse(text: string, observation?: unknown): HeistAction | null {
+  const rawText = typeof text === "string" ? text : "";
+  const fallback = resolveFallbackAction(observation);
+  const result = decodeAgentAction(rawText, HeistActionSchema, fallback, {
+    unwrapPaths: [...DEFAULT_UNWRAP_PATHS, ["response"]],
+  });
+  const chosenAction = (result.action ?? result.fallbackAction ?? fallback) as HeistAction;
+  const rawBytes = Buffer.byteLength(rawText, "utf-8");
+  const actionWithForensics = { ...chosenAction };
 
-function unwrapAndNormalize(obj: Record<string, unknown>): HeistAction | null {
-  const direct = normalizeAction(obj);
-  if (direct) {
-    return direct;
-  }
-  for (const key of ["action", "response", "result"]) {
-    const inner = obj[key];
-    if (inner && typeof inner === "object" && !Array.isArray(inner)) {
-      const result = normalizeAction(inner as Record<string, unknown>);
-      if (result) {
-        return result;
-      }
-    }
-  }
-  return null;
-}
-
-function normalizeAction(candidate: Record<string, unknown>): HeistAction | null {
-  const type = candidate.type;
-  if (typeof type !== "string") {
-    return null;
-  }
-  switch (type) {
-    case "wait":
-      return { type: "wait" };
-    case "extract":
-      return { type: "extract" };
-    case "move": {
-      const toRoomId = candidate.toRoomId;
-      if (typeof toRoomId !== "string" || toRoomId.length === 0) {
-        return null;
-      }
-      return { type: "move", toRoomId };
-    }
-    case "pickup": {
-      const itemId = candidate.itemId;
-      if (typeof itemId !== "string" || itemId.length === 0) {
-        return null;
-      }
-      return { type: "pickup", itemId };
-    }
-    case "use_terminal": {
-      const terminalId = candidate.terminalId;
-      if (typeof terminalId !== "string" || terminalId.length === 0) {
-        return null;
-      }
-      return { type: "use_terminal", terminalId };
-    }
-    default:
-      return null;
-  }
-}
-
-export function parseResponse(text: string): HeistAction | null {
-  if (!text || typeof text !== "string") {
-    return null;
-  }
-
-  // Strategy 1: Direct parse
-  const direct = tryParseJson(text.trim());
-  if (direct) {
-    const result = unwrapAndNormalize(direct);
-    if (result) {
-      return result;
-    }
-  }
-
-  // Strategy 2: Markdown fence extraction
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fenced && fenced[1]) {
-    const parsed = tryParseJson(fenced[1].trim());
-    if (parsed) {
-      const result = unwrapAndNormalize(parsed);
-      if (result) {
-        return result;
-      }
-    }
-  }
-
-  // Strategy 3: Brace-matching extraction
-  const braceIndex = text.indexOf("{");
-  if (braceIndex !== -1) {
-    const extracted = extractFirstJsonObject(text, braceIndex);
-    if (extracted) {
-      const parsed = tryParseJson(extracted);
-      if (parsed) {
-        const result = unwrapAndNormalize(parsed);
-        if (result) {
-          return result;
-        }
-      }
-    }
-  }
-
-  return null;
+  return attachActionForensics(actionWithForensics, {
+    rawText,
+    rawSha256: result.rawSha256,
+    rawBytes,
+    truncated: false,
+    method: result.method,
+    warnings: result.warnings,
+    errors: result.errors,
+    fallbackReason: result.fallbackReason,
+    chosenAction,
+  });
 }
 
 export const heistAdapter: ScenarioAdapter = {
