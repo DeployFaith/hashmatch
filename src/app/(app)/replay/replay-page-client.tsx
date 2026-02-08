@@ -52,6 +52,9 @@ import type {
   CommentaryLoadStatus,
   CommentarySeverity,
 } from "@/lib/replay/commentary";
+import { isHeistScenario, useHeistScene } from "@/components/heist/useHeistScene";
+import { HeistViewportDynamic } from "@/components/heist/HeistViewportDynamic";
+import { Map } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Known event types for the type filter
@@ -1380,6 +1383,10 @@ function ReplayViewer({
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [filters, setFilters] = useState<EventFilters>(EMPTY_FILTERS);
 
+  // Heist map view state
+  const [showMapView, setShowMapView] = useState(false);
+  const isHeist = useMemo(() => isHeistScenario(events), [events]);
+
   // Autoplay state
   const [isPlaying, setIsPlaying] = useState(false);
   const [speedIdx, setSpeedIdx] = useState<AutoplaySpeedIdx>(1); // default 1x
@@ -1597,6 +1604,11 @@ function ReplayViewer({
     return { scenarioName, maxTurns };
   }, [events]);
 
+  // Compute heist scene state at the current cursor for the map view.
+  // Uses the *original* event index (not filtered) to reduce the full stream.
+  const heistCursorIndex = selectedEvent?.originalIdx ?? selectedIdx;
+  const heistScene = useHeistScene(isHeist && showMapView ? events : [], heistCursorIndex);
+
   useEffect(() => {
     if (lockSensitiveControls) {
       setViewerMode("spectator");
@@ -1752,6 +1764,17 @@ function ReplayViewer({
           Spoilers {effectiveSpoilers ? "ON" : "OFF"}
         </Button>
 
+        {isHeist && (
+          <Button
+            variant={showMapView ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowMapView((v) => !v)}
+          >
+            <Map className="h-3 w-3" />
+            {showMapView ? "Timeline View" : "Map View"}
+          </Button>
+        )}
+
         {!onBack && (
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-4 w-4" />
@@ -1819,6 +1842,13 @@ function ReplayViewer({
           <OrderingTooltip />
         </div>
       </div>
+
+      {/* Heist spatial viewport */}
+      {showMapView && heistScene && (
+        <div className="h-80 shrink-0 overflow-hidden rounded-md border border-border">
+          <HeistViewportDynamic scene={heistScene} />
+        </div>
+      )}
 
       {/* Main content */}
       <div className="flex flex-1 gap-3 overflow-hidden">
