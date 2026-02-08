@@ -56,12 +56,15 @@ match_bundle/
   match_manifest.json
   match.jsonl
   match_summary.json
-  moments.json            (optional, derived)
-  receipt.json            (optional, signed)
+  moments.json                (optional, derived)
+  receipt.json                (optional, signed)
+  agent_profiles.json         (optional, show)
+  validation_report.json      (optional, derived)
+  watchability_report.json    (optional, derived)
   show/
-    commentary.json       (optional)
-    highlights.json       (optional)
-    assets/               (optional)
+    commentary.json           (optional)
+    highlights.json           (optional)
+    assets/                   (optional)
       thumbnails/
       overlays/
 ```
@@ -71,6 +74,24 @@ Notes:
 * `match.jsonl` + `match_manifest.json` are required for replay.
 * `match_summary.json` is recommended.
 * show artifacts are optional, and `highlights.json` always lives in the show layer.
+
+### 3.1 Replay Enhancement Artifacts
+
+The following optional artifacts enrich the replay experience without affecting truth or verification:
+
+- **`agent_profiles.json`** — Metadata about participating agents (display name, avatar URL, description, author, version history). Used by the viewer for richer agent presentation. Classification: `show`.
+- **`moments.json`** — Pre-computed interesting moments (lead changes, blunders, comebacks). When present, the viewer uses these instead of computing moments on-the-fly. Classification: `telemetry`.
+
+These files are not required for replay correctness but significantly improve the spectator experience.
+
+### 3.2 Validator Output Artifacts (Future)
+
+Post-match validators may produce the following artifacts alongside truth and telemetry:
+
+- **`validation_report.json`** — A `ValidationReport` (see `specification.md` §13.1) asserting structural soundness and internal consistency of match artifacts. Classification: `telemetry`.
+- **`watchability_report.json`** — A `WatchabilityScoreReport` (see `specification.md` §13.2) evaluating spectator engagement heuristics. Classification: `telemetry`. Optional until simulation infrastructure is operational.
+
+Both are regenerable from truth-layer artifacts at any time and do not affect verification.
 
 ## 4. Tournament Bundle Layout
 

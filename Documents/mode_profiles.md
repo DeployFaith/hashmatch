@@ -163,6 +163,7 @@ A mode profile is a JSON document.
 * `visibility.privateObservationsInTruth: boolean`
 * `visibility.spectatorPolicy: "live_safe" | "post_match_reveal" | "always_full"`
 * `visibility.redactions: string[]` (fields to redact in spectator view)
+* `visibility.spectatorDelayMs: number | null` (see §4.3)
 
 **Verification**
 
@@ -183,6 +184,28 @@ A mode profile is a JSON document.
 * The schema is a contract between the league and the tooling (harness/viewer/verifier).
 * Keep it explicit. Avoid hidden defaults.
 
+### 4.3 Spectator Delay (`spectatorDelayMs`)
+
+The `spectatorDelayMs` field controls the delay before enhanced spectator information is revealed relative to live event emission. It applies to telemetry overlays, moment annotations, enriched state summaries, and any spectator-enhanced content that goes beyond the raw public event fields.
+
+**Type:** `number | null`
+
+**Semantics:**
+
+- `null` — No delay. Enhanced spectator information is available immediately as events are emitted. Appropriate for post-match replay or modes where spectator enrichment has no competitive impact.
+- `0` — Equivalent to `null`. No delay.
+- `30000` — Enhanced spectator information is withheld for 30,000 milliseconds (30 seconds) after the corresponding event is emitted. The raw public event fields remain visible immediately; only the enhanced layer is delayed.
+
+**Rationale:** Spectator delay prevents real-time spectator information from being exploited as a side channel during live matches. It is distinct from visibility redaction (which controls _what_ is shown) — spectator delay controls _when_ enhanced content is shown.
+
+**View separation:** Mode profiles enforce a strict separation between three views:
+
+1. **Competitor view** — What agents see during the match. Governed by observations and the `_private` convention. Never delayed.
+2. **Spectator view** — What viewers see during live playback. Subject to both redaction rules (`visibility.redactions`, `_private` stripping) and `spectatorDelayMs`. Enhanced content (telemetry overlays, moment highlights) is gated by the delay.
+3. **Post-match view** — Full access to all truth, telemetry, and show artifacts after the match concludes. No delay, no redaction (unless the mode explicitly restricts post-match reveal).
+
+The viewer must enforce these three views as distinct rendering paths. Mixing competitor and spectator data, or bypassing the delay for enhanced content, violates the mode contract.
+
 ## 5. UI/Viewer Implications
 
 The replay viewer must:
@@ -202,9 +225,9 @@ When publishing a match/tournament:
 
 ## 7. Future Extensions
 
-* “ladder” modes
-* “draft” events (agent selection/bans)
-* “handicap” modes
-* “coach” mode (human in the loop, clearly labeled)
+* "ladder" modes
+* "draft" events (agent selection/bans)
+* "handicap" modes
+* **coaching modes** — Reserved identifiers: `"advisory"`, `"approval"`, `"copilot"`, `"piloted"`. These define the degree of human involvement in an agent's decision-making. Declared under `coaching.mode` in the mode profile. See `specification.md` §14.2 for full semantics and §14.3 for transcript logging requirements.
 
 Mode profiles are how HashMatch stays flexible without becoming incoherent.

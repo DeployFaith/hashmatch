@@ -333,7 +333,135 @@ The system must support:
 - receipt validation
 - optional re-run reproduction
 
-## 13. Non"'Goals (For Now)
+## 13. Validation & Scoring Interfaces
+
+### 13.1 ValidationReport Schema
+
+A `ValidationReport` is the output of a post-match validation pass. It asserts whether a match's artifacts are structurally sound, internally consistent, and reproducible.
+
+```typescript
+interface ValidationReport {
+  /** Unique identifier for this validation run */
+  reportId: string;
+  /** Match being validated */
+  matchId: string;
+  /** ISO 8601 timestamp of validation run (non-deterministic; not included in hashing) */
+  validatedAt: string;
+  /** Validator implementation version */
+  validatorVersion: string;
+  /** Overall result */
+  result: "pass" | "fail" | "warn";
+  /** Individual check outcomes */
+  checks: ValidationCheck[];
+}
+
+interface ValidationCheck {
+  /** Machine-readable check identifier (e.g., "log_hash_match", "seq_monotonic") */
+  checkId: string;
+  /** Human-readable description */
+  label: string;
+  /** Check outcome */
+  result: "pass" | "fail" | "warn" | "skip";
+  /** Explanation when result is not "pass" */
+  detail?: string;
+}
+```
+
+The `ValidationReport` is a telemetry-layer artifact. It does not alter truth artifacts and may be regenerated at any time from the truth layer.
+
+### 13.2 WatchabilityScoreReport Schema (Optional)
+
+> **Status:** This interface is defined for forward compatibility. It is optional until simulation infrastructure lands and automated watchability scoring is operational.
+
+A `WatchabilityScoreReport` evaluates how engaging a match is for spectators, based on heuristics applied to the event log.
+
+```typescript
+interface WatchabilityScoreReport {
+  /** Unique identifier for this report */
+  reportId: string;
+  /** Match being scored */
+  matchId: string;
+  /** Scorer implementation version */
+  scorerVersion: string;
+  /** Overall watchability score (0–100, integer) */
+  overallScore: number;
+  /** Breakdown by dimension */
+  dimensions: WatchabilityDimension[];
+  /** Signals that contributed to scoring */
+  signals: WatchabilitySignal[];
+}
+
+interface WatchabilityDimension {
+  /** Dimension name (e.g., "leadChanges", "momentDensity", "pacing") */
+  name: string;
+  /** Score for this dimension (0–100, integer) */
+  score: number;
+  /** Weight applied to this dimension in overall score */
+  weight: number;
+}
+
+interface WatchabilitySignal {
+  /** Signal type (e.g., "leadChange", "blunder", "comeback") */
+  type: string;
+  /** Event sequence index where the signal occurs */
+  seq: number;
+  /** Signal magnitude or relevance (0–1) */
+  strength: number;
+}
+```
+
+Watchability reports are telemetry-layer artifacts and are never required for verification.
+
+## 14. Mode Profile Extensions
+
+### 14.1 Spectator Delay (`spectatorDelayMs`)
+
+Mode profiles may include a `spectatorDelayMs` field that controls when enhanced spectator information (telemetry overlays, moment annotations, enriched state summaries) is revealed relative to live event emission.
+
+Semantics are defined in `mode_profiles.md` §4.3.
+
+Cross-reference: the field is part of the mode profile schema and is read by the viewer to gate spectator-enhanced content.
+
+### 14.2 Reserved Coaching Modes
+
+The following coaching mode identifiers are reserved for future use. They define the degree of human involvement in an agent's decision-making during a match.
+
+| Mode | Semantics |
+| --- | --- |
+| `"advisory"` | Human can send suggestions; agent decides autonomously whether to follow them |
+| `"approval"` | Agent proposes actions; human must approve before submission |
+| `"copilot"` | Human and agent collaborate on each action; both contribute to the decision |
+| `"piloted"` | Human makes all decisions; agent is a passive executor |
+
+Coaching mode is declared in the mode profile under `coaching.mode`. If omitted, the default is no coaching (fully autonomous agent).
+
+**Constraints:**
+
+- Sanctioned modes should restrict coaching to `"advisory"` or disallow it entirely.
+- The coaching mode must be recorded in the match manifest under `config.coachingMode`.
+- Matches with coaching enabled are not comparable to autonomous matches for ranking purposes unless the league rules explicitly allow it.
+
+### 14.3 Coaching Transcript Logging
+
+When coaching is enabled, all coaching messages must be logged in the event log as `CoachingMessage` events:
+
+```typescript
+interface CoachingMessageEvent {
+  type: "CoachingMessage";
+  seq: number;
+  matchId: string;
+  agentId: string;
+  turn: number;
+  /** Direction of the coaching message */
+  direction: "coach_to_agent" | "agent_to_coach";
+  /** Content of the coaching message (may be redacted in spectator view) */
+  content: string;
+}
+```
+
+Coaching messages are subject to the same visibility rules as observations: they may contain `_private` fields and are redacted in spectator mode per §5.4.
+
+## 15. Non-Goals (For Now)
 
 - live betting
 - on-chain settlement

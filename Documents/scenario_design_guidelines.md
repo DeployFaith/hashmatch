@@ -144,6 +144,7 @@ For sanctioned modes:
 
 * any randomness must be derived from the provided seed
 * avoid wall-clock and non-deterministic calls
+* **all game logic must use integer arithmetic.** Floating-point is permitted only for non-authoritative computations like display rendering or telemetry aggregation. This prevents cross-platform divergence in deterministic replays caused by floating-point rounding differences.
 
 If the scenario uses randomness:
 

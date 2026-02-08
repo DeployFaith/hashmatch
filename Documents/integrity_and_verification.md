@@ -252,15 +252,86 @@ Tournament verification is the same process at scale:
 * recompute standings from match summaries
 * compare to published standings
 
-## 8. Anti-Rigging Seed Policy (TBD)
+## 8. Seed Integrity Protocol
 
-For sanctioned play, seed source matters. Options:
+For sanctioned play, the seed source directly impacts trust. A compromised seed allows an organizer or participant to pre-compute favorable outcomes. This section defines the commit-reveal protocol that replaces the earlier TBD placeholder.
 
-* **Admin-set seed** (simple, weaker trust)
-* **Commit”“reveal** (both competitors contribute entropy)
-* **Public randomness beacon + commit** (strongest)
+### 8.1 Commit-Reveal Protocol
 
-This is intentionally TBD. The important requirement is: the final seed and its derivation inputs must be included in the manifest.
+The protocol uses HMAC to commit to a server seed before agents are selected or match parameters are finalized.
+
+**Phase 1: Commit**
+
+The match organizer (or runner) generates a random `serverSeed` and publishes a commitment:
+
+```
+commitment = HMAC-SHA256(serverSeed, matchId || tournamentSeed)
+```
+
+Input fields:
+
+- `matchId`: unique identifier for the match
+- `tournamentSeed`: the tournament-level seed (empty string for standalone matches)
+
+The commitment is published before agent code is frozen or match parameters are finalized. The `serverSeed` itself is withheld.
+
+**Phase 2: Match Execution**
+
+The match runs using the final derived seed (computed from `serverSeed`, `matchId`, and `tournamentSeed` per the existing seed derivation logic). The commitment is included in the match manifest under `config.seedCommitment`.
+
+**Phase 3: Reveal**
+
+After the match completes and the event log is finalized:
+
+1. The organizer publishes the `serverSeed` in the match receipt or as a separate `seed_reveal.json` artifact.
+2. Any verifier can recompute the commitment and confirm it matches the pre-published value.
+
+**Verification steps:**
+
+1. Obtain `serverSeed` from the reveal artifact.
+2. Obtain `matchId` and `tournamentSeed` from the match manifest.
+3. Compute `HMAC-SHA256(serverSeed, matchId || tournamentSeed)`.
+4. Compare to `config.seedCommitment` in the manifest.
+5. Confirm the derived match seed matches the `seed` in the `MatchStarted` event.
+
+### 8.2 Manifest Fields
+
+The match manifest gains the following fields under `config`:
+
+- `seedCommitment`: the HMAC commitment (hex string), published before match execution
+- `seedRevealArtifact`: path or reference to the reveal artifact (populated post-match)
+
+### 8.3 External Entropy Integration (Phase C, Optional)
+
+For the highest trust tier, the protocol can incorporate external entropy sources:
+
+- **drand**: public randomness beacon providing verifiable, unbiasable randomness
+- **Chainlink VRF**: on-chain verifiable random function
+
+When external entropy is used, the seed derivation becomes:
+
+```
+finalSeed = SHA256(serverSeed || externalEntropy || matchId || tournamentSeed)
+```
+
+The external entropy proof (drand round number + signature, or Chainlink VRF proof) is stored in the match manifest under `config.externalEntropy`. This is Phase C work and is not required for the initial implementation.
+
+### 8.4 Threat Vectors
+
+The protocol is designed to mitigate the following threats:
+
+| Threat | Description | Mitigation |
+| --- | --- | --- |
+| Seed selection | Organizer picks a seed that favors a particular agent | Commitment published before agents are finalized; reveal is verifiable |
+| Selective abort | Organizer discards unfavorable matches before publishing | Commitment is public; missing reveals are detectable and flaggable |
+| Participant collusion | Agent owner and organizer collude on seed choice | External entropy (Phase C) removes organizer control over final seed |
+| Replay manipulation | Organizer publishes a different seed post-hoc | HMAC commitment binds the seed to the match identity; mismatch is detectable |
+
+**Residual risk:** Without external entropy, the organizer can still generate many candidate `serverSeed` values and pick one. The commit-reveal protocol makes this detectable only if the commitment timestamp is anchored (see §11 Phase C: public anchoring). External entropy eliminates this vector entirely.
+
+### 8.5 Backward Compatibility
+
+Matches that do not use the seed integrity protocol (e.g., sandbox and exhibition modes) continue to work as before. The `seedCommitment` field is optional in the manifest. Verification tooling should treat a missing commitment as "seed integrity not asserted" rather than a failure.
 
 ## 9. Disputes & Evidence
 
