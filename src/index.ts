@@ -51,6 +51,20 @@ export { generateHeistDebugView } from "./games/heist/debugView.js";
 export { generateLayoutReport } from "./games/heist/layoutReport.js";
 
 export type {
+  HeistSceneState,
+  HeistMapState,
+  RoomVisual,
+  DoorVisual,
+  AgentVisual,
+  GuardVisual,
+  EntityVisual,
+  ItemVisual,
+} from "./arena/heist/types.js";
+export { initSceneFromScenario } from "./arena/heist/initSceneFromScenario.js";
+export { reduceHeistEvent } from "./arena/heist/reducer.js";
+export { foldEvents, foldOne } from "./arena/heist/foldEvents.js";
+
+export type {
   AgentAdapter,
   GatewayActionResponse,
   GatewayConfig,
