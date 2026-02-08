@@ -67,6 +67,7 @@ const extractScenarioParams = (event: MatchEvent): Record<string, unknown> | und
     const priv = event.observation._private;
     if (isRecord(priv)) {
       return {
+        extractionRoomId: priv.extractionRoomId,
         map: priv.map,
         entities: priv.entities,
         items: priv.items,

@@ -30,6 +30,9 @@ export type HeistMapState = {
 export type RoomVisual = {
   roomId: RoomId;
   label?: string;
+  /**
+   * Optional during construction, but always populated after scene init.
+   */
   positionHint?: { x: number; y: number };
 };
 
