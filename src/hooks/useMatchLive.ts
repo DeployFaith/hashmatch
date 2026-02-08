@@ -1,19 +1,31 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useSyncExternalStore } from "react";
+import { useEffect, useRef, useCallback, useState, useSyncExternalStore } from "react";
 import {
   createLiveEventSource,
   type MatchEventSource,
   type MatchEventSourceSnapshot,
 } from "@/lib/replay/eventSource";
-import type { MatchRunState, MatchRunStatusResponse } from "@/lib/matches/types";
+import type {
+  LiveMatchStatus,
+  LiveMatchStatusResponse,
+  SSEMatchStatusData,
+  SSEMatchCompleteData,
+} from "@/lib/matches/types";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 /** The viewer-facing lifecycle state derived from status polling + SSE. */
-export type LiveViewerState = "connecting" | "live" | "completed" | "crashed" | "unknown";
+export type LiveViewerState =
+  | "waiting"
+  | "connecting"
+  | "live"
+  | "reconnecting"
+  | "completed"
+  | "crashed"
+  | "unknown";
 
 export interface UseMatchLiveResult {
   /** Current viewer state. */
@@ -21,9 +33,15 @@ export interface UseMatchLiveResult {
   /** Snapshot of SSE events accumulated so far (null until SSE connects). */
   snapshot: MatchEventSourceSnapshot | null;
   /** Latest polled status from the API. */
-  apiStatus: MatchRunState;
+  apiStatus: LiveMatchStatus;
   /** Number of events received so far. */
   eventCount: number;
+  /** Progress data from the latest match_status heartbeat. */
+  liveStatus: SSEMatchStatusData | null;
+  /** Completion data from the match_complete event. */
+  completeInfo: SSEMatchCompleteData | null;
+  /** Match metadata from the status endpoint. */
+  matchMeta: LiveMatchStatusResponse | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -31,6 +49,8 @@ export interface UseMatchLiveResult {
 // ---------------------------------------------------------------------------
 
 const STATUS_POLL_INTERVAL_MS = 1500;
+const WAITING_POLL_INTERVAL_MS = 2000;
+const RECONNECT_INDICATOR_DELAY_MS = 2000;
 
 // ---------------------------------------------------------------------------
 // Hook
@@ -41,15 +61,21 @@ const STATUS_POLL_INTERVAL_MS = 1500;
  * - Opens an SSE connection to stream match events
  * - Polls the status API to detect completion/crash
  * - Transitions to terminal state when the match ends
+ * - Handles the "waiting" state by polling until the match starts
  *
  * Returns the current viewer state, accumulated events, and API status.
  */
-export function useMatchLive(matchId: string, initialStatus: MatchRunState): UseMatchLiveResult {
+export function useMatchLive(matchId: string, initialStatus: LiveMatchStatus): UseMatchLiveResult {
   const sourceRef = useRef<MatchEventSource | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const apiStatusRef = useRef<MatchRunState>(initialStatus);
-  const derivedStateRef = useRef<LiveViewerState>(
-    initialStatus === "running" ? "connecting" : mapStatusToState(initialStatus),
+  const [apiStatus, setApiStatus] = useState<LiveMatchStatus>(initialStatus);
+  const [matchMeta, setMatchMeta] = useState<LiveMatchStatusResponse | null>(null);
+  const [viewerState, setViewerState] = useState<LiveViewerState>(
+    initialStatus === "running"
+      ? "connecting"
+      : initialStatus === "waiting"
+        ? "waiting"
+        : mapStatusToState(initialStatus),
   );
 
   // -- SSE snapshot via useSyncExternalStore ---------------------------------
@@ -68,73 +94,111 @@ export function useMatchLive(matchId: string, initialStatus: MatchRunState): Use
 
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
-  // -- Lifecycle effect: SSE + status polling --------------------------------
+  // -- Connect SSE when status becomes "running" ----------------------------
 
-  useEffect(() => {
-    // Only open SSE for running matches
-    if (initialStatus !== "running") {
-      apiStatusRef.current = initialStatus;
-      derivedStateRef.current = mapStatusToState(initialStatus);
+  const connectSSE = useCallback((mid: string) => {
+    if (sourceRef.current) {
       return;
     }
-
-    // Open SSE connection
-    const source = createLiveEventSource(matchId);
+    const source = createLiveEventSource(mid);
     sourceRef.current = source;
-    derivedStateRef.current = "live";
+    setViewerState("live");
+  }, []);
 
-    // Poll status API
-    const poll = async () => {
+  // -- Lifecycle effect: polling + SSE management ----------------------------
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const pollStatus = async (): Promise<LiveMatchStatusResponse | null> => {
       try {
         const res = await fetch(`/api/matches/${matchId}/status`);
         if (!res.ok) {
+          return null;
+        }
+        return (await res.json()) as LiveMatchStatusResponse;
+      } catch {
+        return null;
+      }
+    };
+
+    const startPolling = (intervalMs: number) => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+      pollingRef.current = setInterval(async () => {
+        if (cancelled) {
           return;
         }
-        const data = (await res.json()) as MatchRunStatusResponse;
-        apiStatusRef.current = data.status;
+        const data = await pollStatus();
+        if (!data || cancelled) {
+          return;
+        }
 
-        if (data.status === "completed" || data.status === "crashed") {
-          derivedStateRef.current = mapStatusToState(data.status);
-          // Close SSE — the match is done
-          source.close();
-          sourceRef.current = null;
+        setMatchMeta(data);
+        setApiStatus(data.status);
+
+        if (data.status === "running" && !sourceRef.current) {
+          // Transition from waiting to running — open SSE
+          connectSSE(matchId);
+          // Switch to faster polling for running matches
+          startPolling(STATUS_POLL_INTERVAL_MS);
+        } else if (data.status === "finished") {
+          setViewerState("completed");
+          if (sourceRef.current) {
+            sourceRef.current.close();
+            sourceRef.current = null;
+          }
           if (pollingRef.current) {
             clearInterval(pollingRef.current);
             pollingRef.current = null;
           }
         }
-      } catch {
-        // Network error — keep polling
-      }
+      }, intervalMs);
     };
 
-    pollingRef.current = setInterval(poll, STATUS_POLL_INTERVAL_MS);
-    // Run an initial poll immediately
-    void poll();
+    // Determine initial behavior based on status
+    if (initialStatus === "waiting") {
+      startPolling(WAITING_POLL_INTERVAL_MS);
+    } else if (initialStatus === "running") {
+      connectSSE(matchId);
+      startPolling(STATUS_POLL_INTERVAL_MS);
+      // Run initial poll
+      void pollStatus().then((data) => {
+        if (!cancelled && data) {
+          setMatchMeta(data);
+          setApiStatus(data.status);
+        }
+      });
+    } else if (initialStatus === "finished") {
+      setViewerState("completed");
+    }
 
     return () => {
-      source.close();
-      sourceRef.current = null;
+      cancelled = true;
+      if (sourceRef.current) {
+        sourceRef.current.close();
+        sourceRef.current = null;
+      }
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
       }
     };
-  }, [matchId, initialStatus]);
+  }, [matchId, initialStatus, connectSSE]);
 
-  // -- Derive state from SSE snapshot + API status ---------------------------
+  // -- Derive final state from SSE snapshot ----------------------------------
 
-  const state = deriveViewerState(
-    derivedStateRef.current,
-    snapshot?.status ?? null,
-    apiStatusRef.current,
-  );
+  const effectiveState = deriveViewerState(viewerState, snapshot?.status ?? null, apiStatus);
 
   return {
-    state,
+    state: effectiveState,
     snapshot,
-    apiStatus: apiStatusRef.current,
+    apiStatus,
     eventCount: snapshot?.events.length ?? 0,
+    liveStatus: snapshot?.liveStatus ?? null,
+    completeInfo: snapshot?.completeInfo ?? null,
+    matchMeta,
   };
 }
 
@@ -142,15 +206,15 @@ export function useMatchLive(matchId: string, initialStatus: MatchRunState): Use
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Map API status to viewer state. Exported for testing. */
-export function mapStatusToState(status: MatchRunState): LiveViewerState {
+/** Map frozen-contract status to viewer state. Exported for testing. */
+export function mapStatusToState(status: LiveMatchStatus): LiveViewerState {
   switch (status) {
+    case "waiting":
+      return "waiting";
     case "running":
       return "live";
-    case "completed":
+    case "finished":
       return "completed";
-    case "crashed":
-      return "crashed";
     default:
       return "unknown";
   }
@@ -163,13 +227,17 @@ export function mapStatusToState(status: MatchRunState): LiveViewerState {
 export function deriveViewerState(
   baseState: LiveViewerState,
   sseStatus: "loading" | "complete" | "error" | null,
-  apiStatus: MatchRunState,
+  apiStatus: LiveMatchStatus,
 ): LiveViewerState {
+  // SSE signalled completion
   if (sseStatus === "complete") {
     return "completed";
   }
-  if (sseStatus === "error" && apiStatus === "crashed") {
-    return "crashed";
+  // SSE error + API says finished
+  if (sseStatus === "error" && apiStatus === "finished") {
+    return "completed";
   }
   return baseState;
 }
+
+export { RECONNECT_INDICATOR_DELAY_MS };

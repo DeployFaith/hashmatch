@@ -5,8 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { AgentCard } from "@/components/AgentCard";
 import type {
   MatchDetailResponse,
-  MatchRunState,
-  MatchRunStatusResponse,
+  LiveMatchStatus,
+  LiveMatchStatusResponse,
 } from "@/lib/matches/types";
 import { LiveMatchDetail } from "./live-match-detail";
 
@@ -35,11 +35,13 @@ async function fetchMatchDetail(matchId: string): Promise<MatchDetailResponse | 
   }
 }
 
-async function fetchMatchRunStatus(matchId: string): Promise<MatchRunState> {
+async function fetchMatchStatus(
+  matchId: string,
+): Promise<{ status: LiveMatchStatus; meta: LiveMatchStatusResponse | null }> {
   const headersList = await headers();
   const host = headersList.get("x-forwarded-host") ?? headersList.get("host");
   if (!host) {
-    return "unknown";
+    return { status: "finished", meta: null };
   }
   const protocol = headersList.get("x-forwarded-proto") ?? "http";
 
@@ -48,23 +50,23 @@ async function fetchMatchRunStatus(matchId: string): Promise<MatchRunState> {
       cache: "no-store",
     });
     if (!response.ok) {
-      return "unknown";
+      return { status: "finished", meta: null };
     }
-    const data = (await response.json()) as MatchRunStatusResponse;
-    return data.status;
+    const data = (await response.json()) as LiveMatchStatusResponse;
+    return { status: data.status, meta: data };
   } catch {
-    return "unknown";
+    return { status: "finished", meta: null };
   }
 }
 
-function normalizeStatusLabel(status: MatchRunState): string {
+function normalizeStatusLabel(status: LiveMatchStatus): string {
   switch (status) {
+    case "waiting":
+      return "Waiting";
     case "running":
       return "Running";
-    case "completed":
+    case "finished":
       return "Completed";
-    case "crashed":
-      return "Crashed";
     default:
       return "Unknown";
   }
@@ -92,15 +94,22 @@ export default async function MatchDetailPage({
     );
   }
 
-  // Fetch the normalized run status to determine if match is live
-  const runStatus = await fetchMatchRunStatus(matchId);
+  // Fetch status to determine if match is live/waiting/finished
+  const { status: runStatus, meta } = await fetchMatchStatus(matchId);
 
-  // If running, delegate to the live client component
-  if (runStatus === "running") {
-    return <LiveMatchDetail matchId={matchId} initialMatch={match} initialRunStatus={runStatus} />;
+  // If running or waiting, delegate to the live client component
+  if (runStatus === "running" || runStatus === "waiting") {
+    return (
+      <LiveMatchDetail
+        matchId={matchId}
+        initialMatch={match}
+        initialRunStatus={runStatus}
+        initialMeta={meta}
+      />
+    );
   }
 
-  // Static server-rendered view for completed/crashed/unknown matches
+  // Static server-rendered view for completed matches
   const verificationStatus = match.verification?.status;
   const verificationLabel =
     verificationStatus === "verified"
@@ -125,28 +134,13 @@ export default async function MatchDetailPage({
           <h1 className="text-lg font-bold">Match {match.matchId}</h1>
           <Badge
             variant="outline"
-            className={
-              runStatus === "completed"
-                ? "border-green-500/40 text-green-400 text-[10px] uppercase tracking-wider"
-                : runStatus === "crashed"
-                  ? "border-destructive/50 text-destructive text-[10px] uppercase tracking-wider"
-                  : "text-[10px] uppercase tracking-wider"
-            }
+            className="border-green-500/40 text-green-400 text-[10px] uppercase tracking-wider"
           >
             {statusLabel}
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground">Scenario: {match.scenarioName ?? "Unknown"}</p>
       </div>
-
-      {runStatus === "crashed" && (
-        <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-          <div>
-            <p className="font-medium">Match crashed</p>
-            <p className="text-xs">The match process terminated unexpectedly.</p>
-          </div>
-        </div>
-      )}
 
       <Card>
         <CardHeader>

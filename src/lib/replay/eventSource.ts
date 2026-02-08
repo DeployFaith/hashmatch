@@ -13,6 +13,7 @@
 
 import { parseJsonl } from "./parseJsonl";
 import type { ReplayEvent, ParseError } from "./parseJsonl";
+import type { SSEMatchStatusData, SSEMatchCompleteData } from "@/lib/matches/types";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -29,6 +30,10 @@ export interface MatchEventSourceSnapshot {
   readonly events: ReplayEvent[];
   readonly errors: ParseError[];
   readonly status: EventSourceStatus;
+  /** Progress info from SSE match_status heartbeats (live sources only). */
+  readonly liveStatus?: SSEMatchStatusData;
+  /** Completion info from SSE match_complete event (live sources only). */
+  readonly completeInfo?: SSEMatchCompleteData;
 }
 
 /**
@@ -133,6 +138,10 @@ export function createLiveEventSource(matchId: string): MatchEventSource {
   let events: ReplayEvent[] = [];
   let errors: ParseError[] = [];
   let status: EventSourceStatus = "loading";
+  let liveStatus: SSEMatchStatusData | undefined;
+  let completeInfo: SSEMatchCompleteData | undefined;
+  /** Track the highest seq seen to deduplicate on reconnect. */
+  let maxSeqSeen = -1;
   let snapshot: MatchEventSourceSnapshot = Object.freeze({
     events,
     errors,
@@ -140,7 +149,7 @@ export function createLiveEventSource(matchId: string): MatchEventSource {
   });
   let closed = false;
 
-  const source = new EventSource(`/api/matches/${matchId}/stream`);
+  const source = new EventSource(`/api/matches/${matchId}/events`);
 
   const notify = () => {
     if (closed) {
@@ -150,6 +159,8 @@ export function createLiveEventSource(matchId: string): MatchEventSource {
       events: [...events],
       errors: [...errors],
       status,
+      liveStatus,
+      completeInfo,
     });
     listeners.forEach((listener) => listener());
   };
@@ -171,6 +182,11 @@ export function createLiveEventSource(matchId: string): MatchEventSource {
         notify();
         return;
       }
+      // Deduplicate: skip events with seq <= maxSeqSeen (reconnect replay)
+      if (event.seq <= maxSeqSeen) {
+        return;
+      }
+      maxSeqSeen = event.seq;
       events = [...events, event];
       notify();
     } catch {
@@ -179,17 +195,31 @@ export function createLiveEventSource(matchId: string): MatchEventSource {
     }
   });
 
-  source.addEventListener("match_end", (evt) => {
+  source.addEventListener("match_status", (evt) => {
     if (closed) {
       return;
     }
     const message = evt as MessageEvent<string>;
-    if (message.data) {
-      try {
-        JSON.parse(message.data);
-      } catch {
-        pushError("Failed to parse match_end payload.");
-      }
+    try {
+      const parsed = JSON.parse(message.data) as SSEMatchStatusData;
+      liveStatus = parsed;
+      notify();
+    } catch {
+      pushError("Failed to parse match_status payload.");
+      notify();
+    }
+  });
+
+  source.addEventListener("match_complete", (evt) => {
+    if (closed) {
+      return;
+    }
+    const message = evt as MessageEvent<string>;
+    try {
+      const parsed = JSON.parse(message.data) as SSEMatchCompleteData;
+      completeInfo = parsed;
+    } catch {
+      pushError("Failed to parse match_complete payload.");
     }
     status = "complete";
     notify();

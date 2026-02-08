@@ -105,3 +105,52 @@ export interface MatchDetailResponse {
   moments: ReplayMoment[];
   standings: StandingsRow[] | null;
 }
+
+// ---------------------------------------------------------------------------
+// Frozen SSE contract types (live viewer)
+// ---------------------------------------------------------------------------
+
+/** Status as returned by the frozen /api/matches/[matchId]/status endpoint. */
+export type LiveMatchStatus = "waiting" | "running" | "finished";
+
+/** Response from GET /api/matches/[matchId]/status (frozen contract). */
+export interface LiveMatchStatusResponse {
+  matchId: string;
+  status: LiveMatchStatus;
+  scenario: string;
+  agents: string[];
+  startedAt: string | null;
+  finishedAt: string | null;
+  verified: boolean | null;
+  totalTurns: number;
+  currentTurn: number | null;
+}
+
+/** Data from SSE `match_status` heartbeat events. */
+export interface SSEMatchStatusData {
+  status: "running";
+  turn: number;
+  totalTurns: number;
+}
+
+/** Data from SSE `match_complete` terminal event. */
+export interface SSEMatchCompleteData {
+  status: "finished";
+  verified: boolean;
+  finalScores: Record<string, number>;
+}
+
+/** Entry from GET /api/matches (frozen contract). */
+export interface LiveMatchListEntry {
+  matchId: string;
+  status: "running" | "finished";
+  scenario: string;
+  agents: string[];
+  startedAt: string;
+  finishedAt?: string;
+}
+
+/** Response from GET /api/matches (frozen contract). */
+export interface LiveMatchListResponse {
+  matches: LiveMatchListEntry[];
+}

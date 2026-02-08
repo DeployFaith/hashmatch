@@ -18,7 +18,7 @@ export { redactEvent, redactEvents } from "./redaction";
 export type { ViewerMode, RedactionOptions, RedactedEvent } from "./redaction";
 export { detectMoments, buildMomentEventRangeMap, getMomentEventRange } from "./detectMoments";
 export type { MomentEventRange, MomentEventRangeMap, ReplayMoment } from "./detectMoments";
-export { createFileEventSource } from "./eventSource";
+export { createFileEventSource, createLiveEventSource } from "./eventSource";
 export type {
   EventSourceStatus,
   EventSourceKind,

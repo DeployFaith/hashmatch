@@ -1,10 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable, type Column } from "@/components/data-table";
 import { AgentCard } from "@/components/AgentCard";
+import { Badge } from "@/components/ui/badge";
 import type { MatchListItem } from "@/lib/matches/types";
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const POLL_INTERVAL_MS = 5000;
+
+// ---------------------------------------------------------------------------
+// Status helpers
+// ---------------------------------------------------------------------------
 
 function formatStatus(status?: MatchListItem["status"] | null): string {
   if (!status) {
@@ -13,9 +24,76 @@ function formatStatus(status?: MatchListItem["status"] | null): string {
   return status.status;
 }
 
-export default function MatchesClient({ matches }: { matches: MatchListItem[] }) {
+function StatusBadge({ status }: { status: string }) {
+  switch (status) {
+    case "running":
+      return (
+        <Badge
+          variant="outline"
+          className="gap-1 border-red-500/40 text-red-400 text-[10px] uppercase tracking-wider"
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+          </span>
+          LIVE
+        </Badge>
+      );
+    case "completed":
+    case "complete":
+      return (
+        <Badge
+          variant="outline"
+          className="gap-1 border-green-500/40 text-green-400 text-[10px] uppercase tracking-wider"
+        >
+          {"\u2705"} Complete
+        </Badge>
+      );
+    case "crashed":
+    case "failed":
+      return (
+        <Badge
+          variant="outline"
+          className="gap-1 border-red-500/40 text-red-400 text-[10px] uppercase tracking-wider"
+        >
+          {"\u274c"} Failed
+        </Badge>
+      );
+    default:
+      return (
+        <span className="text-xs uppercase tracking-wide text-muted-foreground">{status}</span>
+      );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+export default function MatchesClient({ matches: initialMatches }: { matches: MatchListItem[] }) {
   const router = useRouter();
+  const [matches, setMatches] = useState<MatchListItem[]>(initialMatches);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // Poll for new matches every 5 seconds
+  const pollMatches = useCallback(async () => {
+    try {
+      const res = await fetch("/api/matches");
+      if (res.ok) {
+        const data = (await res.json()) as MatchListItem[];
+        if (Array.isArray(data)) {
+          setMatches(data);
+        }
+      }
+    } catch {
+      // Network error — keep existing data
+    }
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(pollMatches, POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [pollMatches]);
 
   const statuses = useMemo(() => {
     const unique = new Set<string>();
@@ -48,11 +126,7 @@ export default function MatchesClient({ matches }: { matches: MatchListItem[] })
     {
       key: "status",
       header: "Status",
-      render: (row) => (
-        <span className="text-xs uppercase tracking-wide text-muted-foreground">
-          {formatStatus(row.status)}
-        </span>
-      ),
+      render: (row) => <StatusBadge status={formatStatus(row.status)} />,
       sortable: true,
       sortValue: (row) => formatStatus(row.status),
     },
