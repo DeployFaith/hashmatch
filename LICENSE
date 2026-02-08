@@ -1,21 +1,43 @@
-MIT License
+Business Source License 1.1
 
-Copyright (c) 2026 DeployFaith
+License text copyright (c) 2017 MariaDB Corporation Ab.
+“Business Source License” is a trademark of MariaDB Corporation Ab.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Parameters
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Licensor: DeployFaith
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Licensed Work: HashMatch (this repository and all source code contained herein)
+
+Additional Use Grant: You may make non-production use of the Licensed Work for
+the purposes of evaluation, development, testing, and experimentation.
+
+Change Date: Four (4) years from the date of each file’s first public release.
+
+Change License: Apache License, Version 2.0
+
+Terms
+
+The Licensor hereby grants you the right to copy, modify, create derivative
+works, redistribute, and make non-production use of the Licensed Work. The
+Licensor may make an Additional Use Grant, above, permitting limited production
+use.
+
+Effective on the Change Date, or the fourth anniversary of the first public
+release of a specific version of the Licensed Work, whichever comes first, the
+terms of this license will automatically convert to the Change License.
+
+If you make production use of the Licensed Work prior to the Change Date, you
+must obtain a separate commercial license from the Licensor.
+
+Production use includes, but is not limited to:
+- Offering the Licensed Work as a service to third parties
+- Using the Licensed Work in a revenue-generating product or platform
+- Hosting the Licensed Work as part of a paid or commercial offering
+
+The Licensed Work is provided “AS IS”, without warranty of any kind, express or
+implied, including but not limited to the warranties of merchantability,
+fitness for a particular purpose, and noninfringement. In no event shall the
+Licensor be liable for any claim, damages, or other liability, whether in an
+action of contract, tort, or otherwise, arising from, out of, or in connection
+with the Licensed Work or the use or other dealings in the Licensed Work.
