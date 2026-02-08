@@ -1,1 +1,362 @@
-[{"description":"Explicit error/invalid action detected.","endSeq":4,"id":"moment-blunder-4-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":4,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":9,"id":"moment-blunder-9-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":9,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":14,"id":"moment-blunder-14-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":14,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":19,"id":"moment-blunder-19-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":19,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":24,"id":"moment-blunder-24-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":24,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":29,"id":"moment-blunder-29-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":29,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":34,"id":"moment-blunder-34-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":34,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":39,"id":"moment-blunder-39-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":39,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":44,"id":"moment-blunder-44-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":44,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":49,"id":"moment-blunder-49-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":49,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":54,"id":"moment-blunder-54-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":54,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":59,"id":"moment-blunder-59-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":59,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":64,"id":"moment-blunder-64-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":64,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":69,"id":"moment-blunder-69-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":69,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":74,"id":"moment-blunder-74-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":74,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":79,"id":"moment-blunder-79-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":79,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":84,"id":"moment-blunder-84-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":84,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":89,"id":"moment-blunder-89-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":89,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":94,"id":"moment-blunder-94-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":94,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":99,"id":"moment-blunder-99-noop-1","label":"Blunder: noop-1","signals":{"agentId":"noop-1","eventType":"ActionAdjudicated"},"startSeq":99,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":104,"id":"moment-blunder-104-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":104,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":109,"id":"moment-blunder-109-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":109,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":114,"id":"moment-blunder-114-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":114,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":119,"id":"moment-blunder-119-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":119,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":124,"id":"moment-blunder-124-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":124,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":129,"id":"moment-blunder-129-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":129,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":134,"id":"moment-blunder-134-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":134,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":139,"id":"moment-blunder-139-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":139,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":144,"id":"moment-blunder-144-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":144,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":149,"id":"moment-blunder-149-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":149,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":154,"id":"moment-blunder-154-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":154,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":159,"id":"moment-blunder-159-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":159,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":164,"id":"moment-blunder-164-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":164,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":169,"id":"moment-blunder-169-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":169,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":174,"id":"moment-blunder-174-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":174,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":179,"id":"moment-blunder-179-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":179,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":184,"id":"moment-blunder-184-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":184,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":189,"id":"moment-blunder-189-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":189,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":194,"id":"moment-blunder-194-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":194,"type":"blunder"},{"description":"Explicit error/invalid action detected.","endSeq":199,"id":"moment-blunder-199-noop-0","label":"Blunder: noop-0","signals":{"agentId":"noop-0","eventType":"ActionAdjudicated"},"startSeq":199,"type":"blunder"}]
+[
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 4,
+    "id": "moment-blunder-4-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 4,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 9,
+    "id": "moment-blunder-9-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 9,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 14,
+    "id": "moment-blunder-14-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 14,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 19,
+    "id": "moment-blunder-19-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 19,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 24,
+    "id": "moment-blunder-24-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 24,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 29,
+    "id": "moment-blunder-29-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 29,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 34,
+    "id": "moment-blunder-34-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 34,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 39,
+    "id": "moment-blunder-39-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 39,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 44,
+    "id": "moment-blunder-44-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 44,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 49,
+    "id": "moment-blunder-49-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 49,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 54,
+    "id": "moment-blunder-54-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 54,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 59,
+    "id": "moment-blunder-59-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 59,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 64,
+    "id": "moment-blunder-64-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 64,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 69,
+    "id": "moment-blunder-69-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 69,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 74,
+    "id": "moment-blunder-74-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 74,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 79,
+    "id": "moment-blunder-79-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 79,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 84,
+    "id": "moment-blunder-84-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 84,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 89,
+    "id": "moment-blunder-89-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 89,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 94,
+    "id": "moment-blunder-94-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 94,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 99,
+    "id": "moment-blunder-99-noop-1",
+    "label": "Blunder: noop-1",
+    "signals": { "agentId": "noop-1", "eventType": "ActionAdjudicated" },
+    "startSeq": 99,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 104,
+    "id": "moment-blunder-104-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 104,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 109,
+    "id": "moment-blunder-109-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 109,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 114,
+    "id": "moment-blunder-114-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 114,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 119,
+    "id": "moment-blunder-119-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 119,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 124,
+    "id": "moment-blunder-124-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 124,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 129,
+    "id": "moment-blunder-129-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 129,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 134,
+    "id": "moment-blunder-134-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 134,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 139,
+    "id": "moment-blunder-139-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 139,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 144,
+    "id": "moment-blunder-144-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 144,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 149,
+    "id": "moment-blunder-149-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 149,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 154,
+    "id": "moment-blunder-154-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 154,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 159,
+    "id": "moment-blunder-159-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 159,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 164,
+    "id": "moment-blunder-164-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 164,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 169,
+    "id": "moment-blunder-169-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 169,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 174,
+    "id": "moment-blunder-174-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 174,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 179,
+    "id": "moment-blunder-179-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 179,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 184,
+    "id": "moment-blunder-184-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 184,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 189,
+    "id": "moment-blunder-189-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 189,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 194,
+    "id": "moment-blunder-194-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 194,
+    "type": "blunder"
+  },
+  {
+    "description": "Explicit error/invalid action detected.",
+    "endSeq": 199,
+    "id": "moment-blunder-199-noop-0",
+    "label": "Blunder: noop-0",
+    "signals": { "agentId": "noop-0", "eventType": "ActionAdjudicated" },
+    "startSeq": 199,
+    "type": "blunder"
+  }
+]

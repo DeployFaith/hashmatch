@@ -1,10 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import {
-  eventSortKey,
-  normalizeJsonlLine,
-  validateJsonlText,
-} from "../src/lib/replay/index.js";
+import { eventSortKey, normalizeJsonlLine, validateJsonlText } from "../src/lib/replay/index.js";
 
 function compareSortKey(a: ReturnType<typeof eventSortKey>, b: ReturnType<typeof eventSortKey>) {
   for (let i = 0; i < a.length; i += 1) {

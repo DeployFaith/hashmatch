@@ -4,11 +4,9 @@ import { parseArgs } from "../src/cli/run-match.js";
 describe("run-match CLI help", () => {
   it("prints usage and exits 0", () => {
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    const exitSpy = vi
-      .spyOn(process, "exit")
-      .mockImplementation(((code?: number) => {
-        throw new Error(`process.exit:${code ?? 0}`);
-      }) as never);
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation(((code?: number) => {
+      throw new Error(`process.exit:${code ?? 0}`);
+    }) as never);
 
     try {
       parseArgs(["--help"]);

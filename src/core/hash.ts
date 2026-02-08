@@ -96,12 +96,7 @@ async function collectFiles(
 export async function computeArtifactContentHash(
   options: ArtifactContentHashOptions,
 ): Promise<string> {
-  const {
-    rootDir,
-    includePaths,
-    excludePaths = [],
-    excludeExtensions = [],
-  } = options;
+  const { rootDir, includePaths, excludePaths = [], excludeExtensions = [] } = options;
   const files = await collectFiles(rootDir, includePaths, excludePaths, excludeExtensions);
   if (files.length === 0) {
     throw new Error("No files matched for artifact hashing.");

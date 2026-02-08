@@ -1,1 +1,29 @@
-{"agents":[{"contentHash":"sha256:fd7cd4d0d971d693afc82457556652fa850dfea282f0130aa1300be15eb39f61","id":"noop-0","version":"unversioned"},{"contentHash":"sha256:fd7cd4d0d971d693afc82457556652fa850dfea282f0130aa1300be15eb39f61","id":"noop-2","version":"unversioned"}],"config":{"maxTurns":20,"seed":3734981125,"seedDerivationInputs":{"matchKey":"RR:noop-0-vs-noop-2:round1","tournamentSeed":41001}},"createdAt":"2026-02-08T01:05:58.291Z","matchId":"m_t1oj6p4g0ydk","modeProfileId":"sandbox","runner":{"gitCommit":null,"name":"tournament-harness","version":null},"scenario":{"contentHash":"sha256:a368cf94eed1cc06808aa50006996e2ee11bb0cab1fe58f3449fbc492e0f3246","contractVersion":null,"id":"Heist","version":"unversioned"}}
+{
+  "agents": [
+    {
+      "contentHash": "sha256:fd7cd4d0d971d693afc82457556652fa850dfea282f0130aa1300be15eb39f61",
+      "id": "noop-0",
+      "version": "unversioned"
+    },
+    {
+      "contentHash": "sha256:fd7cd4d0d971d693afc82457556652fa850dfea282f0130aa1300be15eb39f61",
+      "id": "noop-2",
+      "version": "unversioned"
+    }
+  ],
+  "config": {
+    "maxTurns": 20,
+    "seed": 3734981125,
+    "seedDerivationInputs": { "matchKey": "RR:noop-0-vs-noop-2:round1", "tournamentSeed": 41001 }
+  },
+  "createdAt": "2026-02-08T01:05:58.291Z",
+  "matchId": "m_t1oj6p4g0ydk",
+  "modeProfileId": "sandbox",
+  "runner": { "gitCommit": null, "name": "tournament-harness", "version": null },
+  "scenario": {
+    "contentHash": "sha256:a368cf94eed1cc06808aa50006996e2ee11bb0cab1fe58f3449fbc492e0f3246",
+    "contractVersion": null,
+    "id": "Heist",
+    "version": "unversioned"
+  }
+}

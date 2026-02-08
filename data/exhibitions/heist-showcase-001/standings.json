@@ -1,1 +1,35 @@
-[{"agentId":"noop-0","draws":2,"losses":0,"matches":2,"points":2,"scoreAgainst":-230,"scoreDiff":0,"scoreFor":-230,"wins":0},{"agentId":"noop-1","draws":2,"losses":0,"matches":2,"points":2,"scoreAgainst":-230,"scoreDiff":0,"scoreFor":-230,"wins":0},{"agentId":"noop-2","draws":2,"losses":0,"matches":2,"points":2,"scoreAgainst":-230,"scoreDiff":0,"scoreFor":-230,"wins":0}]
+[
+  {
+    "agentId": "noop-0",
+    "draws": 2,
+    "losses": 0,
+    "matches": 2,
+    "points": 2,
+    "scoreAgainst": -230,
+    "scoreDiff": 0,
+    "scoreFor": -230,
+    "wins": 0
+  },
+  {
+    "agentId": "noop-1",
+    "draws": 2,
+    "losses": 0,
+    "matches": 2,
+    "points": 2,
+    "scoreAgainst": -230,
+    "scoreDiff": 0,
+    "scoreFor": -230,
+    "wins": 0
+  },
+  {
+    "agentId": "noop-2",
+    "draws": 2,
+    "losses": 0,
+    "matches": 2,
+    "points": 2,
+    "scoreAgainst": -230,
+    "scoreDiff": 0,
+    "scoreFor": -230,
+    "wins": 0
+  }
+]

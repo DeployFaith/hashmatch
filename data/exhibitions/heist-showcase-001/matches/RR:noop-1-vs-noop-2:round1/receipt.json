@@ -1,1 +1,13 @@
-{"algorithm":"ed25519","payload":{"issuedBy":"DeployFaith/exhibitions","logHash":"sha256:9c30f10c052114fb4d4a17164d15ba075a89cf363eb7cc8ac0b4c66ced178f01","manifestHash":"sha256:17099c48930e26b1d91f6241726a65e65ce9f17957a74c15a387188136ac24ce","matchId":"m_cynz4s5rjfl4","runnerVersion":"unversioned"},"publicKey":"302a300506032b6570032100fcc54824ae0c3ae281aae07dd6c8370ca34a74e0fb100e4bfb7c070c82072e76","signature":"e465a1f7e0c3377f75f65480a2827effaa4719dee9e0c315a65561f696a35be98784eae7762b88e152dc73313c3be865fad899438f756d85e5cb9bf7eb8ee50b","version":1}
+{
+  "algorithm": "ed25519",
+  "payload": {
+    "issuedBy": "DeployFaith/exhibitions",
+    "logHash": "sha256:9c30f10c052114fb4d4a17164d15ba075a89cf363eb7cc8ac0b4c66ced178f01",
+    "manifestHash": "sha256:17099c48930e26b1d91f6241726a65e65ce9f17957a74c15a387188136ac24ce",
+    "matchId": "m_cynz4s5rjfl4",
+    "runnerVersion": "unversioned"
+  },
+  "publicKey": "302a300506032b6570032100fcc54824ae0c3ae281aae07dd6c8370ca34a74e0fb100e4bfb7c070c82072e76",
+  "signature": "e465a1f7e0c3377f75f65480a2827effaa4719dee9e0c315a65561f696a35be98784eae7762b88e152dc73313c3be865fad899438f756d85e5cb9bf7eb8ee50b",
+  "version": 1
+}

@@ -27,22 +27,12 @@ export function resolveMaxTurnTimeMs(config: MatchRunnerConfig): number {
   const fromMode = readConfigNumber(config.modeProfile, "maxTurnTimeMs");
   const fromDivision = readConfigNumber(config.divisionConfig, "maxTurnTimeMs");
   const fromOverride = resolveNumber(config.maxTurnTimeMs);
-  return (
-    fromMode ??
-    fromDivision ??
-    fromOverride ??
-    DEFAULT_MAX_TURN_TIME_MS
-  );
+  return fromMode ?? fromDivision ?? fromOverride ?? DEFAULT_MAX_TURN_TIME_MS;
 }
 
 export function resolveMaxConsecutiveTimeouts(config: MatchRunnerConfig): number {
   const fromMode = readConfigNumber(config.modeProfile, "maxConsecutiveTimeouts");
   const fromDivision = readConfigNumber(config.divisionConfig, "maxConsecutiveTimeouts");
   const fromOverride = resolveNumber(config.maxConsecutiveTimeouts);
-  return (
-    fromMode ??
-    fromDivision ??
-    fromOverride ??
-    DEFAULT_MAX_CONSECUTIVE_TIMEOUTS
-  );
+  return fromMode ?? fromDivision ?? fromOverride ?? DEFAULT_MAX_CONSECUTIVE_TIMEOUTS;
 }

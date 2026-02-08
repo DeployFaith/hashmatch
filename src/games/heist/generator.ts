@@ -86,8 +86,7 @@ export const HEIST_PRESETS: Record<string, HeistGeneratorConfig> = {
     difficultyPreset: "easy",
     skin: {
       themeName: "Warehouse Break-in",
-      flavorText:
-        "A corporate whistleblower's evidence is locked in a downtown warehouse vault.",
+      flavorText: "A corporate whistleblower's evidence is locked in a downtown warehouse vault.",
     },
   },
   prison_escape: {
@@ -200,7 +199,11 @@ function connectRooms(
   };
 
   const firstPath = [spawnId, ...pool.slice(0, Math.min(2, pool.length)), vaultId];
-  const secondPath = [spawnId, ...pool.slice(Math.min(2, pool.length), Math.min(4, pool.length)), vaultId];
+  const secondPath = [
+    spawnId,
+    ...pool.slice(Math.min(2, pool.length), Math.min(4, pool.length)),
+    vaultId,
+  ];
   ensurePath(firstPath);
   if (branchingFactor > 1 && secondPath.length > 2) {
     ensurePath(secondPath);
@@ -208,7 +211,11 @@ function connectRooms(
     doors.push(createDoor(`door-${doorIndex++}`, spawnId, vaultId, rng));
   }
 
-  const extractionPath = [vaultId, ...pool.slice(Math.min(4, pool.length), Math.min(5, pool.length)), extractionId];
+  const extractionPath = [
+    vaultId,
+    ...pool.slice(Math.min(4, pool.length), Math.min(5, pool.length)),
+    extractionId,
+  ];
   ensurePath(extractionPath);
 
   for (const roomId of roomIds) {
@@ -292,10 +299,7 @@ function buildDoorGraph(
   return graph;
 }
 
-function buildAdjacencyGraph(
-  rooms: HeistRoom[],
-  doors: HeistDoor[],
-): Map<string, string[]> {
+function buildAdjacencyGraph(rooms: HeistRoom[], doors: HeistDoor[]): Map<string, string[]> {
   const graph = new Map<string, string[]>();
   for (const room of rooms) {
     graph.set(room.id, []);
@@ -305,7 +309,10 @@ function buildAdjacencyGraph(
     graph.get(door.roomB)?.push(door.roomA);
   }
   for (const [roomId, neighbors] of graph.entries()) {
-    graph.set(roomId, [...neighbors].sort((a, b) => a.localeCompare(b)));
+    graph.set(
+      roomId,
+      [...neighbors].sort((a, b) => a.localeCompare(b)),
+    );
   }
   return graph;
 }
@@ -486,8 +493,7 @@ function computeUnlockedReachableRooms(
 
 function isDoorBetween(door: HeistDoor, roomA: string, roomB: string): boolean {
   return (
-    (door.roomA === roomA && door.roomB === roomB) ||
-    (door.roomA === roomB && door.roomB === roomA)
+    (door.roomA === roomA && door.roomB === roomB) || (door.roomA === roomB && door.roomB === roomA)
   );
 }
 
@@ -507,11 +513,7 @@ function assignDoorRequirements(doors: HeistDoor[], keycards: HeistKeycardItem[]
   }
 }
 
-function createGuards(
-  roomIds: string[],
-  rng: () => number,
-  count: number,
-): HeistGuardEntity[] {
+function createGuards(roomIds: string[], rng: () => number, count: number): HeistGuardEntity[] {
   const guards: HeistGuardEntity[] = [];
   for (let i = 0; i < count; i++) {
     const patrolLength = Math.max(2, randomInt(rng, 2, Math.min(4, roomIds.length)));
@@ -545,7 +547,11 @@ function createCameras(roomIds: string[], rng: () => number, count: number): Hei
   return cameras;
 }
 
-function createTerminals(roomIds: string[], rng: () => number, count: number): HeistTerminalEntity[] {
+function createTerminals(
+  roomIds: string[],
+  rng: () => number,
+  count: number,
+): HeistTerminalEntity[] {
   const terminals: HeistTerminalEntity[] = [];
   for (let i = 0; i < count; i++) {
     const roomId = roomIds[randomInt(rng, 0, roomIds.length - 1)];
@@ -707,8 +713,7 @@ function assignRoomPositions(
         score += adjacentCount;
 
         if (incomingDir) {
-          const sameDirection =
-            direction.x === incomingDir.x && direction.y === incomingDir.y;
+          const sameDirection = direction.x === incomingDir.x && direction.y === incomingDir.y;
           const perpendicular =
             direction.x === 0 ? incomingDir.x !== 0 : direction.y === 0 && incomingDir.y !== 0;
           if (room.type === "hallway") {
@@ -884,7 +889,11 @@ function buildScenario(config: HeistGeneratorConfig, seed: Seed): HeistScenarioP
   const keycards = createKeycards(keycardPlacementRooms, rng, keycardCount);
   assignDoorRequirements(doors, keycards);
 
-  const tools = createTools(rooms.map((room) => room.id), rng, Math.max(1, Math.floor(roomCount / 3)));
+  const tools = createTools(
+    rooms.map((room) => room.id),
+    rng,
+    Math.max(1, Math.floor(roomCount / 3)),
+  );
   const loot = createLoot(
     rooms.map((room) => room.id).filter((id) => id !== spawnId),
     rng,
@@ -935,7 +944,11 @@ function buildScenario(config: HeistGeneratorConfig, seed: Seed): HeistScenarioP
     items,
     rules: DEFAULT_RULES,
     scoring,
-    winCondition: createWinCondition(extractionRoomId, intelItems.map((item) => item.id), maxTurns),
+    winCondition: createWinCondition(
+      extractionRoomId,
+      intelItems.map((item) => item.id),
+      maxTurns,
+    ),
     skin: config.skin,
   };
 }

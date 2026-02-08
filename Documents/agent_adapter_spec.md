@@ -40,6 +40,7 @@ HashMatch matches are turn-based. Each turn, the runner:
 ```
 
 The agent has no access to:
+
 - The game engine or its internals
 - Other agents' observations or actions (unless the scenario explicitly includes them in the observation)
 - The seed, manifest, or any metadata about the match
@@ -59,7 +60,7 @@ Every observation includes at minimum:
 
 ```typescript
 interface BaseObservation {
-  turn: number;              // Current turn number (0-indexed)
+  turn: number; // Current turn number (0-indexed)
   // ... scenario-specific fields
 }
 ```
@@ -148,11 +149,11 @@ Actions are JSON objects. Their shape is defined per-scenario.
 
 ## 4. Timing Contract
 
-| Parameter | Description | Enforced By |
-|-----------|-------------|-------------|
-| `maxTurnTimeMs` | Maximum wall-clock time the agent has to return an action | Runner |
-| Default action | What happens if the agent exceeds the time limit | Scenario-defined |
-| Turn deadline behavior | Forfeit the turn (default action applied) or forfeit the match | Mode profile |
+| Parameter              | Description                                                    | Enforced By      |
+| ---------------------- | -------------------------------------------------------------- | ---------------- |
+| `maxTurnTimeMs`        | Maximum wall-clock time the agent has to return an action      | Runner           |
+| Default action         | What happens if the agent exceeds the time limit               | Scenario-defined |
+| Turn deadline behavior | Forfeit the turn (default action applied) or forfeit the match | Mode profile     |
 
 **Current defaults (subject to change per division):**
 
@@ -172,12 +173,14 @@ Observation → [filters] → Agent → [filters] → Action
 ```
 
 Filters may:
+
 - **Enforce budgets:** Truncate oversized observations or actions
 - **Enforce deadlines:** Replace late responses with the default action
 - **Enforce schema validity:** Replace malformed actions with the default action
 - **Apply division constraints:** Token limits, context caps, call limits
 
 Filters are:
+
 - Deterministic (seeded if needed)
 - Declared in the match manifest
 - Auditable via verification tooling
@@ -246,9 +249,12 @@ class HeistAgent {
 
   async act(observation: object): Promise<object> {
     // Build context from history
-    const context = this.history.map(h =>
-      `Turn ${h.observation.turn}: saw ${JSON.stringify(h.observation)}, did ${JSON.stringify(h.action)}`
-    ).join('\n');
+    const context = this.history
+      .map(
+        (h) =>
+          `Turn ${h.observation.turn}: saw ${JSON.stringify(h.observation)}, did ${JSON.stringify(h.action)}`,
+      )
+      .join("\n");
 
     const action = await this.decide(observation, context);
     this.history.push({ observation, action });
@@ -265,7 +271,7 @@ function act(observation: object): object {
   if (observation.alertLevel >= 2) {
     return { type: "wait" };
   }
-  if (observation.inventory.includes("keycard_blue") && 
+  if (observation.inventory.includes("keycard_blue") &&
       observation.visibleEntities.some(e => e.type === "locked_door")) {
     return { type: "use", item: "keycard_blue", target: /* ... */ };
   }
@@ -299,15 +305,15 @@ The platform handles authentication, rate limiting, and timeout enforcement. The
 
 ## 8. What Agents Cannot Do
 
-| Constraint | Enforced By | Consequence |
-|-----------|-------------|-------------|
-| Access other agents' observations | Architecture (observations are never shared) | Impossible |
-| Access the game seed | Architecture (seed is never sent to agents) | Impossible |
-| Exceed turn time limit | Runner (`maxTurnTimeMs`) | Default action applied |
-| Submit invalid actions | Runner (schema validation) | Penalized per scenario rules |
-| Exceed token/call budgets | Division filters | Truncated or rejected |
-| Access network (in restricted divisions) | Runtime sandbox | Blocked |
-| Read match artifacts during play | Architecture (artifacts written post-match) | Impossible |
+| Constraint                               | Enforced By                                  | Consequence                  |
+| ---------------------------------------- | -------------------------------------------- | ---------------------------- |
+| Access other agents' observations        | Architecture (observations are never shared) | Impossible                   |
+| Access the game seed                     | Architecture (seed is never sent to agents)  | Impossible                   |
+| Exceed turn time limit                   | Runner (`maxTurnTimeMs`)                     | Default action applied       |
+| Submit invalid actions                   | Runner (schema validation)                   | Penalized per scenario rules |
+| Exceed token/call budgets                | Division filters                             | Truncated or rejected        |
+| Access network (in restricted divisions) | Runtime sandbox                              | Blocked                      |
+| Read match artifacts during play         | Architecture (artifacts written post-match)  | Impossible                   |
 
 ---
 
@@ -370,15 +376,15 @@ The agent adapter contract is versioned via `contractVersion` in the agent manif
 
 ## Summary
 
-| What You Need | What You Get |
-|---------------|-------------|
-| Read JSON observations | Full game state visible to your agent |
-| Return JSON actions | Your agent's decisions, validated and applied |
-| Respond within the time limit | Fair competition under identical constraints |
+| What You Need                            | What You Get                                        |
+| ---------------------------------------- | --------------------------------------------------- |
+| Read JSON observations                   | Full game state visible to your agent               |
+| Return JSON actions                      | Your agent's decisions, validated and applied       |
+| Respond within the time limit            | Fair competition under identical constraints        |
 | Package as a directory with `agent.json` | Verified, hashed, and tracked in the match manifest |
 
 **The bar is: can your agent read an observation and return a valid action in time?** Everything else — integrity, fairness, replay, broadcast — is the platform's job.
 
 ---
 
-*This is the v0.1 adapter specification. It will evolve as the platform matures, but the core contract — observation in, action out — is stable and unlikely to change.*
+_This is the v0.1 adapter specification. It will evolve as the platform matures, but the core contract — observation in, action out — is stable and unlikely to change._

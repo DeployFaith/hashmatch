@@ -154,7 +154,8 @@ export function formatVerifyMatchReport(report: VerifyMatchReport): string {
     addHashLine("manifestHash", report.manifestHash);
   }
 
-  const resultLabel = report.status === "pass" ? "PASS" : report.status === "fail" ? "FAIL" : "ERROR";
+  const resultLabel =
+    report.status === "pass" ? "PASS" : report.status === "fail" ? "FAIL" : "ERROR";
   lines.push(`RESULT: ${resultLabel}`);
   return lines.join("\n");
 }

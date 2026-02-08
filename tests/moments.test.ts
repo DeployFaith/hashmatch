@@ -95,7 +95,14 @@ describe("detectMoments", () => {
     const events: MatchEvent[] = [
       baseMatch,
       { type: "TurnStarted", seq: 1, matchId: "match-1", turn: 1 },
-      { type: "ActionSubmitted", seq: 2, matchId: "match-1", turn: 1, agentId: "alpha", action: {} },
+      {
+        type: "ActionSubmitted",
+        seq: 2,
+        matchId: "match-1",
+        turn: 1,
+        agentId: "alpha",
+        action: {},
+      },
       matchEnded(3, 1, { alpha: 0, bravo: 0 }),
     ];
 

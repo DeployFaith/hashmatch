@@ -1,1 +1,14 @@
-{"agentIds":["noop-1","noop-2"],"hashes":{"logHash":"sha256:9c30f10c052114fb4d4a17164d15ba075a89cf363eb7cc8ac0b4c66ced178f01","manifestHash":"sha256:17099c48930e26b1d91f6241726a65e65ce9f17957a74c15a387188136ac24ce"},"matchId":"m_cynz4s5rjfl4","matchKey":"RR:noop-1-vs-noop-2:round1","reason":"completed","scores":{"noop-1":-115,"noop-2":-115},"seed":4273968796,"turns":20,"winner":null}
+{
+  "agentIds": ["noop-1", "noop-2"],
+  "hashes": {
+    "logHash": "sha256:9c30f10c052114fb4d4a17164d15ba075a89cf363eb7cc8ac0b4c66ced178f01",
+    "manifestHash": "sha256:17099c48930e26b1d91f6241726a65e65ce9f17957a74c15a387188136ac24ce"
+  },
+  "matchId": "m_cynz4s5rjfl4",
+  "matchKey": "RR:noop-1-vs-noop-2:round1",
+  "reason": "completed",
+  "scores": { "noop-1": -115, "noop-2": -115 },
+  "seed": 4273968796,
+  "turns": 20,
+  "winner": null
+}

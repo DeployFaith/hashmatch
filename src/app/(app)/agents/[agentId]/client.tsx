@@ -10,11 +10,7 @@ import { MatchStatusBadge } from "@/components/match-status-badge";
 import { CopyJsonButton } from "@/components/copy-json-button";
 import { ArrowLeft, Shield, Zap, Clock } from "lucide-react";
 
-export default function AgentDetailClient({
-  params,
-}: {
-  params: Promise<{ agentId: string }>;
-}) {
+export default function AgentDetailClient({ params }: { params: Promise<{ agentId: string }> }) {
   const { agentId } = use(params);
   const { getAgent, getMatchesForAgent, getRunsForAgent } = useAppStore();
 
@@ -40,8 +36,7 @@ export default function AgentDetailClient({
   const avgResponseMs =
     completedRuns.length > 0
       ? Math.round(
-          completedRuns.reduce((sum, r) => sum + r.metrics.avgResponseMs, 0) /
-            completedRuns.length,
+          completedRuns.reduce((sum, r) => sum + r.metrics.avgResponseMs, 0) / completedRuns.length,
         )
       : 0;
 
@@ -94,9 +89,7 @@ export default function AgentDetailClient({
               <Zap className="h-4 w-4" />
               <p className="text-xs">Reliability</p>
             </div>
-            <p className="mt-1 text-2xl font-bold">
-              {(agent.reliability * 100).toFixed(0)}%
-            </p>
+            <p className="mt-1 text-2xl font-bold">{(agent.reliability * 100).toFixed(0)}%</p>
           </CardContent>
         </Card>
         <Card>
@@ -114,9 +107,7 @@ export default function AgentDetailClient({
             <p className="mt-1 text-2xl font-bold">
               {completedRuns.length}/{agentRuns.length}
             </p>
-            <p className="text-xs text-muted-foreground">
-              completed · {failedRuns.length} failed
-            </p>
+            <p className="text-xs text-muted-foreground">completed · {failedRuns.length} failed</p>
           </CardContent>
         </Card>
       </div>

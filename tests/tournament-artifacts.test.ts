@@ -181,7 +181,9 @@ describe("Tournament artifact hashing", () => {
       expect(summaryRaw.endsWith("\n")).toBe(true);
       expect(summaryRaw.endsWith("\n\n")).toBe(false);
 
-      const summary = JSON.parse(summaryRaw) as { hashes?: { logHash: string; manifestHash: string } };
+      const summary = JSON.parse(summaryRaw) as {
+        hashes?: { logHash: string; manifestHash: string };
+      };
       expect(summary.hashes).toBeDefined();
       expect(summary.hashes?.logHash).toMatch(hashRegex);
       expect(summary.hashes?.manifestHash).toMatch(hashRegex);
@@ -216,8 +218,12 @@ describe("Tournament artifact hashing", () => {
         join(dirB, "matches", matchKey, "match_summary.json"),
         "utf-8",
       );
-      const summaryA = JSON.parse(summaryRawA) as { hashes: { logHash: string; manifestHash: string } };
-      const summaryB = JSON.parse(summaryRawB) as { hashes: { logHash: string; manifestHash: string } };
+      const summaryA = JSON.parse(summaryRawA) as {
+        hashes: { logHash: string; manifestHash: string };
+      };
+      const summaryB = JSON.parse(summaryRawB) as {
+        hashes: { logHash: string; manifestHash: string };
+      };
 
       expect(summaryA.hashes.logHash).toBe(summaryB.hashes.logHash);
       expect(summaryA.hashes.manifestHash).toBe(summaryB.hashes.manifestHash);

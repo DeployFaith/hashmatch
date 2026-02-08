@@ -169,11 +169,11 @@ export function adaptReplayToViewModel(engineEvents: ParsedMatchEvent[]): Replay
     maxTurns: started?.type === "MatchStarted" ? started.maxTurns : 0,
     engineCommit:
       started?.type === "MatchStarted"
-        ? (started as Record<string, unknown>).engineCommit as string | undefined
+        ? ((started as Record<string, unknown>).engineCommit as string | undefined)
         : undefined,
     engineVersion:
       started?.type === "MatchStarted"
-        ? (started as Record<string, unknown>).engineVersion as string | undefined
+        ? ((started as Record<string, unknown>).engineVersion as string | undefined)
         : undefined,
     totalTurns: ended?.type === "MatchEnded" ? ended.turns : 0,
     endReason: ended?.type === "MatchEnded" ? ended.reason : undefined,
@@ -243,7 +243,11 @@ export function adaptReplayToViewModel(engineEvents: ParsedMatchEvent[]): Replay
   const match: Match = {
     id: matchId,
     title: `Replay: ${meta.scenarioName}`,
-    status: ended ? (ended.type === "MatchEnded" && ended.reason === "error" ? "error" : "completed") : "in_progress",
+    status: ended
+      ? ended.type === "MatchEnded" && ended.reason === "error"
+        ? "error"
+        : "completed"
+      : "in_progress",
     startedAt: now,
     endedAt: ended ? now : undefined,
     agents: meta.agentIds,

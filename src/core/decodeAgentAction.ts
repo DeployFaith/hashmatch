@@ -27,9 +27,7 @@ export const DEFAULT_UNWRAP_PATHS = [
   ["output", "action"],
 ];
 
-type JsonParseResult =
-  | { ok: true; value: unknown }
-  | { ok: false; error: string };
+type JsonParseResult = { ok: true; value: unknown } | { ok: false; error: string };
 
 const tryParseJson = (text: string): JsonParseResult => {
   try {

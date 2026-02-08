@@ -12,6 +12,7 @@
 This document synthesizes two independent research passes on how real-world competitive systems expose structured match data to external consumers. It covers 15+ platforms across AI competitions, esports, board games, traditional sports, and poker.
 
 Use it to:
+
 - Ground architectural decisions in prior art rather than first principles
 - Identify where HashMatch's design is unusual, conventional, or untested
 - Find specific failure modes to design around
@@ -23,19 +24,19 @@ Do **not** treat this as a convergence plan or action list. The research is desc
 
 ## Part 1: GPT Survey (Breadth)
 
-*Full text of GPT's comparative analysis. Covers simulation AI competitions, board game archives, replay-centric esports, traditional sports data platforms, competitive programming, recurring patterns, failure modes, open questions, and assumption stress-tests.*
+_Full text of GPT's comparative analysis. Covers simulation AI competitions, board game archives, replay-centric esports, traditional sports data platforms, competitive programming, recurring patterns, failure modes, open questions, and assumption stress-tests._
 
-*GPT's report is strong on breadth and pattern identification. It correctly identifies the major categories and recurring tradeoffs. Where it is weakest: some claims are directionally correct but lack specific verification (dates, formats, exact failure timelines). Claude's research (Part 2) provides that verification.*
+_GPT's report is strong on breadth and pattern identification. It correctly identifies the major categories and recurring tradeoffs. Where it is weakest: some claims are directionally correct but lack specific verification (dates, formats, exact failure timelines). Claude's research (Part 2) provides that verification._
 
 ### Systems Covered (GPT)
 
-| Category | Systems | Key Patterns |
-|----------|---------|-------------|
-| AI Competitions | Halite, Battlecode, RoboCup, Google AI Challenge | JSON replay evolution, deterministic logs as truth |
-| Board Games | Chess (PGN), Go (SGF), Lichess, OGS | Portable text formats, longevity, open data |
-| Esports | StarCraft II, Dota 2, Fighting Games | Binary replays, version coupling, API instability |
-| Sports Data | Opta, Sportradar, ESPN | XML/JSON feeds, correction disputes, narrative layers |
-| Programming | Codeforces, ICPC | JSON APIs, contest packages, scoreboard freeze |
+| Category        | Systems                                          | Key Patterns                                          |
+| --------------- | ------------------------------------------------ | ----------------------------------------------------- |
+| AI Competitions | Halite, Battlecode, RoboCup, Google AI Challenge | JSON replay evolution, deterministic logs as truth    |
+| Board Games     | Chess (PGN), Go (SGF), Lichess, OGS              | Portable text formats, longevity, open data           |
+| Esports         | StarCraft II, Dota 2, Fighting Games             | Binary replays, version coupling, API instability     |
+| Sports Data     | Opta, Sportradar, ESPN                           | XML/JSON feeds, correction disputes, narrative layers |
+| Programming     | Codeforces, ICPC                                 | JSON APIs, contest packages, scoreboard freeze        |
 
 ### GPT's Key Patterns Identified
 
@@ -56,24 +57,24 @@ Do **not** treat this as a convergence plan or action list. The research is desc
 - **"No servers required"** → Fine for now, but artifact-only won't hold at scale. Centralization tends to re-emerge.
 - **Community will build on data** → True only if the audience exists first. "If you build it, they will come" is suspect.
 
-*[Full GPT report text omitted for length — see `/docs/research/gpt_platform_integration_research.md` for the complete original.]*
+_[Full GPT report text omitted for length — see `/docs/research/gpt_platform_integration_research.md` for the complete original.]_
 
 ---
 
 ## Part 2: Claude Verified Research (Depth)
 
-*Independent research verifying, challenging, and extending GPT's findings with primary sources.*
+_Independent research verifying, challenging, and extending GPT's findings with primary sources._
 
 ### Halite Replay Format — Verified with specifics
 
 The Halite AI Competition (Two Sigma, 2016–2020) evolved its format three times:
 
-| Version | Compression | Inner format | File naming |
-|---------|------------|-------------|------------|
-| Halite I (2016) | gzip or plaintext | Custom text | `{gameID}-{seed}.hlt` |
-| Halite II (2017) | gzip | JSON | `replay-{datetime}-{seed}-{W}-{H}-{epoch}.hlt` |
-| Halite III (2018) | zstd | JSON | `replay-{datetime}-{tz}-{seed}-{W}-{H}.hlt` |
-| Halite IV (2020, Kaggle) | None | JSON | Kaggle episode format |
+| Version                  | Compression       | Inner format | File naming                                    |
+| ------------------------ | ----------------- | ------------ | ---------------------------------------------- |
+| Halite I (2016)          | gzip or plaintext | Custom text  | `{gameID}-{seed}.hlt`                          |
+| Halite II (2017)         | gzip              | JSON         | `replay-{datetime}-{seed}-{W}-{H}-{epoch}.hlt` |
+| Halite III (2018)        | zstd              | JSON         | `replay-{datetime}-{tz}-{seed}-{W}-{H}.hlt`    |
+| Halite IV (2020, Kaggle) | None              | JSON         | Kaggle episode format                          |
 
 **Key correction to GPT:** Halite I was NOT JSON — it was a custom plaintext format. GPT stated replays were "JSON-based" from early on; this is only true from Halite II onward.
 
@@ -86,6 +87,7 @@ The Halite AI Competition (Two Sigma, 2016–2020) evolved its format three time
 The ICPC CCS API (stable: 2023-06, draft in development) is HashMatch's single most valuable reference. Key structural details:
 
 **Package format:**
+
 - Single directory (or ZIP), named after contest ID
 - `contest.json` — contest metadata (times, freeze duration, penalty rules)
 - `<endpoint>.json` — one file per API endpoint (teams, problems, submissions, judgements, etc.)
@@ -94,6 +96,7 @@ The ICPC CCS API (stable: 2023-06, draft in development) is HashMatch's single m
 - Supports YAML alternatives for human-editable files
 
 **Event feed:**
+
 - Streaming NDJSON (content type `application/x-ndjson`)
 - Complete from beginning of time on initial connection, then live updates
 - Keepalive newline every 120 seconds
@@ -102,6 +105,7 @@ The ICPC CCS API (stable: 2023-06, draft in development) is HashMatch's single m
 - No guaranteed ordering between event types
 
 **Scoreboard freeze (access control during live play):**
+
 - `contest.scoreboard_freeze_duration` — relative time before end
 - `state` object records actual `frozen`/`thawed` timestamps
 - Strict ordering: `started < frozen < ended < thawed < end_of_updates`
@@ -110,6 +114,7 @@ The ICPC CCS API (stable: 2023-06, draft in development) is HashMatch's single m
 - `contest_thaw` capability triggers the reveal (how the ICPC Resolver works)
 
 **Use-case-driven package contents:**
+
 - Configuration: api + contest + languages + problems + teams + accounts
 - Results upload: api + teams + scoreboard + awards
 - Full archive: all endpoints + event feed + submission files
@@ -159,6 +164,7 @@ The ICPC CCS API (stable: 2023-06, draft in development) is HashMatch's single m
 **Key insight:** The format itself encodes the observer's perspective. There is no single canonical hand history — each participant receives a different version of the same hand.
 
 **Two standardization efforts:**
+
 - PHH format (University of Toronto, 2024): TOML syntax with `????` for unknown cards
 - Open Hand History (OHH) v1.4.7: JSON with `hero_player_id` field
 
@@ -239,30 +245,36 @@ No major sports broadcast relies on fully automated commentary or highlight dete
 ## Part 4: Key Structural References
 
 ### ICPC Contest API (highest priority for Sprint #2)
+
 - **Spec:** https://ccs-specs.icpc.io/2023-06/ (stable), https://ccs-specs.icpc.io/draft/ (latest)
 - **Source:** https://github.com/icpc/ccs-specs
 - **Why it matters:** Package format, event feed design, access control during live play, use-case-driven content requirements — all directly applicable to `broadcast_manifest.json` design.
 - **Specific parallels:** Contest Package ↔ Match Bundle, event-feed.ndjson ↔ match.jsonl, scoreboard freeze ↔ `_private` redaction during live play, Resolver thaw ↔ post-match reveal
 
 ### Lichess API + Database
+
 - **Spec:** OpenAPI 3.1.0, https://lichess.org/api
 - **Database:** https://database.lichess.org/
 - **Why it matters:** Most successful open competitive data system. NDJSON streaming pattern, rate limiting model, dual API + dump approach.
 
 ### Poker Hand History Formats
+
 - **PHH:** https://arxiv.org/abs/2312.11753 (TOML-based, University of Toronto)
 - **OHH:** https://hh-specs.handhistory.org (JSON-based, PokerTracker-backed)
 - **Why it matters:** Only domain with formalized hidden-information notation in the artifact format itself.
 
 ### StarCraft II s2protocol
+
 - **Source:** https://github.com/Blizzard/s2protocol
 - **Why it matters:** Canonical example of per-version decoding strategy for evolving replay formats.
 
 ### Opta F24 Schema
+
 - **Overview:** https://www.soccermetrics.net/match-data-collection/the-opta-data-schema-an-introduction
 - **Why it matters:** Most detailed real-world example of event-level sports data with correction/versioning mechanisms.
 
 ### IPTC Sport Schema
+
 - **Spec:** https://sportschema.org/ (v1.1, RDF/OWL, JSON-LD)
 - **Why it matters:** Industry standard for multi-sport data interchange. Shows what "standardization" looks like at maturity.
 

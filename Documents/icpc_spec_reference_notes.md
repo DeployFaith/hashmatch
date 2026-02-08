@@ -40,16 +40,32 @@
 ## Event Feed Format (NDJSON)
 
 ```json
-{"type": "submissions", "id": "187", "data": {"id": "187", "team_id": "11", "problem_id": "asteroids", "language_id": "java", "time": "2014-06-25T11:22:05.034+01", "contest_time": "1:22:05.034", "entry_point": "Main", "files": [{"href": "contests/wf14/submissions/187/files", "mime": "application/zip"}]}, "token": "abc123"}
+{
+  "type": "submissions",
+  "id": "187",
+  "data": {
+    "id": "187",
+    "team_id": "11",
+    "problem_id": "asteroids",
+    "language_id": "java",
+    "time": "2014-06-25T11:22:05.034+01",
+    "contest_time": "1:22:05.034",
+    "entry_point": "Main",
+    "files": [{ "href": "contests/wf14/submissions/187/files", "mime": "application/zip" }]
+  },
+  "token": "abc123"
+}
 ```
 
 Envelope fields:
+
 - `type`: endpoint name (plural) — submissions, judgements, teams, etc.
 - `id`: event ID (string, unique, lexicographically increasing for same type)
 - `data`: full current state of the object (or null for delete)
 - `token`: reconnection token (use with `?since_token=`)
 
 Rules:
+
 - Complete from beginning of time on initial connection
 - No guaranteed cross-type ordering
 - Keepalive newline every 120 seconds
@@ -61,9 +77,9 @@ Rules:
 ```json
 {
   "started": "2014-06-25T10:00:00+01",
-  "frozen": "2014-06-25T14:00:00+01",    // scoreboard freeze
+  "frozen": "2014-06-25T14:00:00+01", // scoreboard freeze
   "ended": "2014-06-25T15:00:00+01",
-  "thawed": "2014-06-25T15:15:00+01",    // reveal (Resolver triggers this)
+  "thawed": "2014-06-25T15:15:00+01", // reveal (Resolver triggers this)
   "finalized": "2014-06-25T15:30:00+01", // results are official
   "end_of_updates": "2014-06-25T16:00:00+01" // no more changes
 }
@@ -73,10 +89,10 @@ Strict ordering: started < frozen < ended < thawed < finalized < end_of_updates
 
 ## Access Control (Roles)
 
-| Role | Submissions after freeze | Judgements after freeze | Runs |
-|------|-------------------------|----------------------|------|
-| public | YES | NO | NO (until thawed) |
-| admin | YES | YES | YES |
+| Role   | Submissions after freeze | Judgements after freeze | Runs              |
+| ------ | ------------------------ | ----------------------- | ----------------- |
+| public | YES                      | NO                      | NO (until thawed) |
+| admin  | YES                      | YES                     | YES               |
 
 The `contest_thaw` capability allows PATCH to set `scoreboard_thaw_time`.
 
@@ -98,11 +114,11 @@ The `contest_thaw` capability allows PATCH to set `scoreboard_thaw_time`.
 
 ## Use-Case-Driven Package Contents
 
-| Use Case | Required | Optional |
-|----------|----------|----------|
-| CCS Configuration | api, contest, languages, problems, teams, accounts | judgement-types, groups, organizations, persons |
-| Results Upload | api, teams, scoreboard | awards |
-| Full Archive | all endpoints + event-feed.ndjson + submission files | — |
+| Use Case          | Required                                             | Optional                                        |
+| ----------------- | ---------------------------------------------------- | ----------------------------------------------- |
+| CCS Configuration | api, contest, languages, problems, teams, accounts   | judgement-types, groups, organizations, persons |
+| Results Upload    | api, teams, scoreboard                               | awards                                          |
+| Full Archive      | all endpoints + event-feed.ndjson + submission files | —                                               |
 
 ## Key Design Decisions to Study
 
@@ -114,17 +130,17 @@ The `contest_thaw` capability allows PATCH to set `scoreboard_thaw_time`.
 
 ## Mapping to HashMatch Concepts
 
-| ICPC Concept | HashMatch Equivalent | Notes |
-|-------------|---------------------|-------|
-| contest.json | match_manifest.json | Contest metadata + config |
-| event-feed.ndjson | match.jsonl | Complete event log |
-| scoreboard.json | match_summary.json | Derived standings/results |
-| state.json | (no equivalent) | **GAP** — we don't have explicit lifecycle timestamps |
-| submissions/ | (agent actions in match.jsonl) | Different domain — they log source code, we log actions |
-| judgements/ | (outcomes in match.jsonl) | They separate submissions from judgements; we combine |
-| awards.json | (in tournament_manifest?) | We don't have a formal awards/results artifact |
-| commentary.json | commentary.json (show layer) | Both have it; theirs is authoritative, ours is show-layer |
-| `scoreboard_freeze_duration` | `_private` field convention | Different mechanism, same goal |
-| `state.finalized` | (no equivalent) | **GAP** — we need a "finalized" concept |
-| Reconnection token | (no equivalent for SSE) | **GAP** — need reconnection for live streams |
-| Package = API on disk | Bundle ≈ but not identical | We have separate bundle layout vs future API |
+| ICPC Concept                 | HashMatch Equivalent           | Notes                                                     |
+| ---------------------------- | ------------------------------ | --------------------------------------------------------- |
+| contest.json                 | match_manifest.json            | Contest metadata + config                                 |
+| event-feed.ndjson            | match.jsonl                    | Complete event log                                        |
+| scoreboard.json              | match_summary.json             | Derived standings/results                                 |
+| state.json                   | (no equivalent)                | **GAP** — we don't have explicit lifecycle timestamps     |
+| submissions/                 | (agent actions in match.jsonl) | Different domain — they log source code, we log actions   |
+| judgements/                  | (outcomes in match.jsonl)      | They separate submissions from judgements; we combine     |
+| awards.json                  | (in tournament_manifest?)      | We don't have a formal awards/results artifact            |
+| commentary.json              | commentary.json (show layer)   | Both have it; theirs is authoritative, ours is show-layer |
+| `scoreboard_freeze_duration` | `_private` field convention    | Different mechanism, same goal                            |
+| `state.finalized`            | (no equivalent)                | **GAP** — we need a "finalized" concept                   |
+| Reconnection token           | (no equivalent for SSE)        | **GAP** — need reconnection for live streams              |
+| Package = API on disk        | Bundle ≈ but not identical     | We have separate bundle layout vs future API              |

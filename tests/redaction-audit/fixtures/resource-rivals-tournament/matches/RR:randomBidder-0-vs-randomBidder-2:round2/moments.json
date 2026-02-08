@@ -1,1 +1,30 @@
-[{"description":"randomBidder-0 swung the score by 26.","endSeq":24,"id":"moment-score-swing-8-24-randomBidder-0","label":"Score swing","signals":{"agentId":"randomBidder-0","delta":26,"endScores":{"randomBidder-0":26,"randomBidder-2":13},"startScores":{"randomBidder-0":0,"randomBidder-2":13}},"startSeq":8,"type":"score_swing"},{"description":"randomBidder-0 swung the score by 30.","endSeq":56,"id":"moment-score-swing-40-56-randomBidder-0","label":"Score swing","signals":{"agentId":"randomBidder-0","delta":30,"endScores":{"randomBidder-0":68,"randomBidder-2":13},"startScores":{"randomBidder-0":38,"randomBidder-2":13}},"startSeq":40,"type":"score_swing"}]
+[
+  {
+    "description": "randomBidder-0 swung the score by 26.",
+    "endSeq": 24,
+    "id": "moment-score-swing-8-24-randomBidder-0",
+    "label": "Score swing",
+    "signals": {
+      "agentId": "randomBidder-0",
+      "delta": 26,
+      "endScores": { "randomBidder-0": 26, "randomBidder-2": 13 },
+      "startScores": { "randomBidder-0": 0, "randomBidder-2": 13 }
+    },
+    "startSeq": 8,
+    "type": "score_swing"
+  },
+  {
+    "description": "randomBidder-0 swung the score by 30.",
+    "endSeq": 56,
+    "id": "moment-score-swing-40-56-randomBidder-0",
+    "label": "Score swing",
+    "signals": {
+      "agentId": "randomBidder-0",
+      "delta": 30,
+      "endScores": { "randomBidder-0": 68, "randomBidder-2": 13 },
+      "startScores": { "randomBidder-0": 38, "randomBidder-2": 13 }
+    },
+    "startSeq": 40,
+    "type": "score_swing"
+  }
+]

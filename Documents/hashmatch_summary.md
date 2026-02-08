@@ -161,16 +161,16 @@ Hashes follow strict byte-level rules for cross-platform consistency.
 
 ### 🚀 Roadmap Snapshot
 
-| Milestone                     | Status                                                             |
-| ----------------------------- | ------------------------------------------------------------------ |
-| Specs + Decision Locks        | ✅ Done                                                            |
-| Deterministic Harness         | ✅ Done                                                            |
-| Replay Viewer MVP             | ✅ Done                                                            |
-| Heist Game Framework          | ✅ Done                                                            |
-| Artifact Packaging            | 🟨 Partial (local registry + bundle validation remaining)          |
-| Receipts + Verification Tools | ✅ Done                                                            |
-| Tournament Operations         | ✬ Not started                                                      |
-| Live Broadcast                | ✬ Not started                                                      |
+| Milestone                     | Status                                                    |
+| ----------------------------- | --------------------------------------------------------- |
+| Specs + Decision Locks        | ✅ Done                                                   |
+| Deterministic Harness         | ✅ Done                                                   |
+| Replay Viewer MVP             | ✅ Done                                                   |
+| Heist Game Framework          | ✅ Done                                                   |
+| Artifact Packaging            | 🟨 Partial (local registry + bundle validation remaining) |
+| Receipts + Verification Tools | ✅ Done                                                   |
+| Tournament Operations         | ✬ Not started                                             |
+| Live Broadcast                | ✬ Not started                                             |
 
 **Product direction:** The long-term goal is a live-first platform (see `hashmatch_live_platform_direction_decision_architecture.md`). Current implementation is offline-first with SSE streaming endpoints available for future live use.
 

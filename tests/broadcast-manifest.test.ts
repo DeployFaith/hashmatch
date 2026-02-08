@@ -227,7 +227,10 @@ describe("Broadcast manifest (tournament artifacts)", () => {
         (file) => file.path === `matches/${matchKey}/moments.json`,
       );
       if (existsSync(momentsPath)) {
-        expect(momentsEntry).toEqual({ path: `matches/${matchKey}/moments.json`, class: "telemetry" });
+        expect(momentsEntry).toEqual({
+          path: `matches/${matchKey}/moments.json`,
+          class: "telemetry",
+        });
       } else {
         expect(momentsEntry).toBeUndefined();
       }

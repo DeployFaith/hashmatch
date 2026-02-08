@@ -1,1 +1,13 @@
-{"algorithm":"ed25519","payload":{"issuedBy":"DeployFaith/exhibitions","logHash":"sha256:694ebea4333599e5fc5b9e6cecb5dd6089d0b53539c599fbc0603aeddecfb4bb","manifestHash":"sha256:ff1dedaaa6fc10e2b320389a823ef23c50621ab86c5dffd9f2abbc6bb6cb57a7","matchId":"m_t1oj6p4g0ydk","runnerVersion":"unversioned"},"publicKey":"302a300506032b6570032100fcc54824ae0c3ae281aae07dd6c8370ca34a74e0fb100e4bfb7c070c82072e76","signature":"7b8edc13b320e940b9c07a31a0b7c1ff9641355e69674e269295b2b6a6b442a755cc11925dae453706752cd7aef30093a56ceb2caad53d05bc66e781cf58c60d","version":1}
+{
+  "algorithm": "ed25519",
+  "payload": {
+    "issuedBy": "DeployFaith/exhibitions",
+    "logHash": "sha256:694ebea4333599e5fc5b9e6cecb5dd6089d0b53539c599fbc0603aeddecfb4bb",
+    "manifestHash": "sha256:ff1dedaaa6fc10e2b320389a823ef23c50621ab86c5dffd9f2abbc6bb6cb57a7",
+    "matchId": "m_t1oj6p4g0ydk",
+    "runnerVersion": "unversioned"
+  },
+  "publicKey": "302a300506032b6570032100fcc54824ae0c3ae281aae07dd6c8370ca34a74e0fb100e4bfb7c070c82072e76",
+  "signature": "7b8edc13b320e940b9c07a31a0b7c1ff9641355e69674e269295b2b6a6b442a755cc11925dae453706752cd7aef30093a56ceb2caad53d05bc66e781cf58c60d",
+  "version": 1
+}

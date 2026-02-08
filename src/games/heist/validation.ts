@@ -1,9 +1,4 @@
-import type {
-  HeistDoor,
-  HeistEntity,
-  HeistItem,
-  HeistScenarioParams,
-} from "./types.js";
+import type { HeistDoor, HeistEntity, HeistItem, HeistScenarioParams } from "./types.js";
 
 export type ValidationError = {
   code: string;
@@ -40,10 +35,7 @@ export type RoomGraph = Map<string, { neighborId: string; doorId: string }[]>;
 export const sortById = <T extends { id: string }>(values: T[]): T[] =>
   [...values].sort((a, b) => a.id.localeCompare(b.id));
 
-export const getRoomIdByType = (
-  scenario: HeistScenarioParams,
-  type: string,
-): string | undefined =>
+export const getRoomIdByType = (scenario: HeistScenarioParams, type: string): string | undefined =>
   sortById(scenario.map.rooms).find((room) => room.type === type)?.id;
 
 export const buildRoomGraph = (rooms: { id: string }[], doors: HeistDoor[]): RoomGraph => {
@@ -285,7 +277,10 @@ const buildRoomItems = (items: HeistItem[]): Map<string, string[]> => {
     roomItems.set(item.roomId, list);
   }
   for (const [roomId, list] of roomItems.entries()) {
-    roomItems.set(roomId, list.sort((a, b) => a.localeCompare(b)));
+    roomItems.set(
+      roomId,
+      list.sort((a, b) => a.localeCompare(b)),
+    );
   }
   return roomItems;
 };
@@ -305,7 +300,10 @@ const buildRoomIntel = (entities: HeistEntity[]): Map<string, string[]> => {
     roomIntel.set(entity.roomId, list);
   }
   for (const [roomId, list] of roomIntel.entries()) {
-    roomIntel.set(roomId, [...new Set(list)].sort((a, b) => a.localeCompare(b)));
+    roomIntel.set(
+      roomId,
+      [...new Set(list)].sort((a, b) => a.localeCompare(b)),
+    );
   }
   return roomIntel;
 };

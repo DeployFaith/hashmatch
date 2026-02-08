@@ -3,7 +3,12 @@ import { constants } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { hashFile, sha256Hex } from "./hash.js";
 import type { BroadcastManifest, BroadcastManifestFileClass } from "./broadcastManifest.js";
-import { verifyReceipt, type MatchReceiptPayload, type Receipt, type TournamentReceiptPayload } from "./receipt.js";
+import {
+  verifyReceipt,
+  type MatchReceiptPayload,
+  type Receipt,
+  type TournamentReceiptPayload,
+} from "./receipt.js";
 import type { MatchSummary, StandingsRow, TournamentManifest } from "../tournament/types.js";
 import { computeStandings } from "../tournament/standings.js";
 import { verifyMatchDirectory } from "../cli/verify-match.js";
@@ -129,7 +134,10 @@ async function readJsonFile(path: string): Promise<unknown> {
   return JSON.parse(raw) as unknown;
 }
 
-function parseTournamentManifest(value: unknown): { manifest?: TournamentManifest; errors: string[] } {
+function parseTournamentManifest(value: unknown): {
+  manifest?: TournamentManifest;
+  errors: string[];
+} {
   const errors: string[] = [];
   if (!isRecord(value)) {
     return { errors: ["tournament_manifest.json must be a JSON object"] };
@@ -212,7 +220,10 @@ function parseStandings(value: unknown): { rows?: StandingsRow[]; errors: string
   return { rows: value as StandingsRow[], errors };
 }
 
-function parseBroadcastManifest(value: unknown): { manifest?: BroadcastManifest; errors: string[] } {
+function parseBroadcastManifest(value: unknown): {
+  manifest?: BroadcastManifest;
+  errors: string[];
+} {
   const errors: string[] = [];
   if (!isRecord(value)) {
     return { errors: ["broadcast_manifest.json must be a JSON object"] };
@@ -247,7 +258,10 @@ function parseBroadcastManifest(value: unknown): { manifest?: BroadcastManifest;
   return { manifest: value as unknown as BroadcastManifest, errors };
 }
 
-function parseMatchReceiptPayload(value: unknown): { payload?: MatchReceiptPayload; errors: string[] } {
+function parseMatchReceiptPayload(value: unknown): {
+  payload?: MatchReceiptPayload;
+  errors: string[];
+} {
   const errors: string[] = [];
   if (!isRecord(value)) {
     return { errors: ["receipt payload must be an object"] };
@@ -273,9 +287,10 @@ function parseMatchReceiptPayload(value: unknown): { payload?: MatchReceiptPaylo
   return { payload: value as unknown as MatchReceiptPayload, errors };
 }
 
-function parseTournamentReceiptPayload(
-  value: unknown,
-): { payload?: TournamentReceiptPayload; errors: string[] } {
+function parseTournamentReceiptPayload(value: unknown): {
+  payload?: TournamentReceiptPayload;
+  errors: string[];
+} {
   const errors: string[] = [];
   if (!isRecord(value)) {
     return { errors: ["receipt payload must be an object"] };
@@ -573,13 +588,8 @@ async function checkContentHashes(
     }
   }
 
-  const status: CheckStatus = hasStructuralError
-    ? "error"
-    : errors.length > 0
-      ? "fail"
-      : "pass";
-  const summary =
-    matchDirs.length > 0 ? `${passed}/${matchDirs.length} matches` : "0 matches";
+  const status: CheckStatus = hasStructuralError ? "error" : errors.length > 0 ? "fail" : "pass";
+  const summary = matchDirs.length > 0 ? `${passed}/${matchDirs.length} matches` : "0 matches";
   return {
     label: "Content hashes",
     status,
@@ -824,9 +834,7 @@ async function checkBroadcastManifest(bundlePath: string): Promise<BundleValidat
     if (file.contentHash) {
       const actual = await hashFile(filePath);
       if (actual !== file.contentHash) {
-        errors.push(
-          `HASH MISMATCH: ${relPath} — expected ${file.contentHash}, got ${actual}`,
-        );
+        errors.push(`HASH MISMATCH: ${relPath} — expected ${file.contentHash}, got ${actual}`);
       }
     }
     details.push(`✓ ${relPath}`);
@@ -842,8 +850,7 @@ async function checkBroadcastManifest(bundlePath: string): Promise<BundleValidat
     }
   }
 
-  const status: CheckStatus =
-    errors.length > 0 ? "fail" : warnings.length > 0 ? "warn" : "pass";
+  const status: CheckStatus = errors.length > 0 ? "fail" : warnings.length > 0 ? "warn" : "pass";
   return {
     label: "Broadcast manifest",
     status,
@@ -893,9 +900,7 @@ async function checkSignatures(
       const receiptRaw = await readJsonFile(receiptPath);
       const parsed = parseReceipt(receiptRaw, parseMatchReceiptPayload);
       if (!parsed.receipt) {
-        errors.push(
-          ...parsed.errors.map((error) => `matches/${matchDir}/receipt.json: ${error}`),
-        );
+        errors.push(...parsed.errors.map((error) => `matches/${matchDir}/receipt.json: ${error}`));
         continue;
       }
       parsedReceipt = parsed.receipt;
@@ -915,7 +920,10 @@ async function checkSignatures(
     try {
       const summaryRaw = await readJsonFile(summaryPath);
       const parsedSummary = parseMatchSummary(summaryRaw);
-      if (parsedSummary.summary && parsedReceipt.payload.matchId !== parsedSummary.summary.matchId) {
+      if (
+        parsedSummary.summary &&
+        parsedReceipt.payload.matchId !== parsedSummary.summary.matchId
+      ) {
         errors.push(
           `RECEIPT MISMATCH: matches/${matchDir}/receipt.json matchId expected ${parsedSummary.summary.matchId}, got ${parsedReceipt.payload.matchId}`,
         );
@@ -960,7 +968,9 @@ async function checkSignatures(
       const parsed = parseReceipt(receiptRaw, parseTournamentReceiptPayload);
       if (!parsed.receipt) {
         errors.push(
-          ...parsed.errors.map((error) => `${normalizePath(relative(bundlePath, tournamentReceiptPath))}: ${error}`),
+          ...parsed.errors.map(
+            (error) => `${normalizePath(relative(bundlePath, tournamentReceiptPath))}: ${error}`,
+          ),
         );
       } else if (!verifyReceipt(parsed.receipt)) {
         errors.push(

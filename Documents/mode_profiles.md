@@ -4,12 +4,12 @@ Mode Profiles define “rule worlds” for HashMatch.
 
 A mode profile is a named configuration bundle that constrains:
 
-* determinism requirements
-* allowed tools (internet, filesystem, external APIs)
-* resource budgets
-* visibility / reveal rules
-* verification requirements (hashes, receipts)
-* **show”‘layer allowances** (commentary/highlights/generative assets)
+- determinism requirements
+- allowed tools (internet, filesystem, external APIs)
+- resource budgets
+- visibility / reveal rules
+- verification requirements (hashes, receipts)
+- **show”‘layer allowances** (commentary/highlights/generative assets)
 
 A match always declares exactly one mode profile.
 
@@ -17,17 +17,17 @@ A match always declares exactly one mode profile.
 
 1. **Clarity**
 
-* competitors know what is allowed
-* spectators know what they are seeing
+- competitors know what is allowed
+- spectators know what they are seeing
 
 2. **Safety & Integrity**
 
-* sanctioned play is reproducible and verifiable
+- sanctioned play is reproducible and verifiable
 
 3. **Product Flexibility**
 
-* exhibition modes can prioritize entertainment
-* sandbox modes can prioritize experimentation
+- exhibition modes can prioritize entertainment
+- sandbox modes can prioritize experimentation
 
 ## 2. Core Concepts
 
@@ -35,15 +35,15 @@ A match always declares exactly one mode profile.
 
 All modes share the same output layers:
 
-* **Truth layer**: authoritative, deterministic event log + manifest
-* **Telemetry layer**: derived stats and summaries
-* **Show layer**: commentary/highlights/packaging (non”‘authoritative)
+- **Truth layer**: authoritative, deterministic event log + manifest
+- **Telemetry layer**: derived stats and summaries
+- **Show layer**: commentary/highlights/packaging (non”‘authoritative)
 
 Mode profiles primarily change:
 
-* what is required in truth artifacts
-* what is allowed in show/telemetry
-* what can be revealed, and when
+- what is required in truth artifacts
+- what is allowed in show/telemetry
+- what can be revealed, and when
 
 ### 2.2 Visibility Policy
 
@@ -51,9 +51,9 @@ Hidden information must not leak.
 
 Visibility is expressed as rules over:
 
-* which event fields are public
-* whether private observations exist in truth
-* when secrets are revealed (live vs post”‘match)
+- which event fields are public
+- whether private observations exist in truth
+- when secrets are revealed (live vs post”‘match)
 
 ### 2.3 Tool Policy
 
@@ -61,9 +61,9 @@ Tool access is part of the competition rules.
 
 If tools are allowed, mode must specify:
 
-* which tool classes are allowed (network, browser, filesystem)
-* whether tool I/O is logged
-* whether tool calls affect determinism
+- which tool classes are allowed (network, browser, filesystem)
+- whether tool I/O is logged
+- whether tool calls affect determinism
 
 Note: “tools allowed” and “determinism required” can conflict; sanctioned modes should avoid tool access unless tool I/O is captured and replayable.
 
@@ -73,11 +73,11 @@ Show content improves watchability but must not become truth.
 
 Mode profiles must explicitly define:
 
-* whether generated commentary/highlights are allowed
-* whether generated visuals are allowed
-* labeling requirements
-* grounding rules (event idx / moment refs)
-* whether show can be produced live or only post”‘match
+- whether generated commentary/highlights are allowed
+- whether generated visuals are allowed
+- labeling requirements
+- grounding rules (event idx / moment refs)
+- whether show can be produced live or only post”‘match
 
 ## 3. Recommended Initial Modes
 
@@ -89,14 +89,13 @@ These are working names; rename later.
 
 Constraints:
 
-* determinism: **required**
-* tool access: **denied by default** (allow only if fully logged + replayable)
-* visibility: strict (no secret leakage)
-* verification: hashes required, receipts required for published results
-* show: allowed **only if grounded + labeled**
-
-  * commentary/highlights may be generated post”‘match
-  * live show must not leak hidden info and must reference truth ranges
+- determinism: **required**
+- tool access: **denied by default** (allow only if fully logged + replayable)
+- visibility: strict (no secret leakage)
+- verification: hashes required, receipts required for published results
+- show: allowed **only if grounded + labeled**
+  - commentary/highlights may be generated post”‘match
+  - live show must not leak hidden info and must reference truth ranges
 
 ### 3.2 Exhibition (Showcase)
 
@@ -104,15 +103,14 @@ Constraints:
 
 Constraints:
 
-* determinism: preferred, but may be relaxed with clear labeling
-* tool access: optional
-* visibility: scenario dependent
-* verification: hashes recommended; receipts optional
-* show: encouraged
-
-  * multiple commentary personas
-  * highlight heavy packaging
-  * generated visuals allowed (still grounded)
+- determinism: preferred, but may be relaxed with clear labeling
+- tool access: optional
+- visibility: scenario dependent
+- verification: hashes recommended; receipts optional
+- show: encouraged
+  - multiple commentary personas
+  - highlight heavy packaging
+  - generated visuals allowed (still grounded)
 
 Exhibition must still avoid “fake facts.”
 
@@ -122,11 +120,11 @@ Exhibition must still avoid “fake facts.”
 
 Constraints:
 
-* determinism: optional
-* tool access: allowed (with logging if possible)
-* visibility: flexible
-* verification: optional
-* show: optional
+- determinism: optional
+- tool access: allowed (with logging if possible)
+- visibility: flexible
+- verification: optional
+- show: optional
 
 Sandbox is where we learn.
 
@@ -136,53 +134,53 @@ A mode profile is a JSON document.
 
 ### 4.1 Suggested Fields
 
-* `id`
-* `name`
-* `description`
+- `id`
+- `name`
+- `description`
 
 **Determinism**
 
-* `determinism.required: boolean`
-* `determinism.seedPolicy: string`
+- `determinism.required: boolean`
+- `determinism.seedPolicy: string`
 
 **Tools**
 
-* `tools.allowed: boolean`
-* `tools.classes: string[]` (e.g., `network`, `filesystem`, `browser`)
-* `tools.logging.required: boolean`
-* `tools.replayable.required: boolean`
+- `tools.allowed: boolean`
+- `tools.classes: string[]` (e.g., `network`, `filesystem`, `browser`)
+- `tools.logging.required: boolean`
+- `tools.replayable.required: boolean`
 
 **Resources**
 
-* `resources.maxTurns`
-* `resources.timeBudgetMs` (future)
-* `resources.memoryBudgetMb` (future)
+- `resources.maxTurns`
+- `resources.timeBudgetMs` (future)
+- `resources.memoryBudgetMb` (future)
 
 **Visibility**
 
-* `visibility.privateObservationsInTruth: boolean`
-* `visibility.spectatorPolicy: "live_safe" | "post_match_reveal" | "always_full"`
-* `visibility.redactions: string[]` (fields to redact in spectator view)
-* `visibility.spectatorDelayMs: number | null` (see §4.3)
+- `visibility.privateObservationsInTruth: boolean`
+- `visibility.spectatorPolicy: "live_safe" | "post_match_reveal" | "always_full"`
+- `visibility.redactions: string[]` (fields to redact in spectator view)
+- `visibility.spectatorDelayMs: number | null` (see §4.3)
 
 **Verification**
 
-* `verification.hashes.required: boolean`
-* `verification.receipts.required: boolean`
+- `verification.hashes.required: boolean`
+- `verification.receipts.required: boolean`
 
 **Show Policy**
 
-* `show.allowed: boolean`
-* `show.live.allowed: boolean`
-* `show.generated.allowed: boolean`
-* `show.generated.visuals.allowed: boolean`
-* `show.labeling.required: boolean`
-* `show.grounding.required: boolean`
+- `show.allowed: boolean`
+- `show.live.allowed: boolean`
+- `show.generated.allowed: boolean`
+- `show.generated.visuals.allowed: boolean`
+- `show.labeling.required: boolean`
+- `show.grounding.required: boolean`
 
 ### 4.2 Notes
 
-* The schema is a contract between the league and the tooling (harness/viewer/verifier).
-* Keep it explicit. Avoid hidden defaults.
+- The schema is a contract between the league and the tooling (harness/viewer/verifier).
+- Keep it explicit. Avoid hidden defaults.
 
 ### 4.3 Spectator Delay (`spectatorDelayMs`)
 
@@ -210,24 +208,24 @@ The viewer must enforce these three views as distinct rendering paths. Mixing co
 
 The replay viewer must:
 
-* load mode profile metadata
-* enforce visibility redactions
-* label show content based on mode policy
-* optionally hide final score until end (spoiler protection)
+- load mode profile metadata
+- enforce visibility redactions
+- label show content based on mode policy
+- optionally hide final score until end (spoiler protection)
 
 ## 6. Publishing Implications
 
 When publishing a match/tournament:
 
-* include the mode profile id/name in manifests
-* include receipts as required by the mode
-* label show artifacts according to the mode
+- include the mode profile id/name in manifests
+- include receipts as required by the mode
+- label show artifacts according to the mode
 
 ## 7. Future Extensions
 
-* "ladder" modes
-* "draft" events (agent selection/bans)
-* "handicap" modes
-* **coaching modes** — Reserved identifiers: `"advisory"`, `"approval"`, `"copilot"`, `"piloted"`. These define the degree of human involvement in an agent's decision-making. Declared under `coaching.mode` in the mode profile. See `specification.md` §14.2 for full semantics and §14.3 for transcript logging requirements.
+- "ladder" modes
+- "draft" events (agent selection/bans)
+- "handicap" modes
+- **coaching modes** — Reserved identifiers: `"advisory"`, `"approval"`, `"copilot"`, `"piloted"`. These define the degree of human involvement in an agent's decision-making. Declared under `coaching.mode` in the mode profile. See `specification.md` §14.2 for full semantics and §14.3 for transcript logging requirements.
 
 Mode profiles are how HashMatch stays flexible without becoming incoherent.

@@ -175,7 +175,11 @@ export async function writeMatchArtifacts(config: MatchArtifactsConfig): Promise
 
   const hasHighlights = existsSync(join(config.matchDir, "highlights.json"));
   const hasGatewayTranscript = existsSync(join(config.matchDir, GATEWAY_TRANSCRIPT_FILENAME));
-  const broadcastFiles = buildBroadcastManifestFiles(hasMoments, hasHighlights, hasGatewayTranscript);
+  const broadcastFiles = buildBroadcastManifestFiles(
+    hasMoments,
+    hasHighlights,
+    hasGatewayTranscript,
+  );
   const truthFileHashes: Record<string, string> = {
     "match.jsonl": logHash,
     "match_manifest.json": manifestHash,

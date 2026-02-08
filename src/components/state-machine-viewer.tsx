@@ -76,9 +76,7 @@ export function StateMachineViewer({ states, transitions, className }: StateMach
                   {t.trigger}
                 </Badge>
                 {t.guard && (
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    guard: {t.guard}
-                  </span>
+                  <span className="ml-auto text-xs text-muted-foreground">guard: {t.guard}</span>
                 )}
               </div>
             );

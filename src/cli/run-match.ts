@@ -220,7 +220,9 @@ function tryReadEngineVersion(): string | undefined {
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const resolvedAgents = resolveAgentDefaults(args);
-  const agentKeys = args.agents?.length ? args.agents : [resolvedAgents.agentA, resolvedAgents.agentB];
+  const agentKeys = args.agents?.length
+    ? args.agents
+    : [resolvedAgents.agentA, resolvedAgents.agentB];
 
   if (args.agents?.length === 0) {
     // eslint-disable-next-line no-console
@@ -265,9 +267,7 @@ async function main(): Promise<void> {
   });
 
   // Opt-in provenance: only include if explicitly requested AND at least one field resolves.
-  let provenance:
-    | { engineCommit?: string; engineVersion?: string }
-    | undefined;
+  let provenance: { engineCommit?: string; engineVersion?: string } | undefined;
 
   if (args.emitProvenance) {
     const engineCommit = args.engineCommit ?? tryReadEngineCommit();

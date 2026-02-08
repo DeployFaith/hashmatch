@@ -61,9 +61,7 @@ describe("validateHeistScenario", () => {
     scenario.map.doors[0] = { id: "door-1", roomA: "spawn", roomB: "missing" };
     const result = validateHeistScenario(scenario);
     expect(result.ok).toBe(false);
-    expect(result.errors.map((error) => error.code)).toContain(
-      "HEIST_GRAPH_DOOR_BAD_ENDPOINT",
-    );
+    expect(result.errors.map((error) => error.code)).toContain("HEIST_GRAPH_DOOR_BAD_ENDPOINT");
   });
 
   it("detects hard-locks when a key is behind its own door", () => {

@@ -92,7 +92,10 @@ function parseTournamentManifest(raw: string): TournamentManifestData {
 
 async function listMatchDirectories(matchesDir: string): Promise<string[]> {
   const entries = await readdir(matchesDir, { withFileTypes: true });
-  return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
+  return entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
 }
 
 function toRunnerVersion(version: string | null): string {

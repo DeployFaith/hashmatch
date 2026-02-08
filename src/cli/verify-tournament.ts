@@ -179,7 +179,10 @@ export async function verifyTournamentDirectory(outDir: string): Promise<VerifyT
       const matchDirs = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
       const logHashes: string[] = [];
       for (const matchDir of matchDirs) {
-        const summaryRaw = await readFile(join(matchesDirPath, matchDir, "match_summary.json"), "utf-8");
+        const summaryRaw = await readFile(
+          join(matchesDirPath, matchDir, "match_summary.json"),
+          "utf-8",
+        );
         logHashes.push(parseMatchLogHash(summaryRaw));
       }
 
@@ -194,7 +197,9 @@ export async function verifyTournamentDirectory(outDir: string): Promise<VerifyT
     }
   }
 
-  const hasMatchErrors = matchResults.some((result) => shouldTreatMatchStatusAsError(result.status));
+  const hasMatchErrors = matchResults.some((result) =>
+    shouldTreatMatchStatusAsError(result.status),
+  );
   const hasMatchFailures = matchResults.some((result) => result.status === "fail");
   const hasStructuralErrors = errors.length > 0 || hasMatchErrors;
   const hasMismatches =
@@ -252,7 +257,9 @@ export function formatVerifyTournamentReport(report: VerifyTournamentReport): st
   }
 
   if (report.aliasBytes) {
-    const status = report.aliasBytes.ok ? "✓ PASS (manifest == legacy)" : "✗ FAIL (manifest != legacy)";
+    const status = report.aliasBytes.ok
+      ? "✓ PASS (manifest == legacy)"
+      : "✗ FAIL (manifest != legacy)";
     lines.push(`  ${"aliasBytes".padEnd(columnWidth)}  ${status}`);
   }
 

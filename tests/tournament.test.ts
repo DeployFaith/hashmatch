@@ -133,7 +133,9 @@ describe("Tournament Harness v0.1", () => {
 
   describe("event logs", () => {
     it("event logs present when includeEventLogs is true", async () => {
-      const result = await runTournament(makeConfig({ seed: 42, rounds: 2, includeEventLogs: true }));
+      const result = await runTournament(
+        makeConfig({ seed: 42, rounds: 2, includeEventLogs: true }),
+      );
 
       expect(result.matchLogs).toBeDefined();
       for (const m of result.matchSummaries) {

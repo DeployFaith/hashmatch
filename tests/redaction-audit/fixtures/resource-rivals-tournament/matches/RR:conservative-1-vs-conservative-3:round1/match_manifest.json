@@ -1,1 +1,32 @@
-{"agents":[{"contentHash":"sha256:e271488ca2ccad17c1182bf4b818222e80f7ca43a707b77d756c6b7314adf4ab","id":"conservative-1","version":"unversioned"},{"contentHash":"sha256:e271488ca2ccad17c1182bf4b818222e80f7ca43a707b77d756c6b7314adf4ab","id":"conservative-3","version":"unversioned"}],"config":{"maxTurns":30,"seed":4287406107,"seedDerivationInputs":{"matchKey":"RR:conservative-1-vs-conservative-3:round1","tournamentSeed":42}},"createdAt":"2026-02-07T07:05:38.909Z","matchId":"m_5pngzpe4czxd","modeProfileId":"sandbox","runner":{"gitCommit":null,"name":"tournament-harness","version":null},"scenario":{"contentHash":"sha256:57bfd64d9b18fd8fdb7fa69cbda917f8789de02b225d959e15e8af2aa98e491f","contractVersion":null,"id":"ResourceRivals","version":"unversioned"}}
+{
+  "agents": [
+    {
+      "contentHash": "sha256:e271488ca2ccad17c1182bf4b818222e80f7ca43a707b77d756c6b7314adf4ab",
+      "id": "conservative-1",
+      "version": "unversioned"
+    },
+    {
+      "contentHash": "sha256:e271488ca2ccad17c1182bf4b818222e80f7ca43a707b77d756c6b7314adf4ab",
+      "id": "conservative-3",
+      "version": "unversioned"
+    }
+  ],
+  "config": {
+    "maxTurns": 30,
+    "seed": 4287406107,
+    "seedDerivationInputs": {
+      "matchKey": "RR:conservative-1-vs-conservative-3:round1",
+      "tournamentSeed": 42
+    }
+  },
+  "createdAt": "2026-02-07T07:05:38.909Z",
+  "matchId": "m_5pngzpe4czxd",
+  "modeProfileId": "sandbox",
+  "runner": { "gitCommit": null, "name": "tournament-harness", "version": null },
+  "scenario": {
+    "contentHash": "sha256:57bfd64d9b18fd8fdb7fa69cbda917f8789de02b225d959e15e8af2aa98e491f",
+    "contractVersion": null,
+    "id": "ResourceRivals",
+    "version": "unversioned"
+  }
+}

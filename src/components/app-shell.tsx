@@ -46,10 +46,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="flex flex-1 flex-col gap-1 p-2">
           {navItems.map((item) => {
-            const isActive =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.href);
+            const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}

@@ -21,14 +21,12 @@ describe("heist scene reducer", () => {
 
     expect(Object.keys(state.map.rooms).length).toBeGreaterThan(0);
     expect(Object.keys(state.map.doors).length).toBeGreaterThan(0);
-    expect(
-      Object.values(state.guards).some((guard) => guard.patrolRoomIds.length > 0),
-    ).toBe(true);
+    expect(Object.values(state.guards).some((guard) => guard.patrolRoomIds.length > 0)).toBe(true);
     expect(Object.keys(state.entities).length).toBeGreaterThan(0);
     expect(Object.keys(state.items).length).toBeGreaterThan(0);
-    expect(
-      Object.values(state.agents).some((agent) => Array.isArray(agent.visibleRooms)),
-    ).toBe(true);
+    expect(Object.values(state.agents).some((agent) => Array.isArray(agent.visibleRooms))).toBe(
+      true,
+    );
     expect(state.status).toBe("ended");
   });
 

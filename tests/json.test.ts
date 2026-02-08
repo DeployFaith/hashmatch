@@ -8,9 +8,7 @@ describe("stableStringify", () => {
   });
 
   it("rejects non-JSON values", () => {
-    expect(() => stableStringify({ ok: true, nope: undefined })).toThrow(
-      "Invalid JSON value",
-    );
+    expect(() => stableStringify({ ok: true, nope: undefined })).toThrow("Invalid JSON value");
   });
 
   it("rejects non-finite numbers", () => {

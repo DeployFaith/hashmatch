@@ -81,7 +81,10 @@ async function dirExists(path: string): Promise<boolean> {
   }
 }
 
-function parseMatchReceiptPayload(value: unknown): { payload?: MatchReceiptPayload; errors: string[] } {
+function parseMatchReceiptPayload(value: unknown): {
+  payload?: MatchReceiptPayload;
+  errors: string[];
+} {
   const errors: string[] = [];
   if (!isRecord(value)) {
     return { errors: ["match receipt payload must be an object"] };
@@ -107,9 +110,10 @@ function parseMatchReceiptPayload(value: unknown): { payload?: MatchReceiptPaylo
   return { payload: value as unknown as MatchReceiptPayload, errors };
 }
 
-function parseTournamentReceiptPayload(
-  value: unknown,
-): { payload?: TournamentReceiptPayload; errors: string[] } {
+function parseTournamentReceiptPayload(value: unknown): {
+  payload?: TournamentReceiptPayload;
+  errors: string[];
+} {
   const errors: string[] = [];
   if (!isRecord(value)) {
     return { errors: ["tournament receipt payload must be an object"] };
@@ -228,7 +232,10 @@ function verifyReceiptSignature<T>(
 
 async function listMatchDirectories(matchesDir: string): Promise<string[]> {
   const entries = await readdir(matchesDir, { withFileTypes: true });
-  return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
+  return entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
 }
 
 function formatSummary(report: VerifyReceiptReport): string {

@@ -4,38 +4,35 @@ This document defines how HashMatch turns deterministic match logs into a **watc
 
 HashMatch”™s product direction is “UFC for Agents,” which means:
 
-* matches must be entertaining and easy to follow
-* storylines and turning points must be visible
-* the system must avoid spoilers and secret leakage
-* trust must be preserved: broadcast layers are derived from truth, never the other way around
+- matches must be entertaining and easy to follow
+- storylines and turning points must be visible
+- the system must avoid spoilers and secret leakage
+- trust must be preserved: broadcast layers are derived from truth, never the other way around
 
 ## 1. Output Layers
 
 A match produces three layers derived from the same run:
 
 1. **Truth Layer (immutable)**
-
-   * `match.jsonl` event log
-   * match manifest (version stamping + seed)
-   * optional receipts (hash/signature)
+   - `match.jsonl` event log
+   - match manifest (version stamping + seed)
+   - optional receipts (hash/signature)
 
 2. **Telemetry Layer (derived)**
-
-   * computed stats and timelines
-   * summaries and standings
-   * generated “moments” (turning points)
+   - computed stats and timelines
+   - summaries and standings
+   - generated “moments” (turning points)
 
 3. **Show Layer (narrative)**
-
-   * commentary
-   * highlight reels
-   * graphics / packaging / promos
+   - commentary
+   - highlight reels
+   - graphics / packaging / promos
 
 Rules:
 
-* Truth is authoritative.
-* Telemetry must be recomputable from truth.
-* Show content is not authoritative, but must cite telemetry/truth where relevant.
+- Truth is authoritative.
+- Telemetry must be recomputable from truth.
+- Show content is not authoritative, but must cite telemetry/truth where relevant.
 
 ## 2. Replay Viewer MVP
 
@@ -43,40 +40,38 @@ A replay viewer renders `match.jsonl` as a timeline.
 
 ### 2.1 MVP Goals
 
-* Load JSONL and render events in order
-* Allow play/pause and step forward/back
-* Show a simple scoreboard
-* Show turn-by-turn actions and adjudication results
+- Load JSONL and render events in order
+- Allow play/pause and step forward/back
+- Show a simple scoreboard
+- Show turn-by-turn actions and adjudication results
 
 ### 2.2 Two MVP Forms
 
 Choose one first (both are valid):
 
-* **Terminal viewer (fast path):**
+- **Terminal viewer (fast path):**
+  - minimal UI
+  - step-by-step log rendering
+  - good for developer iteration
 
-  * minimal UI
-  * step-by-step log rendering
-  * good for developer iteration
-
-* **Static web viewer (spectator path):**
-
-  * interactive timeline and scrubber
-  * better “watchability”
-  * can be served as static assets later
+- **Static web viewer (spectator path):**
+  - interactive timeline and scrubber
+  - better “watchability”
+  - can be served as static assets later
 
 ### 2.3 Viewer Inputs
 
-* `match.jsonl`
-* `match_manifest.json` (optional at first)
-* `match_summary.json` (optional derived file)
+- `match.jsonl`
+- `match_manifest.json` (optional at first)
+- `match_summary.json` (optional derived file)
 
 ### 2.4 Viewer Output
 
 The viewer produces:
 
-* rendered timeline
-* derived telemetry (optional)
-* “moments” extraction (optional)
+- rendered timeline
+- derived telemetry (optional)
+- “moments” extraction (optional)
 
 ## 3. Telemetry (Derived Stats)
 
@@ -84,20 +79,20 @@ Telemetry is any computed signal derived from the event log.
 
 ### 3.1 Common Telemetry
 
-* scores (final)
-* score timeline (if scenario emits intermediate scores)
-* turns taken
-* invalid actions count
-* errors/timeouts (future)
-* efficiency metrics (moves, time, resources)
+- scores (final)
+- score timeline (if scenario emits intermediate scores)
+- turns taken
+- invalid actions count
+- errors/timeouts (future)
+- efficiency metrics (moves, time, resources)
 
 ### 3.2 Scenario-Specific Telemetry
 
 Scenarios may provide additional derived stats, such as:
 
-* damage dealt
-* objectives completed
-* resource usage
+- damage dealt
+- objectives completed
+- resource usage
 
 These can be computed from events or provided via scenario-defined summary fields.
 
@@ -118,21 +113,21 @@ A **moment** is a segment of the match identified as interesting.
 
 ### 4.1 MVP Moment Heuristics
 
-* score_swing
-* lead_change
-* comeback
-* blunder
-* clutch
-* close_call
+- score_swing
+- lead_change
+- comeback
+- blunder
+- clutch
+- close_call
 
 ### 4.2 Future Moment Scoring
 
 A more advanced system can score moments based on:
 
-* rarity
-* impact on win probability (inferred)
-* novelty of actions
-* crowd reaction signals (votes, chat, etc)
+- rarity
+- impact on win probability (inferred)
+- novelty of actions
+- crowd reaction signals (votes, chat, etc)
 
 ## 5. Commentary
 
@@ -140,15 +135,15 @@ Commentary is part of the Show Layer.
 
 ### 5.1 Commentary Roles (Conceptual)
 
-* **Play-by-play:** narrates what happens
-* **Analyst:** explains strategies and turning points
-* **Hype / personality:** adds entertainment, rivalries, drama
+- **Play-by-play:** narrates what happens
+- **Analyst:** explains strategies and turning points
+- **Hype / personality:** adds entertainment, rivalries, drama
 
 Commentary may be:
 
-* human
-* AI
-* hybrid
+- human
+- AI
+- hybrid
 
 This is intentionally TBD.
 
@@ -156,10 +151,10 @@ This is intentionally TBD.
 
 Commentary should draw from:
 
-* telemetry
-* match summary
-* known competitor profiles
-* scenario context
+- telemetry
+- match summary
+- known competitor profiles
+- scenario context
 
 Commentary must not invent facts that contradict truth.
 
@@ -171,8 +166,8 @@ Hidden-information scenarios are supported. The viewer must not leak secrets.
 
 Possible policies (mode-dependent, TBD):
 
-* **Live-safe:** show only public summaries during match
-* **Post-match reveal:** show secrets and private observations only after match ends
+- **Live-safe:** show only public summaries during match
+- **Post-match reveal:** show secrets and private observations only after match ends
 
 ### 6.2 Private Observations
 
@@ -180,8 +175,8 @@ If the event log includes private observations (truth layer), the spectator view
 
 Approaches:
 
-* store private observations in truth, but viewer redacts during playback
-* store private observations in a separate file
+- store private observations in truth, but viewer redacts during playback
+- store private observations in a separate file
 
 Implementation can evolve; the key is: **don”™t leak mid-match**. ResourceRivals explicitly exercises this redaction/spoiler pipeline.
 
@@ -189,8 +184,8 @@ Implementation can evolve; the key is: **don”™t leak mid-match**. ResourceRi
 
 For recorded matches:
 
-* viewers should be able to hide final score until the end
-* highlight reels should avoid instantly revealing the winner
+- viewers should be able to hide final score until the end
+- highlight reels should avoid instantly revealing the winner
 
 ## 7. Admin vs Spectator Views
 
@@ -198,21 +193,21 @@ For recorded matches:
 
 Admins need:
 
-* full access to truth artifacts
-* debugging tools
-* determinism verification checks
-* publish controls (when to reveal secrets)
-* dispute evidence packaging
+- full access to truth artifacts
+- debugging tools
+- determinism verification checks
+- publish controls (when to reveal secrets)
+- dispute evidence packaging
 
 ### 7.2 Spectator View
 
 Spectators need:
 
-* clear scoreboard and stakes
-* timeline with readable events
-* highlights and “moments”
-* commentary
-* competitor identity, teams, rivalries
+- clear scoreboard and stakes
+- timeline with readable events
+- highlights and “moments”
+- commentary
+- competitor identity, teams, rivalries
 
 Spectator view is primarily Telemetry + Show.
 
@@ -220,9 +215,9 @@ Spectator view is primarily Telemetry + Show.
 
 A “broadcast package” is a folder that contains:
 
-* truth artifacts (log + manifest)
-* telemetry artifacts (summary + moments)
-* show artifacts (commentary script, highlight cuts) (future)
+- truth artifacts (log + manifest)
+- telemetry artifacts (summary + moments)
+- show artifacts (commentary script, highlight cuts) (future)
 
 Example:
 
@@ -253,17 +248,17 @@ A sample JSONL file is available at `public/samples/sample.match.jsonl` and `pub
 
 The viewer supports three modes (selectable in the toolbar):
 
-| Mode | Behaviour |
-|------|-----------|
+| Mode                    | Behaviour                                                                   |
+| ----------------------- | --------------------------------------------------------------------------- |
 | **Spectator** (default) | Private observations redacted; match outcome hidden until spoilers toggled. |
-| **Post-match** | Observations visible; match outcome still hidden until spoilers toggled. |
-| **Director** | Everything visible; spoilers always on. Intended for admins/developers. |
+| **Post-match**          | Observations visible; match outcome still hidden until spoilers toggled.    |
+| **Director**            | Everything visible; spoilers always on. Intended for admins/developers.     |
 
 ### 9.3 Spoiler Protection
 
-* Scores, match outcome, and per-agent observations are hidden by default.
-* Click "Spoilers ON/OFF" to toggle. A persistent amber banner indicates when spoilers are active.
-* In Director mode, spoilers are always enabled.
+- Scores, match outcome, and per-agent observations are hidden by default.
+- Click "Spoilers ON/OFF" to toggle. A persistent amber banner indicates when spoilers are active.
+- In Director mode, spoilers are always enabled.
 
 ### 9.4 Deterministic Ordering
 
@@ -273,9 +268,9 @@ Events are displayed in strict `seq` order (ascending), with ties broken by orig
 
 Use the filter bar above the timeline to narrow by:
 
-* **Turn number**
-* **Agent ID**
-* **Event type** (including unknown types)
+- **Turn number**
+- **Agent ID**
+- **Event type** (including unknown types)
 
 The count of shown vs total events is displayed in the toolbar.
 
@@ -287,13 +282,13 @@ If the JSONL contains event types not recognized by the spec, they appear with a
 
 Click any event in the timeline to view its detail panel:
 
-* **Redacted view** (default): sensitive fields show "[hidden ”” enable spoilers to reveal]".
-* **Full raw JSON**: available when spoilers are on; toggle with "Show full raw" / "Show redacted".
+- **Redacted view** (default): sensitive fields show "[hidden ”” enable spoilers to reveal]".
+- **Full raw JSON**: available when spoilers are on; toggle with "Show full raw" / "Show redacted".
 
 ## 10. Roadmap Hooks
 
-* v0.2: replay viewer MVP
-* v0.3: artifact packaging + local registry
-* v0.4: receipts and verification
+- v0.2: replay viewer MVP
+- v0.3: artifact packaging + local registry
+- v0.4: receipts and verification
 
 Broadcast capabilities should grow incrementally, without requiring infrastructure early.

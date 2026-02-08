@@ -1,10 +1,4 @@
-import type {
-  HeistDoor,
-  HeistEntity,
-  HeistItem,
-  HeistRoom,
-  HeistScenarioParams,
-} from "./types.js";
+import type { HeistDoor, HeistEntity, HeistItem, HeistRoom, HeistScenarioParams } from "./types.js";
 
 const ROOM_TYPE_LABELS: Record<HeistRoom["type"], string> = {
   spawn: "SPAWN",
@@ -41,8 +35,7 @@ const ITEM_LABELS: Record<HeistItem["type"], string> = {
   intel: "intel (virtual)",
 };
 
-const pluralize = (label: string, count: number): string =>
-  count === 1 ? label : `${label}s`;
+const pluralize = (label: string, count: number): string => (count === 1 ? label : `${label}s`);
 
 const getRoomName = (params: HeistScenarioParams, room: HeistRoom): string =>
   params.skin?.roomDisplayNames?.[room.id] ?? room.id;
@@ -54,7 +47,9 @@ const formatRoomLabel = (params: HeistScenarioParams, room: HeistRoom): string =
 };
 
 const hasRoomPositions = (rooms: HeistRoom[]): boolean =>
-  rooms.every((room) => room.position && Number.isFinite(room.position.x) && Number.isFinite(room.position.y));
+  rooms.every(
+    (room) => room.position && Number.isFinite(room.position.x) && Number.isFinite(room.position.y),
+  );
 
 const formatSpatialMap = (
   rooms: HeistRoom[],
@@ -313,9 +308,7 @@ const formatGuardPatrols = (params: HeistScenarioParams): string[] => {
     return ["  (no guard patrol routes)"];
   }
   return guardEntities.map((guard) => {
-    const route = guard.patrolRoute
-      .map((roomId, index) => `${index + 1}:${roomId}`)
-      .join(" -> ");
+    const route = guard.patrolRoute.map((roomId, index) => `${index + 1}:${roomId}`).join(" -> ");
     return `  ${guard.id}: ${route}`;
   });
 };
@@ -406,7 +399,9 @@ export function generateDescription(params: HeistScenarioParams): string {
   );
   const spawnName = spawnRoom ? getRoomName(params, spawnRoom) : "the entry point";
   const vaultName = vaultRoom ? getRoomName(params, vaultRoom) : "the vault";
-  const extractionName = extractionRoom ? getRoomName(params, extractionRoom) : "the extraction point";
+  const extractionName = extractionRoom
+    ? getRoomName(params, extractionRoom)
+    : "the extraction point";
   const terminalCount = params.entities.filter((entity) => entity.type === "terminal").length;
   const guardCount = params.entities.filter((entity) => entity.type === "guard").length;
   const cameraCount = params.entities.filter((entity) => entity.type === "camera").length;
@@ -421,7 +416,8 @@ export function generateDescription(params: HeistScenarioParams): string {
       ? `Hack ${terminalCount} terminal${terminalCount === 1 ? "" : "s"} to obtain intel, then `
       : "";
 
-  const guardPhrase = guardCount > 0 ? `${guardCount} guard${guardCount === 1 ? "" : "s"}` : "no guards";
+  const guardPhrase =
+    guardCount > 0 ? `${guardCount} guard${guardCount === 1 ? "" : "s"}` : "no guards";
   const cameraPhrase =
     cameraCount > 0 ? `${cameraCount} camera${cameraCount === 1 ? "" : "s"}` : "no cameras";
 

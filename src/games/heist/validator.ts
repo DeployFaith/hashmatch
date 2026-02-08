@@ -115,13 +115,7 @@ const computeInventoryWithObjectives = (
     a.localeCompare(b),
   );
   const vaultRequirements = gatherVaultRequirements(scenario);
-  const baseResult = computeInventoryFixpoint(
-    scenario,
-    graph,
-    doorsById,
-    spawnId,
-    blockedDoorId,
-  );
+  const baseResult = computeInventoryFixpoint(scenario, graph, doorsById, spawnId, blockedDoorId);
   if (!baseResult.reachableRooms.has(vaultId)) {
     return baseResult;
   }
@@ -395,9 +389,7 @@ export const validateHeistScenario = (
       if (ratio > aspectRatioLimit) {
         errors.push({
           code: HeistValidationCodes.LayoutAspectRatio,
-          message: `Layout aspect ratio ${ratio.toFixed(
-            2,
-          )} exceeds limit of ${aspectRatioLimit}.`,
+          message: `Layout aspect ratio ${ratio.toFixed(2)} exceeds limit of ${aspectRatioLimit}.`,
           path: "map.rooms",
           details: { width, height, ratio, aspectRatioLimit },
         });
@@ -418,11 +410,7 @@ export const validateHeistScenario = (
       }
       for (const door of params.map.doors) {
         const neighborId =
-          door.roomA === current
-            ? door.roomB
-            : door.roomB === current
-              ? door.roomA
-              : undefined;
+          door.roomA === current ? door.roomB : door.roomB === current ? door.roomA : undefined;
         if (!neighborId || visited.has(neighborId)) {
           continue;
         }

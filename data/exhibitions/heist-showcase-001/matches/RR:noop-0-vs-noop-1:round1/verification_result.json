@@ -1,1 +1,5 @@
-{"checks":{"logHash":true,"manifestHash":true},"status":"verified","verifiedAt":"1970-01-28T18:20:14.226Z"}
+{
+  "checks": { "logHash": true, "manifestHash": true },
+  "status": "verified",
+  "verifiedAt": "1970-01-28T18:20:14.226Z"
+}

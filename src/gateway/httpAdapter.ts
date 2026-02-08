@@ -42,10 +42,14 @@ function resolveDeadlineMs(request: GatewayObservationRequest, config?: GatewayC
   return 0;
 }
 
-function resolveMaxResponseBytes(request: GatewayObservationRequest, config?: GatewayConfig): number {
+function resolveMaxResponseBytes(
+  request: GatewayObservationRequest,
+  config?: GatewayConfig,
+): number {
   const constraintMax = request.constraints?.maxResponseBytes;
   const configMax = config?.maxResponseBytes;
-  const constraintValid = typeof constraintMax === "number" && Number.isFinite(constraintMax) && constraintMax > 0;
+  const constraintValid =
+    typeof constraintMax === "number" && Number.isFinite(constraintMax) && constraintMax > 0;
   const configValid = typeof configMax === "number" && Number.isFinite(configMax) && configMax > 0;
 
   if (constraintValid && configValid) {
@@ -82,7 +86,10 @@ function byteLength(value: unknown): number {
   return Buffer.byteLength(stableStringify(value), "utf-8");
 }
 
-async function readResponseBody(response: Response, maxBytes: number): Promise<{ text: string; bytes: number }> {
+async function readResponseBody(
+  response: Response,
+  maxBytes: number,
+): Promise<{ text: string; bytes: number }> {
   const contentLength = response.headers.get("content-length");
   if (contentLength) {
     const length = Number.parseInt(contentLength, 10);
@@ -138,7 +145,11 @@ function parseActionResponse(
   if (response.protocolVersion !== "0.1.0") {
     throw new InvalidResponseError("Unsupported protocolVersion");
   }
-  if (response.matchId !== request.matchId || response.turn !== request.turn || response.agentId !== request.agentId) {
+  if (
+    response.matchId !== request.matchId ||
+    response.turn !== request.turn ||
+    response.agentId !== request.agentId
+  ) {
     throw new InvalidResponseError("Response does not match request identifiers");
   }
   if (!("action" in response)) {

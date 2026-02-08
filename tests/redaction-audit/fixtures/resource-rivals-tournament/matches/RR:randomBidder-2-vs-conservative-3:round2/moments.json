@@ -1,1 +1,30 @@
-[{"description":"randomBidder-2 swung the score by 27.","endSeq":32,"id":"moment-score-swing-16-32-randomBidder-2","label":"Score swing","signals":{"agentId":"randomBidder-2","delta":27,"endScores":{"conservative-3":18,"randomBidder-2":37},"startScores":{"conservative-3":18,"randomBidder-2":10}},"startSeq":16,"type":"score_swing"},{"description":"conservative-3 swung the score by 18.","endSeq":64,"id":"moment-score-swing-48-64-conservative-3","label":"Score swing","signals":{"agentId":"conservative-3","delta":18,"endScores":{"conservative-3":58,"randomBidder-2":42},"startScores":{"conservative-3":40,"randomBidder-2":42}},"startSeq":48,"type":"score_swing"}]
+[
+  {
+    "description": "randomBidder-2 swung the score by 27.",
+    "endSeq": 32,
+    "id": "moment-score-swing-16-32-randomBidder-2",
+    "label": "Score swing",
+    "signals": {
+      "agentId": "randomBidder-2",
+      "delta": 27,
+      "endScores": { "conservative-3": 18, "randomBidder-2": 37 },
+      "startScores": { "conservative-3": 18, "randomBidder-2": 10 }
+    },
+    "startSeq": 16,
+    "type": "score_swing"
+  },
+  {
+    "description": "conservative-3 swung the score by 18.",
+    "endSeq": 64,
+    "id": "moment-score-swing-48-64-conservative-3",
+    "label": "Score swing",
+    "signals": {
+      "agentId": "conservative-3",
+      "delta": 18,
+      "endScores": { "conservative-3": 58, "randomBidder-2": 42 },
+      "startScores": { "conservative-3": 40, "randomBidder-2": 42 }
+    },
+    "startSeq": 48,
+    "type": "score_swing"
+  }
+]

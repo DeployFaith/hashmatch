@@ -94,9 +94,7 @@ async function main(): Promise<void> {
   const scenario = createNumberGuessScenario();
   const agents = [createRandomAgent("random-1"), createBaselineAgent("baseline-1")];
 
-  let provenance:
-    | { engineCommit?: string; engineVersion?: string }
-    | undefined;
+  let provenance: { engineCommit?: string; engineVersion?: string } | undefined;
 
   if (args.emitProvenance) {
     const engineCommit = args.engineCommit ?? tryReadEngineCommit();

@@ -98,7 +98,9 @@ const extractState = (value: Record<string, unknown>, omit: string[]): Record<st
   return state;
 };
 
-const buildEntityVisuals = (params: ScenarioParamsLike): {
+const buildEntityVisuals = (
+  params: ScenarioParamsLike,
+): {
   guards: Record<string, GuardVisual>;
   entities: Record<string, EntityVisual>;
 } => {

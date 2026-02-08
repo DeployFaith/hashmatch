@@ -54,9 +54,15 @@ describe("heist preset scenarios", () => {
       expect(roomCount).toBeGreaterThanOrEqual(expectation.roomsMin);
       expect(roomCount).toBeLessThanOrEqual(expectation.roomsMax);
 
-      const guardCount = scenario.params.entities.filter((entity: any) => entity.type === "guard").length;
-      const cameraCount = scenario.params.entities.filter((entity: any) => entity.type === "camera").length;
-      const terminalCount = scenario.params.entities.filter((entity: any) => entity.type === "terminal").length;
+      const guardCount = scenario.params.entities.filter(
+        (entity: any) => entity.type === "guard",
+      ).length;
+      const cameraCount = scenario.params.entities.filter(
+        (entity: any) => entity.type === "camera",
+      ).length;
+      const terminalCount = scenario.params.entities.filter(
+        (entity: any) => entity.type === "terminal",
+      ).length;
       expect(guardCount).toBe(expectation.guards);
       expect(cameraCount).toBe(expectation.cameras);
       expect(terminalCount).toBe(expectation.terminals);

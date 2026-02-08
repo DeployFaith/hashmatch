@@ -1,1 +1,14 @@
-{"agentIds":["randomBidder-0","randomBidder-2"],"hashes":{"logHash":"sha256:d1f52ca72daf13368bceb1b0caa0737d58195f0821e8480c11de434c63960690","manifestHash":"sha256:5c5d8b171e463b753496c7d27455fee69569a9d980e2b42ea862b5eec5e3d13b"},"matchId":"m_ctoiipxjb303","matchKey":"RR:randomBidder-0-vs-randomBidder-2:round1","reason":"completed","scores":{"randomBidder-0":56,"randomBidder-2":46},"seed":205975819,"turns":13,"winner":"randomBidder-0"}
+{
+  "agentIds": ["randomBidder-0", "randomBidder-2"],
+  "hashes": {
+    "logHash": "sha256:d1f52ca72daf13368bceb1b0caa0737d58195f0821e8480c11de434c63960690",
+    "manifestHash": "sha256:5c5d8b171e463b753496c7d27455fee69569a9d980e2b42ea862b5eec5e3d13b"
+  },
+  "matchId": "m_ctoiipxjb303",
+  "matchKey": "RR:randomBidder-0-vs-randomBidder-2:round1",
+  "reason": "completed",
+  "scores": { "randomBidder-0": 56, "randomBidder-2": 46 },
+  "seed": 205975819,
+  "turns": 13,
+  "winner": "randomBidder-0"
+}

@@ -96,7 +96,11 @@ function coerceReplayEvent(raw: unknown): ReplayEvent | null {
     return null;
   }
   const obj = raw as Record<string, unknown>;
-  if (typeof obj.type !== "string" || typeof obj.seq !== "number" || typeof obj.matchId !== "string") {
+  if (
+    typeof obj.type !== "string" ||
+    typeof obj.seq !== "number" ||
+    typeof obj.matchId !== "string"
+  ) {
     return null;
   }
   return {

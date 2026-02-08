@@ -26,7 +26,9 @@ function isValidSeed(seed: unknown): seed is number {
   return typeof seed === "number" && Number.isInteger(seed) && seed >= 0;
 }
 
-function parsePayload(payload: unknown): { ok: true; data: StartMatchPayload } | { ok: false; error: string } {
+function parsePayload(
+  payload: unknown,
+): { ok: true; data: StartMatchPayload } | { ok: false; error: string } {
   if (!payload || typeof payload !== "object") {
     return { ok: false, error: "Invalid request body" };
   }

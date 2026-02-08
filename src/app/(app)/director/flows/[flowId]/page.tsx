@@ -5,10 +5,6 @@ export function generateStaticParams() {
   return [];
 }
 
-export default function FlowDetailPage({
-  params,
-}: {
-  params: Promise<{ flowId: string }>;
-}) {
+export default function FlowDetailPage({ params }: { params: Promise<{ flowId: string }> }) {
   return <FlowDetailClient params={params} />;
 }

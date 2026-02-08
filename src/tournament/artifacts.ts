@@ -86,7 +86,9 @@ function buildTournamentManifest(result: TournamentResult): TournamentManifest {
     scenarioName: result.tournament.scenarioName,
     agents: result.tournament.agents,
     matches: result.tournament.matches,
-    ...(result.tournament.modeProfile !== undefined && { modeProfile: result.tournament.modeProfile }),
+    ...(result.tournament.modeProfile !== undefined && {
+      modeProfile: result.tournament.modeProfile,
+    }),
     ...(result.tournament.harnessVersion !== undefined && {
       harnessVersion: result.tournament.harnessVersion,
     }),
@@ -152,16 +154,8 @@ export async function writeTournamentArtifacts(
   const tournamentManifest = buildTournamentManifest(result);
   const tournamentManifestJson = ensureSingleTrailingNewline(stableStringify(tournamentManifest));
   writeFileSync(join(outDir, "tournament_manifest.json"), tournamentManifestJson, "utf-8");
-  writeFileSync(
-    join(outDir, "tournament.json"),
-    tournamentManifestJson,
-    "utf-8",
-  );
-  writeFileSync(
-    join(outDir, "standings.json"),
-    stableStringify(result.standings) + "\n",
-    "utf-8",
-  );
+  writeFileSync(join(outDir, "tournament.json"), tournamentManifestJson, "utf-8");
+  writeFileSync(join(outDir, "standings.json"), stableStringify(result.standings) + "\n", "utf-8");
 
   const matchesDir = join(outDir, "matches");
   mkdirSync(matchesDir, { recursive: true });
@@ -265,9 +259,7 @@ export async function writeTournamentArtifacts(
 
   const matchKeys = result.matchSummaries.map((summary) => summary.matchKey);
   const detectedMoments = new Set(
-    matchKeys.filter((matchKey) =>
-      existsSync(join(outDir, "matches", matchKey, "moments.json")),
-    ),
+    matchKeys.filter((matchKey) => existsSync(join(outDir, "matches", matchKey, "moments.json"))),
   );
   const detectedHighlights = new Set(
     matchKeys.filter((matchKey) =>
@@ -295,7 +287,9 @@ export async function writeTournamentArtifacts(
 }
 
 export async function buildTournamentBundle(result: TournamentResult): Promise<TournamentBundleV1> {
-  const summaryLookup = new Map(result.matchSummaries.map((summary) => [summary.matchKey, summary]));
+  const summaryLookup = new Map(
+    result.matchSummaries.map((summary) => [summary.matchKey, summary]),
+  );
   const provenance = await buildMatchManifestProvenance(result);
   const effectiveMaxTurnTimeMs = resolveMaxTurnTimeMs({
     seed: result.config.seed,
@@ -340,7 +334,10 @@ export async function buildTournamentBundle(result: TournamentResult): Promise<T
   };
 }
 
-export async function writeTournamentBundle(result: TournamentResult, outPath: string): Promise<void> {
+export async function writeTournamentBundle(
+  result: TournamentResult,
+  outPath: string,
+): Promise<void> {
   const bundle = await buildTournamentBundle(result);
   writeFileSync(outPath, stableStringify(bundle) + "\n", "utf-8");
 }

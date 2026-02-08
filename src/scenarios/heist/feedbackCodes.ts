@@ -25,8 +25,7 @@ export const HEIST_ERROR_CODES = {
   not_in_extraction_room: "not_in_extraction_room",
 } as const;
 
-export type HeistErrorCode =
-  typeof HEIST_ERROR_CODES[keyof typeof HEIST_ERROR_CODES];
+export type HeistErrorCode = (typeof HEIST_ERROR_CODES)[keyof typeof HEIST_ERROR_CODES];
 
 /** Machine-readable result codes for notable valid actions */
 export const HEIST_RESULT_CODES = {
@@ -44,5 +43,4 @@ export const HEIST_RESULT_CODES = {
   extraction_success: "extraction_success",
 } as const;
 
-export type HeistResultCode =
-  typeof HEIST_RESULT_CODES[keyof typeof HEIST_RESULT_CODES];
+export type HeistResultCode = (typeof HEIST_RESULT_CODES)[keyof typeof HEIST_RESULT_CODES];

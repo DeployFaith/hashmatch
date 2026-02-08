@@ -27,7 +27,9 @@ const buildRoomGraph = (
 };
 
 const hasRoomPositions = (rooms: HeistRoom[]): boolean =>
-  rooms.every((room) => room.position && Number.isFinite(room.position.x) && Number.isFinite(room.position.y));
+  rooms.every(
+    (room) => room.position && Number.isFinite(room.position.x) && Number.isFinite(room.position.y),
+  );
 
 const formatCount = (value: number): string => value.toFixed(2).replace(/\.00$/, "");
 
@@ -225,7 +227,9 @@ export function generateLayoutReport(params: HeistScenarioParams): string {
   const cycles = doors.length - rooms.length + components;
   lines.push(`Dead ends: ${deadEnds}`);
   lines.push(`Loops: ${cycles < 0 ? 0 : cycles}`);
-  lines.push(`Longest corridor: ${hasRoomPositions(rooms) ? longestHallwayCorridor(rooms) : "n/a"}`);
+  lines.push(
+    `Longest corridor: ${hasRoomPositions(rooms) ? longestHallwayCorridor(rooms) : "n/a"}`,
+  );
 
   return `${lines.join("\n")}\n`;
 }

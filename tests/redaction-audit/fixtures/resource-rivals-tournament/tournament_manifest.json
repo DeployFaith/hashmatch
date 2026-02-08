@@ -1,1 +1,93 @@
-{"agents":["randomBidder-0","conservative-1","randomBidder-2","conservative-3"],"createdAt":"2026-02-07T07:05:38.875Z","matches":[{"agentIds":["randomBidder-0","conservative-1"],"matchKey":"RR:randomBidder-0-vs-conservative-1:round1","maxTurns":30,"scenarioName":"ResourceRivals","seed":211649136},{"agentIds":["randomBidder-0","randomBidder-2"],"matchKey":"RR:randomBidder-0-vs-randomBidder-2:round1","maxTurns":30,"scenarioName":"ResourceRivals","seed":205975819},{"agentIds":["randomBidder-0","conservative-3"],"matchKey":"RR:randomBidder-0-vs-conservative-3:round1","maxTurns":30,"scenarioName":"ResourceRivals","seed":4282778482},{"agentIds":["conservative-1","randomBidder-2"],"matchKey":"RR:conservative-1-vs-randomBidder-2:round1","maxTurns":30,"scenarioName":"ResourceRivals","seed":1478548226},{"agentIds":["conservative-1","conservative-3"],"matchKey":"RR:conservative-1-vs-conservative-3:round1","maxTurns":30,"scenarioName":"ResourceRivals","seed":4287406107},{"agentIds":["randomBidder-2","conservative-3"],"matchKey":"RR:randomBidder-2-vs-conservative-3:round1","maxTurns":30,"scenarioName":"ResourceRivals","seed":2823771092},{"agentIds":["randomBidder-0","conservative-1"],"matchKey":"RR:randomBidder-0-vs-conservative-1:round2","maxTurns":30,"scenarioName":"ResourceRivals","seed":261981993},{"agentIds":["randomBidder-0","randomBidder-2"],"matchKey":"RR:randomBidder-0-vs-randomBidder-2:round2","maxTurns":30,"scenarioName":"ResourceRivals","seed":222753438},{"agentIds":["randomBidder-0","conservative-3"],"matchKey":"RR:randomBidder-0-vs-conservative-3:round2","maxTurns":30,"scenarioName":"ResourceRivals","seed":4266000863},{"agentIds":["conservative-1","randomBidder-2"],"matchKey":"RR:conservative-1-vs-randomBidder-2:round2","maxTurns":30,"scenarioName":"ResourceRivals","seed":1461770607},{"agentIds":["conservative-1","conservative-3"],"matchKey":"RR:conservative-1-vs-conservative-3:round2","maxTurns":30,"scenarioName":"ResourceRivals","seed":9216430},{"agentIds":["randomBidder-2","conservative-3"],"matchKey":"RR:randomBidder-2-vs-conservative-3:round2","maxTurns":30,"scenarioName":"ResourceRivals","seed":2874103949}],"scenarioName":"ResourceRivals","tournamentSeed":42,"truthBundleHash":"sha256:acf7ee8e95e2a56dadc6ab26214af505cdca729d45addbe8e5360162fc2f1efe"}
+{
+  "agents": ["randomBidder-0", "conservative-1", "randomBidder-2", "conservative-3"],
+  "createdAt": "2026-02-07T07:05:38.875Z",
+  "matches": [
+    {
+      "agentIds": ["randomBidder-0", "conservative-1"],
+      "matchKey": "RR:randomBidder-0-vs-conservative-1:round1",
+      "maxTurns": 30,
+      "scenarioName": "ResourceRivals",
+      "seed": 211649136
+    },
+    {
+      "agentIds": ["randomBidder-0", "randomBidder-2"],
+      "matchKey": "RR:randomBidder-0-vs-randomBidder-2:round1",
+      "maxTurns": 30,
+      "scenarioName": "ResourceRivals",
+      "seed": 205975819
+    },
+    {
+      "agentIds": ["randomBidder-0", "conservative-3"],
+      "matchKey": "RR:randomBidder-0-vs-conservative-3:round1",
+      "maxTurns": 30,
+      "scenarioName": "ResourceRivals",
+      "seed": 4282778482
+    },
+    {
+      "agentIds": ["conservative-1", "randomBidder-2"],
+      "matchKey": "RR:conservative-1-vs-randomBidder-2:round1",
+      "maxTurns": 30,
+      "scenarioName": "ResourceRivals",
+      "seed": 1478548226
+    },
+    {
+      "agentIds": ["conservative-1", "conservative-3"],
+      "matchKey": "RR:conservative-1-vs-conservative-3:round1",
+      "maxTurns": 30,
+      "scenarioName": "ResourceRivals",
+      "seed": 4287406107
+    },
+    {
+      "agentIds": ["randomBidder-2", "conservative-3"],
+      "matchKey": "RR:randomBidder-2-vs-conservative-3:round1",
+      "maxTurns": 30,
+      "scenarioName": "ResourceRivals",
+      "seed": 2823771092
+    },
+    {
+      "agentIds": ["randomBidder-0", "conservative-1"],
+      "matchKey": "RR:randomBidder-0-vs-conservative-1:round2",
+      "maxTurns": 30,
+      "scenarioName": "ResourceRivals",
+      "seed": 261981993
+    },
+    {
+      "agentIds": ["randomBidder-0", "randomBidder-2"],
+      "matchKey": "RR:randomBidder-0-vs-randomBidder-2:round2",
+      "maxTurns": 30,
+      "scenarioName": "ResourceRivals",
+      "seed": 222753438
+    },
+    {
+      "agentIds": ["randomBidder-0", "conservative-3"],
+      "matchKey": "RR:randomBidder-0-vs-conservative-3:round2",
+      "maxTurns": 30,
+      "scenarioName": "ResourceRivals",
+      "seed": 4266000863
+    },
+    {
+      "agentIds": ["conservative-1", "randomBidder-2"],
+      "matchKey": "RR:conservative-1-vs-randomBidder-2:round2",
+      "maxTurns": 30,
+      "scenarioName": "ResourceRivals",
+      "seed": 1461770607
+    },
+    {
+      "agentIds": ["conservative-1", "conservative-3"],
+      "matchKey": "RR:conservative-1-vs-conservative-3:round2",
+      "maxTurns": 30,
+      "scenarioName": "ResourceRivals",
+      "seed": 9216430
+    },
+    {
+      "agentIds": ["randomBidder-2", "conservative-3"],
+      "matchKey": "RR:randomBidder-2-vs-conservative-3:round2",
+      "maxTurns": 30,
+      "scenarioName": "ResourceRivals",
+      "seed": 2874103949
+    }
+  ],
+  "scenarioName": "ResourceRivals",
+  "tournamentSeed": 42,
+  "truthBundleHash": "sha256:acf7ee8e95e2a56dadc6ab26214af505cdca729d45addbe8e5360162fc2f1efe"
+}

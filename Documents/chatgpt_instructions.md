@@ -1,4 +1,4 @@
-```## Auto-Filled Spec
+````## Auto-Filled Spec
 
 [ROLE]
 
@@ -191,7 +191,7 @@ echo "== Updates =="
 apt-get update
 apt-get -y upgrade
 apt-get -y install curl git ufw fail2ban unattended-upgrades ca-certificates gnupg lsb-release jq htop tmux
-```
+````
 
 #### Codex Prompt — Phase 1 (create admin user + SSH key)
 
@@ -310,20 +310,20 @@ fail2ban-client status sshd || true
 
 Before risky steps (SSH/firewall):
 
-* Keep provider console access ready.
-* Keep a root/admin session open while testing changes in a second session.
-* Always run `sshd -t` before restarting SSH.
+- Keep provider console access ready.
+- Keep a root/admin session open while testing changes in a second session.
+- Always run `sshd -t` before restarting SSH.
 
 If you get locked out:
 
-* Use provider console → log in → restore `/etc/ssh/sshd_config` from the backup file we created.
-* Restart SSH: `systemctl restart ssh`
-* Re-test from your local machine.
+- Use provider console → log in → restore `/etc/ssh/sshd_config` from the backup file we created.
+- Restart SSH: `systemctl restart ssh`
+- Re-test from your local machine.
 
 “Break-glass” idea (optional later):
 
-* A second admin user with a separate SSH key stored offline.
-* Snapshots before major changes.
+- A second admin user with a separate SSH key stored offline.
+- Snapshots before major changes.
 
 ---
 
@@ -331,12 +331,12 @@ If you get locked out:
 
 Put this on the server and treat it as truth:
 
-* Hostname, OS version, provider, IPs
-* Admin users and how to access
-* Open ports and why
-* Where services live (systemd vs docker)
-* Backup location + how to restore
-* “Last changed” log (tiny changelog)
+- Hostname, OS version, provider, IPs
+- Admin users and how to access
+- Open ports and why
+- Where services live (systemd vs docker)
+- Backup location + how to restore
+- “Last changed” log (tiny changelog)
 
 Codex can create it once you’re ready.
 
@@ -346,20 +346,20 @@ Codex can create it once you’re ready.
 
 Definition of Done:
 
-* Admin user created, sudo working, SSH key login tested: PASS (covered in Phase 1, requires you to test)
-* Root SSH login disabled after verification: PASS (Phase 2)
-* PasswordAuthentication disabled: PASS (Phase 2)
-* Firewall enabled with only necessary inbound ports: PASS (Phase 3)
-* Unattended security updates enabled and verified: PASS (Phase 4)
-* Brute-force protection enabled: PASS (Phase 5)
-* Backups/restore plan created and first backup test run: FAIL (not executed yet; Phase 6 still to do)
-* Server README created: FAIL (not executed yet; add in Phase 6)
+- Admin user created, sudo working, SSH key login tested: PASS (covered in Phase 1, requires you to test)
+- Root SSH login disabled after verification: PASS (Phase 2)
+- PasswordAuthentication disabled: PASS (Phase 2)
+- Firewall enabled with only necessary inbound ports: PASS (Phase 3)
+- Unattended security updates enabled and verified: PASS (Phase 4)
+- Brute-force protection enabled: PASS (Phase 5)
+- Backups/restore plan created and first backup test run: FAIL (not executed yet; Phase 6 still to do)
+- Server README created: FAIL (not executed yet; add in Phase 6)
 
 Constraints:
 
-* Secure + recoverable + not lockout-prone: PASS (verification gates + backups of configs + console recovery)
-* No invented facts/results: PASS (everything is conditional and requires real command output)
-* Tools allowed: PASS
+- Secure + recoverable + not lockout-prone: PASS (verification gates + backups of configs + console recovery)
+- No invented facts/results: PASS (everything is conditional and requires real command output)
+- Tools allowed: PASS
 
 ---
 
@@ -367,19 +367,18 @@ Constraints:
 
 A) Admin access strategy
 
-* A1: Keep public SSH on 22 with keys + fail2ban (simplest)
-* A2: Add Tailscale and later restrict SSH to Tailnet only (more private)
-* A3: Keep SSH public but IP-allowlist it (best if your home IP is stable)
+- A1: Keep public SSH on 22 with keys + fail2ban (simplest)
+- A2: Add Tailscale and later restrict SSH to Tailnet only (more private)
+- A3: Keep SSH public but IP-allowlist it (best if your home IP is stable)
 
 B) Intrusion protection
 
-* B1: fail2ban (simple, good baseline)
-* B2: CrowdSec (stronger community intelligence, more moving parts)
+- B1: fail2ban (simple, good baseline)
+- B2: CrowdSec (stronger community intelligence, more moving parts)
 
 C) Backups
 
-* C1: Provider snapshots only (easy, coarse)
-* C2: Snapshots + restic to object storage (best practice for real recovery)
+- C1: Provider snapshots only (easy, coarse)
+- C2: Snapshots + restic to object storage (best practice for real recovery)
 
 Next logical move: run Phase 0 and Phase 1 with Codex, then paste back the outputs of the inventory commands and confirm you successfully SSH in as `admin` with `sudo` before we harden SSH.```
-

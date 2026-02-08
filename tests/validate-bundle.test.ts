@@ -52,7 +52,13 @@ async function setupSignedTournament(): Promise<{
   const { privateKey } = generateKeyPair();
   const privateKeyPath = join(keyDir, "organizer.key");
   writeFileSync(privateKeyPath, privateKey, "utf-8");
-  const exitCode = await runSignTournamentCli([dir, "--key", privateKeyPath, "--issuer", "unit-test"]);
+  const exitCode = await runSignTournamentCli([
+    dir,
+    "--key",
+    privateKeyPath,
+    "--issuer",
+    "unit-test",
+  ]);
   expect(exitCode).toBe(0);
   return { dir, matchKey, keyDir };
 }

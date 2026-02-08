@@ -8,10 +8,7 @@ import { toStableJsonl } from "../src/core/json.js";
 import { runMatch } from "../src/engine/runMatch.js";
 import { runMatchWithGateway } from "../src/engine/runMatchWithGateway.js";
 import type { GatewayRuntimeConfig } from "../src/gateway/runtime.js";
-import {
-  createTranscriptWriter,
-  GATEWAY_TRANSCRIPT_FILENAME,
-} from "../src/gateway/transcript.js";
+import { createTranscriptWriter, GATEWAY_TRANSCRIPT_FILENAME } from "../src/gateway/transcript.js";
 import { createNumberGuessScenario } from "../src/scenarios/numberGuess/index.js";
 
 function makeAgents() {

@@ -6,7 +6,10 @@ import type { Agent, AgentContext } from "../src/contract/interfaces.js";
 import type { AgentId, JsonValue } from "../src/contract/types.js";
 import { runMatch } from "../src/engine/runMatch.js";
 import { createNumberGuessScenario } from "../src/scenarios/numberGuess/index.js";
-import type { NumberGuessAction, NumberGuessObservation } from "../src/scenarios/numberGuess/index.js";
+import type {
+  NumberGuessAction,
+  NumberGuessObservation,
+} from "../src/scenarios/numberGuess/index.js";
 import { writeMatchArtifacts } from "../src/server/matchArtifacts.js";
 import { verifyMatchDirectory } from "../src/cli/verify-match.js";
 import { verifyTournamentDirectory } from "../src/cli/verify-tournament.js";
@@ -28,7 +31,10 @@ function createTimeoutAgent(id: AgentId): Agent<NumberGuessObservation, NumberGu
   };
 }
 
-function createConstantAgent(id: AgentId, guess: number): Agent<NumberGuessObservation, NumberGuessAction> {
+function createConstantAgent(
+  id: AgentId,
+  guess: number,
+): Agent<NumberGuessObservation, NumberGuessAction> {
   return {
     id,
     init(): void {},
@@ -57,9 +63,7 @@ describe("maxTurnTimeMs enforcement", () => {
 
     const timeoutErrorIndex = result.events.findIndex(
       (event) =>
-        event.type === "AgentError" &&
-        event.agentId === "slow-0" &&
-        event.errorType === "timeout",
+        event.type === "AgentError" && event.agentId === "slow-0" && event.errorType === "timeout",
     );
     const defaultActionIndex = result.events.findIndex(
       (event) =>
@@ -107,7 +111,10 @@ describe("maxTurnTimeMs enforcement", () => {
     const recoveringAgent: Agent<NumberGuessObservation, NumberGuessAction> = {
       id: "recover-0",
       init(): void {},
-      act(_observation: NumberGuessObservation, _ctx: AgentContext): NumberGuessAction | Promise<NumberGuessAction> {
+      act(
+        _observation: NumberGuessObservation,
+        _ctx: AgentContext,
+      ): NumberGuessAction | Promise<NumberGuessAction> {
         calls += 1;
         if (calls === 1) {
           return new Promise(() => {});

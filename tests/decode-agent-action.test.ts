@@ -22,14 +22,14 @@ const fallback: Action = { type: "wait" };
 
 describe("decodeAgentAction", () => {
   it("parses direct JSON", () => {
-    const result = decodeAgentAction("{\"type\":\"wait\"}", ActionSchema, fallback);
+    const result = decodeAgentAction('{"type":"wait"}', ActionSchema, fallback);
     expect(result.ok).toBe(true);
     expect(result.action).toEqual({ type: "wait" });
     expect(result.method).toBe("direct-json");
   });
 
   it("parses fenced JSON", () => {
-    const raw = "```json\n{\"type\":\"wait\"}\n```";
+    const raw = '```json\n{"type":"wait"}\n```';
     const result = decodeAgentAction(raw, ActionSchema, fallback);
     expect(result.ok).toBe(true);
     expect(result.action).toEqual({ type: "wait" });
@@ -37,7 +37,7 @@ describe("decodeAgentAction", () => {
   });
 
   it("extracts JSON from prose", () => {
-    const raw = "Here is the action: {\"type\":\"wait\"} thanks.";
+    const raw = 'Here is the action: {"type":"wait"} thanks.';
     const result = decodeAgentAction(raw, ActionSchema, fallback);
     expect(result.ok).toBe(true);
     expect(result.action).toEqual({ type: "wait" });
@@ -45,7 +45,7 @@ describe("decodeAgentAction", () => {
   });
 
   it("unwraps nested action objects", () => {
-    const raw = "{\"action\":{\"type\":\"wait\"}}";
+    const raw = '{"action":{"type":"wait"}}';
     const result = decodeAgentAction(raw, ActionSchema, fallback);
     expect(result.ok).toBe(true);
     expect(result.action).toEqual({ type: "wait" });
@@ -60,7 +60,7 @@ describe("decodeAgentAction", () => {
   });
 
   it("reports schema validation errors", () => {
-    const result = decodeAgentAction("{\"type\":\"move\"}", ActionSchema, fallback);
+    const result = decodeAgentAction('{"type":"move"}', ActionSchema, fallback);
     expect(result.ok).toBe(false);
     expect(result.fallbackAction).toEqual(fallback);
     expect(result.fallbackReason).toBe("schema-validation-failed");
@@ -89,7 +89,7 @@ describe("decodeAgentAction", () => {
   });
 
   it("always hashes the raw input", () => {
-    const raw = "  {\"type\":\"wait\"}  ";
+    const raw = '  {"type":"wait"}  ';
     const result = decodeAgentAction(raw, ActionSchema, fallback);
     const expected = sha256Hex(Buffer.from(raw, "utf-8"));
     expect(result.rawSha256).toBe(expected);

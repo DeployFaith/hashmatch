@@ -7,10 +7,7 @@ import type { AgentId } from "../src/contract/types.js";
 import { runMatch } from "../src/engine/runMatch.js";
 import { runMatchWithGateway } from "../src/engine/runMatchWithGateway.js";
 import type { GatewayRuntimeConfig } from "../src/gateway/runtime.js";
-import {
-  createTranscriptWriter,
-  GATEWAY_TRANSCRIPT_FILENAME,
-} from "../src/gateway/transcript.js";
+import { createTranscriptWriter, GATEWAY_TRANSCRIPT_FILENAME } from "../src/gateway/transcript.js";
 import {
   createHeistScenario,
   type HeistAction,
@@ -42,7 +39,10 @@ describe("Heist competitive runner", () => {
     const agentA = createWaitAgent("heist-a");
     const agentB = createWaitAgent("heist-b");
 
-    const result = await runMatch(createHeistScenario(), [agentA, agentB], { seed: 101, maxTurns: 5 });
+    const result = await runMatch(createHeistScenario(), [agentA, agentB], {
+      seed: 101,
+      maxTurns: 5,
+    });
 
     const started = result.events[0];
     expect(started.type).toBe("MatchStarted");
@@ -81,7 +81,10 @@ describe("Heist competitive runner", () => {
     const agentA = createWaitAgent("heist-a");
     const agentB = createInvalidMoveAgent("heist-b");
 
-    const result = await runMatch(createHeistScenario(), [agentA, agentB], { seed: 202, maxTurns: 5 });
+    const result = await runMatch(createHeistScenario(), [agentA, agentB], {
+      seed: 202,
+      maxTurns: 5,
+    });
 
     const scoreA = result.scores[agentA.id];
     const scoreB = result.scores[agentB.id];

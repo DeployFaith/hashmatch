@@ -1,1 +1,25 @@
-[{"description":"randomBidder-2 swung the score by 16.","endSeq":16,"id":"moment-score-swing-8-16-randomBidder-2","label":"Score swing","signals":{"agentId":"randomBidder-2","delta":16,"endScores":{"conservative-3":0,"randomBidder-2":30},"startScores":{"conservative-3":0,"randomBidder-2":14}},"startSeq":8,"type":"score_swing"},{"description":"conservative-3 erased a 52 deficit to win.","endSeq":121,"id":"moment-comeback-24-121-conservative-3","label":"Comeback: conservative-3","signals":{"deficit":52,"winner":"conservative-3"},"startSeq":24,"type":"comeback"}]
+[
+  {
+    "description": "randomBidder-2 swung the score by 16.",
+    "endSeq": 16,
+    "id": "moment-score-swing-8-16-randomBidder-2",
+    "label": "Score swing",
+    "signals": {
+      "agentId": "randomBidder-2",
+      "delta": 16,
+      "endScores": { "conservative-3": 0, "randomBidder-2": 30 },
+      "startScores": { "conservative-3": 0, "randomBidder-2": 14 }
+    },
+    "startSeq": 8,
+    "type": "score_swing"
+  },
+  {
+    "description": "conservative-3 erased a 52 deficit to win.",
+    "endSeq": 121,
+    "id": "moment-comeback-24-121-conservative-3",
+    "label": "Comeback: conservative-3",
+    "signals": { "deficit": 52, "winner": "conservative-3" },
+    "startSeq": 24,
+    "type": "comeback"
+  }
+]

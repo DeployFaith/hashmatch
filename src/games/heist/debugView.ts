@@ -23,7 +23,9 @@ const ROOM_LABELS: Record<string, string> = {
 };
 
 const hasRoomPositions = (rooms: HeistRoom[]): boolean =>
-  rooms.every((room) => room.position && Number.isFinite(room.position.x) && Number.isFinite(room.position.y));
+  rooms.every(
+    (room) => room.position && Number.isFinite(room.position.x) && Number.isFinite(room.position.y),
+  );
 
 const escapeXml = (value: string): string =>
   value
@@ -104,9 +106,7 @@ const renderLegend = (originX: number, originY: number): string[] => {
         } />`,
       );
     } else if (entry.marker === "guard") {
-      lines.push(
-        `<circle cx="${originX + 12}" cy="${offsetY - 6}" r="5" fill="#d32f2f" />`,
-      );
+      lines.push(`<circle cx="${originX + 12}" cy="${offsetY - 6}" r="5" fill="#d32f2f" />`);
     } else if (entry.marker === "camera") {
       lines.push(
         `<polygon points="${originX + 8},${offsetY - 2} ${originX + 16},${offsetY - 10} ${
@@ -122,21 +122,13 @@ const renderLegend = (originX: number, originY: number): string[] => {
         `<circle cx="${originX + 12}" cy="${offsetY - 6}" r="6" fill="none" stroke="#f57f17" stroke-width="2" />`,
       );
     } else if (entry.marker === "keycard") {
-      lines.push(
-        `<circle cx="${originX + 12}" cy="${offsetY - 6}" r="4" fill="#7b1fa2" />`,
-      );
+      lines.push(`<circle cx="${originX + 12}" cy="${offsetY - 6}" r="4" fill="#7b1fa2" />`);
     } else if (entry.marker === "tool") {
-      lines.push(
-        `<circle cx="${originX + 12}" cy="${offsetY - 6}" r="4" fill="#00897b" />`,
-      );
+      lines.push(`<circle cx="${originX + 12}" cy="${offsetY - 6}" r="4" fill="#00897b" />`);
     } else if (entry.marker === "loot") {
-      lines.push(
-        `<circle cx="${originX + 12}" cy="${offsetY - 6}" r="4" fill="#f9a825" />`,
-      );
+      lines.push(`<circle cx="${originX + 12}" cy="${offsetY - 6}" r="4" fill="#f9a825" />`);
     } else if (entry.marker === "intel") {
-      lines.push(
-        `<circle cx="${originX + 12}" cy="${offsetY - 6}" r="4" fill="#1976d2" />`,
-      );
+      lines.push(`<circle cx="${originX + 12}" cy="${offsetY - 6}" r="4" fill="#1976d2" />`);
     } else {
       const color = entry.fill ?? "#ffffff";
       const stroke = entry.stroke ?? "#424242";
@@ -270,16 +262,7 @@ export function generateHeistDebugView(params: HeistScenarioParams): string {
 
   for (const guard of params.entities.filter((entity) => entity.type === "guard")) {
     lines.push(
-      ...renderGuardPatrol(
-        guard,
-        roomsById,
-        minX,
-        maxY,
-        cellSize,
-        margin,
-        roomWidth,
-        roomHeight,
-      ),
+      ...renderGuardPatrol(guard, roomsById, minX, maxY, cellSize, margin, roomWidth, roomHeight),
     );
   }
 
@@ -320,9 +303,7 @@ export function generateHeistDebugView(params: HeistScenarioParams): string {
     items.forEach((item, index) => {
       const x = offsetStartX + (index % 4) * spacing;
       const y = offsetStartY + Math.floor(index / 4) * spacing;
-      lines.push(
-        `<circle cx="${x}" cy="${y}" r="4" fill="${itemColor(item)}" />`,
-      );
+      lines.push(`<circle cx="${x}" cy="${y}" r="4" fill="${itemColor(item)}" />`);
     });
   }
 

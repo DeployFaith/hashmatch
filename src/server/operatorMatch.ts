@@ -26,18 +26,13 @@ export function sanitizeScenarioLabel(scenario: string): string {
 }
 
 export function formatMatchTimestamp(date: Date): string {
-  return [
-    pad(date.getUTCFullYear(), 4),
-    pad(date.getUTCMonth() + 1, 2),
-    pad(date.getUTCDate(), 2),
-  ].join("")
+  return [pad(date.getUTCFullYear(), 4), pad(date.getUTCMonth() + 1, 2), pad(date.getUTCDate(), 2)]
+    .join("")
     .concat(
       "-",
-      [
-        pad(date.getUTCHours(), 2),
-        pad(date.getUTCMinutes(), 2),
-        pad(date.getUTCSeconds(), 2),
-      ].join(""),
+      [pad(date.getUTCHours(), 2), pad(date.getUTCMinutes(), 2), pad(date.getUTCSeconds(), 2)].join(
+        "",
+      ),
       "-",
       pad(date.getUTCMilliseconds(), 3),
     );

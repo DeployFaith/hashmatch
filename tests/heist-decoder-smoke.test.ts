@@ -114,9 +114,7 @@ describe("Heist decoder smoke harness", () => {
         for (let turn = 1; turn <= MAX_TURNS; turn += 1) {
           const rawOutputs = events.filter(
             (event) =>
-              event.type === "AgentRawOutput" &&
-              event.agentId === agent.id &&
-              event.turn === turn,
+              event.type === "AgentRawOutput" && event.agentId === agent.id && event.turn === turn,
           );
           expect(rawOutputs).toHaveLength(1);
           expect(rawOutputs[0]?.rawSha256).toBeTruthy();

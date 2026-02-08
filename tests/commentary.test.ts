@@ -191,9 +191,7 @@ describe("parseCommentaryFile", () => {
     });
 
     it("ignores entries with unknown momentId", () => {
-      const text = makeCommentaryJson([
-        { momentId: "nonexistent-moment", text: "Ghost moment" },
-      ]);
+      const text = makeCommentaryJson([{ momentId: "nonexistent-moment", text: "Ghost moment" }]);
       const result = parseCommentaryFile(text, moments, EVENT_COUNT, momentRanges);
       expect(result.entries).toHaveLength(0);
       expect(result.warnings).toHaveLength(1);

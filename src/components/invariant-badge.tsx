@@ -2,12 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ShieldCheck, ShieldAlert, ShieldQuestion } from "lucide-react";
 
 interface InvariantBadgeProps {
@@ -18,11 +13,9 @@ interface InvariantBadgeProps {
 }
 
 export function InvariantBadge({ name, status, message, className }: InvariantBadgeProps) {
-  const Icon =
-    status === "pass" ? ShieldCheck : status === "fail" ? ShieldAlert : ShieldQuestion;
+  const Icon = status === "pass" ? ShieldCheck : status === "fail" ? ShieldAlert : ShieldQuestion;
 
-  const variant =
-    status === "pass" ? "success" : status === "fail" ? "destructive" : "secondary";
+  const variant = status === "pass" ? "success" : status === "fail" ? "destructive" : "secondary";
 
   const badge = (
     <Badge variant={variant} className={cn("gap-1 cursor-default", className)}>

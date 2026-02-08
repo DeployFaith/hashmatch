@@ -8,6 +8,15 @@
     "outDir": "dist",
     "declaration": true
   },
-  "include": ["src/agents", "src/cli", "src/contract", "src/core", "src/engine", "src/scenarios", "src/tournament", "src/index.ts"],
+  "include": [
+    "src/agents",
+    "src/cli",
+    "src/contract",
+    "src/core",
+    "src/engine",
+    "src/scenarios",
+    "src/tournament",
+    "src/index.ts"
+  ],
   "exclude": ["tests", "src/app", "src/components", "src/lib"]
 }

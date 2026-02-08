@@ -14,13 +14,7 @@ const TAIL_POLL_INTERVAL_MS = 300;
 const STATUS_POLL_INTERVAL_MS = 1_000;
 const BROADCAST_MATCH_PHASE: MatchPhase = "live";
 
-type MatchStatusState =
-  | "running"
-  | "complete"
-  | "incomplete"
-  | "failed"
-  | "completed"
-  | "crashed";
+type MatchStatusState = "running" | "complete" | "incomplete" | "failed" | "completed" | "crashed";
 interface MatchStatus {
   status: MatchStatusState;
   startedAt: string;
@@ -94,7 +88,12 @@ function closeStream(ctx: StreamContext): void {
   }
 }
 
-function enqueueEvent(ctx: StreamContext, event: string, data: unknown, id?: string | number): void {
+function enqueueEvent(
+  ctx: StreamContext,
+  event: string,
+  data: unknown,
+  id?: string | number,
+): void {
   if (ctx.signal.aborted) {
     return;
   }
@@ -152,7 +151,10 @@ function parseJsonLine(line: string): MatchEvent {
   return JSON.parse(line) as MatchEvent;
 }
 
-async function readNewChunk(filePath: string, offset: number): Promise<{ data: string; offset: number }> {
+async function readNewChunk(
+  filePath: string,
+  offset: number,
+): Promise<{ data: string; offset: number }> {
   const handle = await open(filePath, "r");
   try {
     const stats = await handle.stat();
@@ -290,7 +292,11 @@ async function streamMatchEvents(
             if (shouldSkipEvent(parsed, lastEventId)) {
               continue;
             }
-            const redacted = redactEvent(parsed, modeProfile, BROADCAST_MATCH_PHASE) as MatchEvent | null;
+            const redacted = redactEvent(
+              parsed,
+              modeProfile,
+              BROADCAST_MATCH_PHASE,
+            ) as MatchEvent | null;
             if (redacted) {
               enqueueEvent(ctx, "match_event", redacted, redacted.seq);
               hadAnyEvents = true;
@@ -315,7 +321,10 @@ async function streamMatchEvents(
       status = updated;
       if (status.status !== "running") {
         if (status.status === "complete") {
-          enqueueEvent(ctx, "match_end", { status: status.status, endedAt: status.endedAt ?? null });
+          enqueueEvent(ctx, "match_end", {
+            status: status.status,
+            endedAt: status.endedAt ?? null,
+          });
         } else {
           enqueueEvent(ctx, "error", { status: status.status, error: status.error ?? null });
         }

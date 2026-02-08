@@ -41,15 +41,17 @@ const parseSeed = (value: string | undefined): number | undefined => {
 
 const parseGenArgs = (
   argv: string[],
-): {
-  ok: true;
-  game: string;
-  seed: number;
-  preset?: string;
-  configPath?: string;
-  outDir: string;
-  validate: boolean;
-} | { ok: false; error: string } => {
+):
+  | {
+      ok: true;
+      game: string;
+      seed: number;
+      preset?: string;
+      configPath?: string;
+      outDir: string;
+      validate: boolean;
+    }
+  | { ok: false; error: string } => {
   let game: string | undefined;
   let seed: number | undefined;
   let preset: string | undefined;
@@ -155,10 +157,7 @@ const readScenarioFile = (path: string): ScenarioFile => {
 const formatValidationErrors = (errors: { message: string }[]): string[] =>
   errors.map((error) => `- ${error.message}`);
 
-const buildScenarioFile = (
-  params: HeistScenarioParams,
-  scenarioId: string,
-): ScenarioFile => ({
+const buildScenarioFile = (params: HeistScenarioParams, scenarioId: string): ScenarioFile => ({
   schemaVersion: "0.1.0",
   scenarioId,
   gameId: "heist",
@@ -231,10 +230,7 @@ export function runScenarioCli(argv: string[], cwd = process.cwd()): ScenarioCli
 
       return { code: 0, stdout: stdout.join(""), stderr: stderr.join("") };
     } catch (error) {
-      writeLine(
-        stderr,
-        error instanceof Error ? error.message : "Failed to generate scenario.",
-      );
+      writeLine(stderr, error instanceof Error ? error.message : "Failed to generate scenario.");
       return { code: 1, stdout: stdout.join(""), stderr: stderr.join("") };
     }
   }
@@ -258,10 +254,7 @@ export function runScenarioCli(argv: string[], cwd = process.cwd()): ScenarioCli
       writeLine(stdout, "Scenario is valid.");
       return { code: 0, stdout: stdout.join(""), stderr: stderr.join("") };
     } catch (error) {
-      writeLine(
-        stderr,
-        error instanceof Error ? error.message : "Failed to read scenario file.",
-      );
+      writeLine(stderr, error instanceof Error ? error.message : "Failed to read scenario file.");
       return { code: 1, stdout: stdout.join(""), stderr: stderr.join("") };
     }
   }
@@ -290,10 +283,7 @@ export function runScenarioCli(argv: string[], cwd = process.cwd()): ScenarioCli
       writeLine(stdout, output);
       return { code: 0, stdout: stdout.join(""), stderr: stderr.join("") };
     } catch (error) {
-      writeLine(
-        stderr,
-        error instanceof Error ? error.message : "Failed to read scenario file.",
-      );
+      writeLine(stderr, error instanceof Error ? error.message : "Failed to read scenario file.");
       return { code: 1, stdout: stdout.join(""), stderr: stderr.join("") };
     }
   }
@@ -321,10 +311,7 @@ export function runScenarioCli(argv: string[], cwd = process.cwd()): ScenarioCli
       writeLine(stdout, `Wrote ${outputPath}`);
       return { code: 0, stdout: stdout.join(""), stderr: stderr.join("") };
     } catch (error) {
-      writeLine(
-        stderr,
-        error instanceof Error ? error.message : "Failed to generate debug view.",
-      );
+      writeLine(stderr, error instanceof Error ? error.message : "Failed to generate debug view.");
       return { code: 1, stdout: stdout.join(""), stderr: stderr.join("") };
     }
   }

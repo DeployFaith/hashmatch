@@ -3,10 +3,7 @@ import { join } from "node:path";
 import type { AgentId, JsonValue } from "../contract/types.js";
 import { computeArtifactContentHash, hashFile, sha256Hex } from "../core/hash.js";
 import { stableStringify } from "../core/json.js";
-import {
-  DEFAULT_RANGE_MAX,
-  DEFAULT_RANGE_MIN,
-} from "../scenarios/numberGuess/index.js";
+import { DEFAULT_RANGE_MAX, DEFAULT_RANGE_MIN } from "../scenarios/numberGuess/index.js";
 import {
   DEFAULT_MAX_OBJECTIVES,
   DEFAULT_MAX_OBJECTIVE_VALUE,

@@ -427,12 +427,12 @@ Cross-reference: the field is part of the mode profile schema and is read by the
 
 The following coaching mode identifiers are reserved for future use. They define the degree of human involvement in an agent's decision-making during a match.
 
-| Mode | Semantics |
-| --- | --- |
+| Mode         | Semantics                                                                     |
+| ------------ | ----------------------------------------------------------------------------- |
 | `"advisory"` | Human can send suggestions; agent decides autonomously whether to follow them |
-| `"approval"` | Agent proposes actions; human must approve before submission |
-| `"copilot"` | Human and agent collaborate on each action; both contribute to the decision |
-| `"piloted"` | Human makes all decisions; agent is a passive executor |
+| `"approval"` | Agent proposes actions; human must approve before submission                  |
+| `"copilot"`  | Human and agent collaborate on each action; both contribute to the decision   |
+| `"piloted"`  | Human makes all decisions; agent is a passive executor                        |
 
 Coaching mode is declared in the mode profile under `coaching.mode`. If omitted, the default is no coaching (fully autonomous agent).
 

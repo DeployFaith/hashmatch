@@ -10,11 +10,7 @@ import { StateMachineViewer } from "@/components/state-machine-viewer";
 import { CopyJsonButton } from "@/components/copy-json-button";
 import { ArrowLeft, Zap, ShieldCheck } from "lucide-react";
 
-export default function FlowDetailClient({
-  params,
-}: {
-  params: Promise<{ flowId: string }>;
-}) {
+export default function FlowDetailClient({ params }: { params: Promise<{ flowId: string }> }) {
   const { flowId } = use(params);
   const { getFlow } = useAppStore();
 
@@ -73,10 +69,7 @@ export default function FlowDetailClient({
         <CardContent>
           <div className="space-y-2">
             {flow.triggers.map((trigger) => (
-              <div
-                key={trigger.id}
-                className="rounded-md border border-border px-4 py-3 text-sm"
-              >
+              <div key={trigger.id} className="rounded-md border border-border px-4 py-3 text-sm">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{trigger.name}</span>
                   <Badge variant="outline">{trigger.id}</Badge>
@@ -108,10 +101,7 @@ export default function FlowDetailClient({
         <CardContent>
           <div className="space-y-2">
             {flow.invariants.map((inv) => (
-              <div
-                key={inv.id}
-                className="rounded-md border border-border px-4 py-3 text-sm"
-              >
+              <div key={inv.id} className="rounded-md border border-border px-4 py-3 text-sm">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{inv.name}</span>
                   <Badge

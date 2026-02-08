@@ -77,10 +77,7 @@ function applyForfeitScores(
   return updated;
 }
 
-function determineWinner(
-  scores: Record<AgentId, number>,
-  agentIds: AgentId[],
-): AgentId | null {
+function determineWinner(scores: Record<AgentId, number>, agentIds: AgentId[]): AgentId | null {
   let winner: AgentId | null = null;
   let bestScore = Number.NEGATIVE_INFINITY;
   let hasTie = false;

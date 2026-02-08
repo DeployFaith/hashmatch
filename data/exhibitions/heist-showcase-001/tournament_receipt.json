@@ -1,1 +1,12 @@
-{"algorithm":"ed25519","payload":{"issuedBy":"DeployFaith/exhibitions","matchCount":3,"tournamentId":"41001","truthBundleHash":"sha256:eb5a6f471b52f8356ccf9e328afd43a00a8ba790c96b208eaa235553f908404f"},"publicKey":"302a300506032b6570032100fcc54824ae0c3ae281aae07dd6c8370ca34a74e0fb100e4bfb7c070c82072e76","signature":"53feba8569082bb9359b3a164cee94121ed662063b77414526cf77f1adc640b9f714b89547f73c53b35fd2476fe45b1d8198e4b23fdc07a6f1105dd39f7a5908","version":1}
+{
+  "algorithm": "ed25519",
+  "payload": {
+    "issuedBy": "DeployFaith/exhibitions",
+    "matchCount": 3,
+    "tournamentId": "41001",
+    "truthBundleHash": "sha256:eb5a6f471b52f8356ccf9e328afd43a00a8ba790c96b208eaa235553f908404f"
+  },
+  "publicKey": "302a300506032b6570032100fcc54824ae0c3ae281aae07dd6c8370ca34a74e0fb100e4bfb7c070c82072e76",
+  "signature": "53feba8569082bb9359b3a164cee94121ed662063b77414526cf77f1adc640b9f714b89547f73c53b35fd2476fe45b1d8198e4b23fdc07a6f1105dd39f7a5908",
+  "version": 1
+}

@@ -1,1 +1,44 @@
-[{"description":"conservative-1 swung the score by 31.","endSeq":24,"id":"moment-score-swing-8-24-conservative-1","label":"Score swing","signals":{"agentId":"conservative-1","delta":31,"endScores":{"conservative-1":31,"randomBidder-2":16},"startScores":{"conservative-1":0,"randomBidder-2":16}},"startSeq":8,"type":"score_swing"},{"description":"conservative-1 swung the score by 33.","endSeq":56,"id":"moment-score-swing-40-56-conservative-1","label":"Score swing","signals":{"agentId":"conservative-1","delta":33,"endScores":{"conservative-1":77,"randomBidder-2":16},"startScores":{"conservative-1":44,"randomBidder-2":16}},"startSeq":40,"type":"score_swing"},{"description":"conservative-1 swung the score by 14.","endSeq":80,"id":"moment-score-swing-64-80-conservative-1","label":"Score swing","signals":{"agentId":"conservative-1","delta":14,"endScores":{"conservative-1":101,"randomBidder-2":16},"startScores":{"conservative-1":87,"randomBidder-2":16}},"startSeq":64,"type":"score_swing"}]
+[
+  {
+    "description": "conservative-1 swung the score by 31.",
+    "endSeq": 24,
+    "id": "moment-score-swing-8-24-conservative-1",
+    "label": "Score swing",
+    "signals": {
+      "agentId": "conservative-1",
+      "delta": 31,
+      "endScores": { "conservative-1": 31, "randomBidder-2": 16 },
+      "startScores": { "conservative-1": 0, "randomBidder-2": 16 }
+    },
+    "startSeq": 8,
+    "type": "score_swing"
+  },
+  {
+    "description": "conservative-1 swung the score by 33.",
+    "endSeq": 56,
+    "id": "moment-score-swing-40-56-conservative-1",
+    "label": "Score swing",
+    "signals": {
+      "agentId": "conservative-1",
+      "delta": 33,
+      "endScores": { "conservative-1": 77, "randomBidder-2": 16 },
+      "startScores": { "conservative-1": 44, "randomBidder-2": 16 }
+    },
+    "startSeq": 40,
+    "type": "score_swing"
+  },
+  {
+    "description": "conservative-1 swung the score by 14.",
+    "endSeq": 80,
+    "id": "moment-score-swing-64-80-conservative-1",
+    "label": "Score swing",
+    "signals": {
+      "agentId": "conservative-1",
+      "delta": 14,
+      "endScores": { "conservative-1": 101, "randomBidder-2": 16 },
+      "startScores": { "conservative-1": 87, "randomBidder-2": 16 }
+    },
+    "startSeq": 64,
+    "type": "score_swing"
+  }
+]

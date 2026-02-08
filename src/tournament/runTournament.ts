@@ -10,7 +10,13 @@ import { createNoopAgent } from "../agents/noopAgent.js";
 import { createRandomBidderAgent } from "../agents/resourceRivals/randomBidder.js";
 import { createConservativeAgent } from "../agents/resourceRivals/conservativeAgent.js";
 import { buildOllamaHeistMetadata, createOllamaHeistAgent } from "../agents/ollama/index.js";
-import type { MatchKey, MatchSpec, MatchSummary, TournamentConfig, TournamentResult } from "./types.js";
+import type {
+  MatchKey,
+  MatchSpec,
+  MatchSummary,
+  TournamentConfig,
+  TournamentResult,
+} from "./types.js";
 import { computeStandings } from "./standings.js";
 
 // ---------------------------------------------------------------------------
@@ -67,9 +73,7 @@ export function getAgentFactory(key: string): AgentFactory {
   return registration.factory;
 }
 
-export function getAgentProvenanceDescriptor(
-  key: string,
-): AgentProvenanceDescriptor | undefined {
+export function getAgentProvenanceDescriptor(key: string): AgentProvenanceDescriptor | undefined {
   const registration = agentRegistry[key];
   if (!registration?.provenance) {
     return undefined;
@@ -82,7 +86,6 @@ export function getAgentProvenanceDescriptor(
 // ---------------------------------------------------------------------------
 // Points
 // ---------------------------------------------------------------------------
-
 
 // ---------------------------------------------------------------------------
 // Deterministic seeding

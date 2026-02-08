@@ -3,10 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { stableStringify } from "../src/core/json.js";
-import {
-  createTranscriptWriter,
-  GATEWAY_TRANSCRIPT_FILENAME,
-} from "../src/gateway/transcript.js";
+import { createTranscriptWriter, GATEWAY_TRANSCRIPT_FILENAME } from "../src/gateway/transcript.js";
 import type { GatewayTranscriptEntry } from "../src/gateway/types.js";
 
 describe("TranscriptWriter", () => {

@@ -154,8 +154,7 @@ export function parseCommentaryFile(
       continue;
     }
 
-    const entryId =
-      typeof raw.id === "string" ? raw.id : `commentary-${i}`;
+    const entryId = typeof raw.id === "string" ? raw.id : `commentary-${i}`;
     const speaker = typeof raw.speaker === "string" ? raw.speaker : undefined;
     const severity = parseSeverity(raw.severity);
     const tags = parseTags(raw.tags);

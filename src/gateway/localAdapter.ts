@@ -1,7 +1,14 @@
 import { stableStringify } from "../core/json.js";
-import type { AgentAdapter, GatewayConfig, GatewayObservationRequest, GatewayTranscriptEntry } from "./types.js";
+import type {
+  AgentAdapter,
+  GatewayConfig,
+  GatewayObservationRequest,
+  GatewayTranscriptEntry,
+} from "./types.js";
 
-type AgentFunction = (observation: GatewayObservationRequest["observation"]) => Promise<unknown> | unknown;
+type AgentFunction = (
+  observation: GatewayObservationRequest["observation"],
+) => Promise<unknown> | unknown;
 
 function resolveDeadlineMs(request: GatewayObservationRequest, config?: GatewayConfig): number {
   if (Number.isFinite(request.deadlineMs) && request.deadlineMs > 0) {

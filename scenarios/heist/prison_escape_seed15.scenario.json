@@ -1,1 +1,141 @@
-{"gameId":"heist","gameVersion":"0.1.0","params":{"entities":[{"detectionRange":3,"id":"guard-1","patrolRoute":["room-2","room-3","room-9"],"type":"guard"},{"detectionRange":3,"id":"guard-2","patrolRoute":["room-7","room-3"],"type":"guard"},{"id":"camera-1","range":3,"roomId":"room-8","type":"camera"},{"id":"camera-2","range":3,"roomId":"room-8","type":"camera"},{"alarmOnFail":true,"hackTurns":3,"id":"terminal-1","roomId":"room-7","successGrants":["intel-1"],"type":"terminal"},{"alarmOnFail":true,"hackTurns":4,"id":"terminal-2","roomId":"room-7","successGrants":["intel-2","intel-3"],"type":"terminal"},{"id":"vault-1","requiredItems":["intel-1","intel-2","intel-3"],"roomId":"room-2","type":"vault"}],"items":[{"id":"keycard-1","level":2,"roomId":"room-1","type":"keycard"},{"id":"keycard-2","level":2,"roomId":"room-1","type":"keycard"},{"id":"tool-1","roomId":"room-7","toolType":"lockpick","type":"tool","uses":1},{"id":"tool-2","roomId":"room-1","toolType":"drill","type":"tool","uses":3},{"id":"tool-3","roomId":"room-6","toolType":"emp","type":"tool","uses":3},{"id":"loot-1","roomId":"room-2","scoreValue":52,"type":"loot"},{"id":"loot-2","roomId":"room-3","scoreValue":23,"type":"loot"},{"id":"loot-3","roomId":"room-7","scoreValue":48,"type":"loot"},{"id":"loot-4","roomId":"room-3","scoreValue":52,"type":"loot"},{"id":"intel-1","label":"Fragment 1","type":"intel"},{"id":"intel-2","label":"Fragment 2","type":"intel"},{"id":"intel-3","label":"Fragment 3","type":"intel"}],"layoutVersion":1,"map":{"doors":[{"alarmed":true,"id":"door-1","locked":true,"noiseOnForce":2,"requiredItem":"keycard-1","roomA":"room-1","roomB":"room-4"},{"id":"door-2","roomA":"room-4","roomB":"room-5"},{"id":"door-3","locked":true,"noiseOnForce":1,"requiredItem":"keycard-1","roomA":"room-5","roomB":"room-2"},{"alarmed":true,"id":"door-4","locked":true,"noiseOnForce":4,"requiredItem":"keycard-2","roomA":"room-1","roomB":"room-6"},{"id":"door-5","roomA":"room-6","roomB":"room-7"},{"alarmed":true,"id":"door-6","roomA":"room-7","roomB":"room-2"},{"alarmed":true,"id":"door-7","roomA":"room-2","roomB":"room-8"},{"alarmed":true,"id":"door-8","roomA":"room-8","roomB":"room-3"},{"id":"door-9","locked":true,"noiseOnForce":2,"requiredItem":"keycard-1","roomA":"room-9","roomB":"room-7"}],"rooms":[{"id":"room-1","position":{"x":0,"y":0},"type":"spawn"},{"id":"room-2","position":{"x":-1,"y":-2},"type":"vault"},{"id":"room-3","position":{"x":-2,"y":-3},"type":"extraction"},{"id":"room-4","position":{"x":-1,"y":0},"type":"utility"},{"id":"room-5","position":{"x":-1,"y":-1},"type":"utility"},{"id":"room-6","position":{"x":0,"y":-1},"type":"utility"},{"id":"room-7","position":{"x":0,"y":-2},"type":"security"},{"id":"room-8","position":{"x":-1,"y":-3},"type":"hallway"},{"id":"room-9","position":{"x":1,"y":-2},"type":"decoy"}]},"rules":{"alertThresholds":[0,3,6,10],"captureOnMaxAlert":true,"guardDetectionRange":2,"maxAlertLevel":3,"noiseDecayRate":1,"noiseTable":{"force":4,"hack":2,"move":1,"wait":0}},"scoring":{"alertPenaltyPerLevel":10,"extractionBonus":150,"invalidActionPenalty":5,"lootMultiplier":1,"objectiveSecured":100,"turnsRemainingMultiplier":2},"skin":{"flavorText":"An underground prison transfer holds the only way out tonight.","themeName":"Prison Escape"},"winCondition":{"extractionRoomId":"room-3","maxAlertLevel":3,"maxTurns":6,"requiredObjectives":["intel-1","intel-2","intel-3"]}},"scenarioId":"heist:prison_escape-15","schemaVersion":"0.1.0"}
+{
+  "gameId": "heist",
+  "gameVersion": "0.1.0",
+  "params": {
+    "entities": [
+      {
+        "detectionRange": 3,
+        "id": "guard-1",
+        "patrolRoute": ["room-2", "room-3", "room-9"],
+        "type": "guard"
+      },
+      {
+        "detectionRange": 3,
+        "id": "guard-2",
+        "patrolRoute": ["room-7", "room-3"],
+        "type": "guard"
+      },
+      { "id": "camera-1", "range": 3, "roomId": "room-8", "type": "camera" },
+      { "id": "camera-2", "range": 3, "roomId": "room-8", "type": "camera" },
+      {
+        "alarmOnFail": true,
+        "hackTurns": 3,
+        "id": "terminal-1",
+        "roomId": "room-7",
+        "successGrants": ["intel-1"],
+        "type": "terminal"
+      },
+      {
+        "alarmOnFail": true,
+        "hackTurns": 4,
+        "id": "terminal-2",
+        "roomId": "room-7",
+        "successGrants": ["intel-2", "intel-3"],
+        "type": "terminal"
+      },
+      {
+        "id": "vault-1",
+        "requiredItems": ["intel-1", "intel-2", "intel-3"],
+        "roomId": "room-2",
+        "type": "vault"
+      }
+    ],
+    "items": [
+      { "id": "keycard-1", "level": 2, "roomId": "room-1", "type": "keycard" },
+      { "id": "keycard-2", "level": 2, "roomId": "room-1", "type": "keycard" },
+      { "id": "tool-1", "roomId": "room-7", "toolType": "lockpick", "type": "tool", "uses": 1 },
+      { "id": "tool-2", "roomId": "room-1", "toolType": "drill", "type": "tool", "uses": 3 },
+      { "id": "tool-3", "roomId": "room-6", "toolType": "emp", "type": "tool", "uses": 3 },
+      { "id": "loot-1", "roomId": "room-2", "scoreValue": 52, "type": "loot" },
+      { "id": "loot-2", "roomId": "room-3", "scoreValue": 23, "type": "loot" },
+      { "id": "loot-3", "roomId": "room-7", "scoreValue": 48, "type": "loot" },
+      { "id": "loot-4", "roomId": "room-3", "scoreValue": 52, "type": "loot" },
+      { "id": "intel-1", "label": "Fragment 1", "type": "intel" },
+      { "id": "intel-2", "label": "Fragment 2", "type": "intel" },
+      { "id": "intel-3", "label": "Fragment 3", "type": "intel" }
+    ],
+    "layoutVersion": 1,
+    "map": {
+      "doors": [
+        {
+          "alarmed": true,
+          "id": "door-1",
+          "locked": true,
+          "noiseOnForce": 2,
+          "requiredItem": "keycard-1",
+          "roomA": "room-1",
+          "roomB": "room-4"
+        },
+        { "id": "door-2", "roomA": "room-4", "roomB": "room-5" },
+        {
+          "id": "door-3",
+          "locked": true,
+          "noiseOnForce": 1,
+          "requiredItem": "keycard-1",
+          "roomA": "room-5",
+          "roomB": "room-2"
+        },
+        {
+          "alarmed": true,
+          "id": "door-4",
+          "locked": true,
+          "noiseOnForce": 4,
+          "requiredItem": "keycard-2",
+          "roomA": "room-1",
+          "roomB": "room-6"
+        },
+        { "id": "door-5", "roomA": "room-6", "roomB": "room-7" },
+        { "alarmed": true, "id": "door-6", "roomA": "room-7", "roomB": "room-2" },
+        { "alarmed": true, "id": "door-7", "roomA": "room-2", "roomB": "room-8" },
+        { "alarmed": true, "id": "door-8", "roomA": "room-8", "roomB": "room-3" },
+        {
+          "id": "door-9",
+          "locked": true,
+          "noiseOnForce": 2,
+          "requiredItem": "keycard-1",
+          "roomA": "room-9",
+          "roomB": "room-7"
+        }
+      ],
+      "rooms": [
+        { "id": "room-1", "position": { "x": 0, "y": 0 }, "type": "spawn" },
+        { "id": "room-2", "position": { "x": -1, "y": -2 }, "type": "vault" },
+        { "id": "room-3", "position": { "x": -2, "y": -3 }, "type": "extraction" },
+        { "id": "room-4", "position": { "x": -1, "y": 0 }, "type": "utility" },
+        { "id": "room-5", "position": { "x": -1, "y": -1 }, "type": "utility" },
+        { "id": "room-6", "position": { "x": 0, "y": -1 }, "type": "utility" },
+        { "id": "room-7", "position": { "x": 0, "y": -2 }, "type": "security" },
+        { "id": "room-8", "position": { "x": -1, "y": -3 }, "type": "hallway" },
+        { "id": "room-9", "position": { "x": 1, "y": -2 }, "type": "decoy" }
+      ]
+    },
+    "rules": {
+      "alertThresholds": [0, 3, 6, 10],
+      "captureOnMaxAlert": true,
+      "guardDetectionRange": 2,
+      "maxAlertLevel": 3,
+      "noiseDecayRate": 1,
+      "noiseTable": { "force": 4, "hack": 2, "move": 1, "wait": 0 }
+    },
+    "scoring": {
+      "alertPenaltyPerLevel": 10,
+      "extractionBonus": 150,
+      "invalidActionPenalty": 5,
+      "lootMultiplier": 1,
+      "objectiveSecured": 100,
+      "turnsRemainingMultiplier": 2
+    },
+    "skin": {
+      "flavorText": "An underground prison transfer holds the only way out tonight.",
+      "themeName": "Prison Escape"
+    },
+    "winCondition": {
+      "extractionRoomId": "room-3",
+      "maxAlertLevel": 3,
+      "maxTurns": 6,
+      "requiredObjectives": ["intel-1", "intel-2", "intel-3"]
+    }
+  },
+  "scenarioId": "heist:prison_escape-15",
+  "schemaVersion": "0.1.0"
+}

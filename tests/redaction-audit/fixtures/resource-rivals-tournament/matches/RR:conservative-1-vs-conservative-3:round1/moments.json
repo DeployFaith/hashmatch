@@ -1,1 +1,44 @@
-[{"description":"conservative-1 swung the score by 27.","endSeq":32,"id":"moment-score-swing-16-32-conservative-1","label":"Score swing","signals":{"agentId":"conservative-1","delta":27,"endScores":{"conservative-1":35,"conservative-3":19},"startScores":{"conservative-1":8,"conservative-3":19}},"startSeq":16,"type":"score_swing"},{"description":"conservative-1 swung the score by 17.","endSeq":48,"id":"moment-score-swing-40-48-conservative-1","label":"Score swing","signals":{"agentId":"conservative-1","delta":17,"endScores":{"conservative-1":52,"conservative-3":19},"startScores":{"conservative-1":35,"conservative-3":19}},"startSeq":40,"type":"score_swing"},{"description":"conservative-3 swung the score by 11.","endSeq":80,"id":"moment-score-swing-64-80-conservative-3","label":"Score swing","signals":{"agentId":"conservative-3","delta":11,"endScores":{"conservative-1":60,"conservative-3":43},"startScores":{"conservative-1":60,"conservative-3":32}},"startSeq":64,"type":"score_swing"}]
+[
+  {
+    "description": "conservative-1 swung the score by 27.",
+    "endSeq": 32,
+    "id": "moment-score-swing-16-32-conservative-1",
+    "label": "Score swing",
+    "signals": {
+      "agentId": "conservative-1",
+      "delta": 27,
+      "endScores": { "conservative-1": 35, "conservative-3": 19 },
+      "startScores": { "conservative-1": 8, "conservative-3": 19 }
+    },
+    "startSeq": 16,
+    "type": "score_swing"
+  },
+  {
+    "description": "conservative-1 swung the score by 17.",
+    "endSeq": 48,
+    "id": "moment-score-swing-40-48-conservative-1",
+    "label": "Score swing",
+    "signals": {
+      "agentId": "conservative-1",
+      "delta": 17,
+      "endScores": { "conservative-1": 52, "conservative-3": 19 },
+      "startScores": { "conservative-1": 35, "conservative-3": 19 }
+    },
+    "startSeq": 40,
+    "type": "score_swing"
+  },
+  {
+    "description": "conservative-3 swung the score by 11.",
+    "endSeq": 80,
+    "id": "moment-score-swing-64-80-conservative-3",
+    "label": "Score swing",
+    "signals": {
+      "agentId": "conservative-3",
+      "delta": 11,
+      "endScores": { "conservative-1": 60, "conservative-3": 43 },
+      "startScores": { "conservative-1": 60, "conservative-3": 32 }
+    },
+    "startSeq": 64,
+    "type": "score_swing"
+  }
+]

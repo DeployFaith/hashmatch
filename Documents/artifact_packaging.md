@@ -4,10 +4,10 @@ This document defines how HashMatch packages match/tournament outputs into porta
 
 The goal is:
 
-* everything can be copied as files
-* bundles are replayable offline
-* bundles support verification (hashes/receipts)
-* bundles support spectator broadcast packaging
+- everything can be copied as files
+- bundles are replayable offline
+- bundles support verification (hashes/receipts)
+- bundles support spectator broadcast packaging
 
 No servers required.
 For product framing on why artifacts remain the trust substrate, see “Artifacts: Trust Substrate, Not Product Surface” in `hashmatch_live_platform_direction_decision_architecture.md`.
@@ -16,37 +16,37 @@ For product framing on why artifacts remain the trust substrate, see “Artifact
 
 1. **Portable**
 
-* a bundle should be a folder (or zip) you can move anywhere.
+- a bundle should be a folder (or zip) you can move anywhere.
 
 2. **Self”‘describing**
 
-* includes manifests that explain contents and versions.
+- includes manifests that explain contents and versions.
 
 3. **Layered**
 
-* bundles may include truth, telemetry, and show artifacts.
+- bundles may include truth, telemetry, and show artifacts.
 
 4. **Verifiable**
 
-* truth artifacts can be hashed and signed.
+- truth artifacts can be hashed and signed.
 
 5. **Composable**
 
-* tournament bundles contain match bundles.
+- tournament bundles contain match bundles.
 
 ## 2. Layer Classification
 
 Every file in a bundle should be classified as one of:
 
-* `truth` (authoritative)
-* `telemetry` (derived from truth)
-* `show` (non”‘authoritative)
+- `truth` (authoritative)
+- `telemetry` (derived from truth)
+- `show` (non”‘authoritative)
 
 This classification supports:
 
-* integrity/verification rules
-* spectator reveal/redaction rules
-* “generated content” labeling
+- integrity/verification rules
+- spectator reveal/redaction rules
+- “generated content” labeling
 
 ## 3. Match Bundle Layout
 
@@ -72,9 +72,9 @@ match_bundle/
 
 Notes:
 
-* `match.jsonl` + `match_manifest.json` are required for replay.
-* `match_summary.json` is recommended.
-* show artifacts are optional, and `highlights.json` always lives in the show layer.
+- `match.jsonl` + `match_manifest.json` are required for replay.
+- `match_summary.json` is recommended.
+- show artifacts are optional, and `highlights.json` always lives in the show layer.
 
 ### 3.1 Replay Enhancement Artifacts
 
@@ -114,8 +114,8 @@ A broadcast bundle is a packaging variant optimized for spectators and distribut
 
 It may be identical to match/tournament bundles, but adds:
 
-* `broadcast_manifest.json` to explicitly list contents and classification (implemented)
-* `card.json` (optional) for fight night packaging
+- `broadcast_manifest.json` to explicitly list contents and classification (implemented)
+- `card.json` (optional) for fight night packaging
 
 Example:
 
@@ -151,23 +151,23 @@ The tournament manifest describes match list + seeds and harness version.
 
 `broadcast_manifest.json` is implemented (see `src/core/broadcastManifest.ts`) and should include the fields below. It is a packaging artifact, not truth or telemetry.
 
-* `bundleId`
-* `bundleType: match | tournament`
-* `modeProfileId`
-* `createdBy` (organizer/harness)
+- `bundleId`
+- `bundleType: match | tournament`
+- `modeProfileId`
+- `createdBy` (organizer/harness)
 
 **Files list**
 
 For each file:
 
-* `path`
-* `class: truth | telemetry | show`
-* `contentHash` (optional early; recommended later)
-* `mediaType` (optional)
+- `path`
+- `class: truth | telemetry | show`
+- `contentHash` (optional early; recommended later)
+- `mediaType` (optional)
 
 **Truth bundle hash** (optional but recommended)
 
-* `truthBundleHash` computed over the canonical truth files
+- `truthBundleHash` computed over the canonical truth files
 
 ## 7. Hashing & Receipts
 
@@ -175,31 +175,31 @@ Hashing and signing are defined in `integrity_and_verification.md`. See `integri
 
 Packaging rules:
 
-* truth files should be hashed consistently (same algorithm)
-* receipts are implemented:
+- truth files should be hashed consistently (same algorithm)
+- receipts are implemented:
   - `receipt.json` per match directory
   - `tournament_receipt.json` at the tournament root
-* receipt should bind at least `match.jsonl` + `match_manifest.json`
-* telemetry hashes are optional convenience
-* show artifacts should not be required to validate truth
+- receipt should bind at least `match.jsonl` + `match_manifest.json`
+- telemetry hashes are optional convenience
+- show artifacts should not be required to validate truth
 
 ## 8. Versioning
 
 Bundles should include version stamps to prevent “it works on my machine” confusion.
 
-* harness version
-* runner version
-* scenario version
-* agent versions
-* contract version
+- harness version
+- runner version
+- scenario version
+- agent versions
+- contract version
 
 ## 9. Compression
 
 Bundles may be distributed as:
 
-* folder
-* `.zip`
-* `.tar.gz`
+- folder
+- `.zip`
+- `.tar.gz`
 
 Do not assume a particular compression format in core tooling.
 
@@ -207,11 +207,11 @@ Do not assume a particular compression format in core tooling.
 
 A local registry can index bundles by:
 
-* bundleId
-* scenario id
-* agent ids
-* mode profile
-* time
+- bundleId
+- scenario id
+- agent ids
+- mode profile
+- time
 
 Hosted registry is future work.
 
@@ -219,13 +219,13 @@ Hosted registry is future work.
 
 If show artifacts are included:
 
-* label them non”‘authoritative
-* ground claims to truth/telemetry (event ranges / moments)
-* obey visibility policies (do not leak secrets)
+- label them non”‘authoritative
+- ground claims to truth/telemetry (event ranges / moments)
+- obey visibility policies (do not leak secrets)
 
 ## 12. v0 Success Criteria
 
-* match bundles replayable offline
-* tournament bundles reproducible and readable
-* broadcast bundles easy to publish
-* receipts can be added later without repacking everything
+- match bundles replayable offline
+- tournament bundles reproducible and readable
+- broadcast bundles easy to publish
+- receipts can be added later without repacking everything

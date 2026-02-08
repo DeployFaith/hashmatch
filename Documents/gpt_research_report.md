@@ -71,21 +71,20 @@ Anti-Precompute & Novelty Metrics: How resistant is this scenario to agent preco
 Sample ValidationReport JSON:
 
 {
-  "solvable": true,
-  "solution_length": { "min": 5, "max": 9 },
-  "branching_factor": { "avg": 2.7, "max": 4 },
-  "distinct_paths_count": 3,
-  "fairness_index": 0.98,
-  "symmetric_start_positions": true,
-  "first_player_advantage": 0.01,
-  "trivial": false,
-  "dead_end_fraction": 0.1,
-  "precompute_resistance": 0.92,
-  "similarity_to_previous": 0.05,
-  "notes": ["All key objectives are reachable by both players within equal distance:contentReference[oaicite:39]{index=39}",
-            "Scenario is non-trivial: requires at least 5 moves to win and involves confrontation"]
+"solvable": true,
+"solution_length": { "min": 5, "max": 9 },
+"branching_factor": { "avg": 2.7, "max": 4 },
+"distinct_paths_count": 3,
+"fairness_index": 0.98,
+"symmetric_start_positions": true,
+"first_player_advantage": 0.01,
+"trivial": false,
+"dead_end_fraction": 0.1,
+"precompute_resistance": 0.92,
+"similarity_to_previous": 0.05,
+"notes": ["All key objectives are reachable by both players within equal distance:contentReference[oaicite:39]{index=39}",
+"Scenario is non-trivial: requires at least 5 moves to win and involves confrontation"]
 }
-
 
 This JSON shows a scenario that is solvable, mostly symmetric (fairness 0.98, likely mirrored starts), not trivial (min 5 moves to win, some branching), with high precompute resistance (0.92) indicating it’s novel relative to prior ones.
 
@@ -113,16 +112,15 @@ score = 0.4*swings_index + 0.2*interaction_density + 0.2*punish_opportunities + 
 The WatchabilityScoreReport JSON could look like:
 
 {
-  "lead_change_expectation": 2.5,
-  "max_swing_probability": 0.45,
-  "brink_moments": 1,
-  "comeback_potential": 0.2,
-  "punish_windows": { "count": 4, "avg_duration": 2, "impact": "moderate" },
-  "interaction_density": 0.8,
-  "interaction_variety": "mixed",
-  "estimated_overall_score": 8.7
+"lead_change_expectation": 2.5,
+"max_swing_probability": 0.45,
+"brink_moments": 1,
+"comeback_potential": 0.2,
+"punish_windows": { "count": 4, "avg_duration": 2, "impact": "moderate" },
+"interaction_density": 0.8,
+"interaction_variety": "mixed",
+"estimated_overall_score": 8.7
 }
-
 
 This suggests ~2–3 lead changes, up to a 45% swing in win chance possible, one major brink moment likely, multiple punish opportunities of moderate impact, high interaction rate (0.8 actions per turn involving opponent), and overall a high watchability score of 8.7/10.
 
@@ -233,15 +231,16 @@ In short, our protocol is similar to those used in provably fair gambling and bl
 
 server_seed = random128bit()
 commit = SHA256(server_seed)
+
 # publish commit
 
 # players optionally do similar with player_seed_A, player_seed_B
 
 # at match start:
+
 reveal server_seed (and player seeds)
 combined = server_seed || player_seed_A || player_seed_B || match_id
 game_seed = SHA256(combined)
-
 
 This game_seed is then used by the PCG as the root for all randomness.
 

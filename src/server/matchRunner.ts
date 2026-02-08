@@ -66,7 +66,9 @@ async function runMatchAndPersist(
     const scenarioFactory = getScenarioFactory(request.scenarioKey);
     const scenario = scenarioFactory();
     const agentFactories = request.agentKeys.map((key) => getAgentFactory(key));
-    const agents = agentFactories.map((factory, index) => factory(`${request.agentKeys[index]}-${index}`));
+    const agents = agentFactories.map((factory, index) =>
+      factory(`${request.agentKeys[index]}-${index}`),
+    );
 
     const result = await runMatch(scenario, agents, {
       seed,

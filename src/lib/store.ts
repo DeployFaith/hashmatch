@@ -88,9 +88,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (engineEvents.length === 0) {
       return {
         matchId: "",
-        errors: parseErrors.length > 0
-          ? parseErrors.map((e) => `Line ${e.line}: ${e.message}`)
-          : ["No valid events found in replay file"],
+        errors:
+          parseErrors.length > 0
+            ? parseErrors.map((e) => `Line ${e.line}: ${e.message}`)
+            : ["No valid events found in replay file"],
       };
     }
 
@@ -100,9 +101,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const state = get();
     const filteredMatches = state.matches.filter((m) => m.id !== match.id);
     const existingReplayEventIds = new Set(
-      state.events
-        .filter((e) => e.id.startsWith(`replay-${match.id}-`))
-        .map((e) => e.id),
+      state.events.filter((e) => e.id.startsWith(`replay-${match.id}-`)).map((e) => e.id),
     );
     const filteredEvents = state.events.filter((e) => !existingReplayEventIds.has(e.id));
 

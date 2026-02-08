@@ -1,1 +1,14 @@
-{"agentIds":["randomBidder-0","conservative-3"],"hashes":{"logHash":"sha256:f2f8734fa4a1cfb3069d0295fa5fc7f06cb5d789448d1e2a9a22a2f1fa259bfd","manifestHash":"sha256:060e81fb931d0bd9e1700e9c6189a0d12b5fffcd60e9846b246820fc2aaa9385"},"matchId":"m_w29ghsttdwny","matchKey":"RR:randomBidder-0-vs-conservative-3:round2","reason":"completed","scores":{"conservative-3":181,"randomBidder-0":45},"seed":4266000863,"turns":14,"winner":"conservative-3"}
+{
+  "agentIds": ["randomBidder-0", "conservative-3"],
+  "hashes": {
+    "logHash": "sha256:f2f8734fa4a1cfb3069d0295fa5fc7f06cb5d789448d1e2a9a22a2f1fa259bfd",
+    "manifestHash": "sha256:060e81fb931d0bd9e1700e9c6189a0d12b5fffcd60e9846b246820fc2aaa9385"
+  },
+  "matchId": "m_w29ghsttdwny",
+  "matchKey": "RR:randomBidder-0-vs-conservative-3:round2",
+  "reason": "completed",
+  "scores": { "conservative-3": 181, "randomBidder-0": 45 },
+  "seed": 4266000863,
+  "turns": 14,
+  "winner": "conservative-3"
+}

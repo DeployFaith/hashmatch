@@ -51,7 +51,9 @@ function resolveAgentProfileKey(index: number): string {
   return `agent${index + 1}`;
 }
 
-function resolveAgentTypeFromMetadata(metadata: Record<string, unknown> | null): AgentProfileType | undefined {
+function resolveAgentTypeFromMetadata(
+  metadata: Record<string, unknown> | null,
+): AgentProfileType | undefined {
   if (!metadata) {
     return undefined;
   }
@@ -94,7 +96,9 @@ function buildAgentTypeLookup(
     }
     const metadataRaw = (entry as { metadata?: unknown }).metadata;
     const metadata =
-      metadataRaw && typeof metadataRaw === "object" ? (metadataRaw as Record<string, unknown>) : null;
+      metadataRaw && typeof metadataRaw === "object"
+        ? (metadataRaw as Record<string, unknown>)
+        : null;
     const agentType = resolveAgentTypeFromMetadata(metadata);
     if (agentType) {
       lookup.set(agentId, agentType);

@@ -1,1 +1,30 @@
-{"agents":["noop-0","noop-1","noop-2"],"createdAt":"2026-02-08T01:05:58.255Z","matches":[{"agentIds":["noop-0","noop-1"],"matchKey":"RR:noop-0-vs-noop-1:round1","maxTurns":20,"scenarioName":"Heist","seed":2398814226},{"agentIds":["noop-0","noop-2"],"matchKey":"RR:noop-0-vs-noop-2:round1","maxTurns":20,"scenarioName":"Heist","seed":3734981125},{"agentIds":["noop-1","noop-2"],"matchKey":"RR:noop-1-vs-noop-2:round1","maxTurns":20,"scenarioName":"Heist","seed":4273968796}],"scenarioName":"Heist","tournamentSeed":41001,"truthBundleHash":"sha256:eb5a6f471b52f8356ccf9e328afd43a00a8ba790c96b208eaa235553f908404f"}
+{
+  "agents": ["noop-0", "noop-1", "noop-2"],
+  "createdAt": "2026-02-08T01:05:58.255Z",
+  "matches": [
+    {
+      "agentIds": ["noop-0", "noop-1"],
+      "matchKey": "RR:noop-0-vs-noop-1:round1",
+      "maxTurns": 20,
+      "scenarioName": "Heist",
+      "seed": 2398814226
+    },
+    {
+      "agentIds": ["noop-0", "noop-2"],
+      "matchKey": "RR:noop-0-vs-noop-2:round1",
+      "maxTurns": 20,
+      "scenarioName": "Heist",
+      "seed": 3734981125
+    },
+    {
+      "agentIds": ["noop-1", "noop-2"],
+      "matchKey": "RR:noop-1-vs-noop-2:round1",
+      "maxTurns": 20,
+      "scenarioName": "Heist",
+      "seed": 4273968796
+    }
+  ],
+  "scenarioName": "Heist",
+  "tournamentSeed": 41001,
+  "truthBundleHash": "sha256:eb5a6f471b52f8356ccf9e328afd43a00a8ba790c96b208eaa235553f908404f"
+}

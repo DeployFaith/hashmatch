@@ -32,11 +32,7 @@ export function findPrivateKeys(value: unknown, basePath = "$"): string[] {
   return [];
 }
 
-export function findForbiddenTokens(
-  value: unknown,
-  tokens: string[],
-  basePath = "$",
-): TokenLeak[] {
+export function findForbiddenTokens(value: unknown, tokens: string[], basePath = "$"): TokenLeak[] {
   const hits: TokenLeak[] = [];
 
   if (typeof value === "string") {

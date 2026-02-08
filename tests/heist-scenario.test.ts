@@ -4,10 +4,7 @@ import { createHeistScenario } from "../src/scenarios/heist/index.js";
 
 const agentIds = ["alice", "bob"];
 
-function applyActions(
-  state: HeistState,
-  actions: Array<{ agentId: string; action: HeistAction }>,
-) {
+function applyActions(state: HeistState, actions: Array<{ agentId: string; action: HeistAction }>) {
   const scenario = createHeistScenario();
   let current = state;
   for (const entry of actions) {
@@ -55,10 +52,16 @@ describe("Heist scenario", () => {
     let state = scenario.init(42, agentIds);
 
     state = scenario.adjudicate(state, "alice", { type: "move", toRoomId: "room-2" }).state;
-    state = scenario.adjudicate(state, "alice", { type: "use_terminal", terminalId: "terminal-1" }).state;
+    state = scenario.adjudicate(state, "alice", {
+      type: "use_terminal",
+      terminalId: "terminal-1",
+    }).state;
     state = scenario.adjudicate(state, "alice", { type: "move", toRoomId: "room-1" }).state;
     state = scenario.adjudicate(state, "alice", { type: "move", toRoomId: "room-2" }).state;
-    state = scenario.adjudicate(state, "alice", { type: "use_terminal", terminalId: "terminal-1" }).state;
+    state = scenario.adjudicate(state, "alice", {
+      type: "use_terminal",
+      terminalId: "terminal-1",
+    }).state;
 
     expect(state.terminalProgress["terminal-1"]).toBe(2);
     expect(state.terminalHacked["terminal-1"]).toBe(true);

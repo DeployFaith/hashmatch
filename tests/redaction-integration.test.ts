@@ -163,10 +163,10 @@ describe("redaction integration", () => {
       const observation = event.raw.observation as Record<string, unknown> | undefined;
       return Boolean(
         observation &&
-          typeof observation === "object" &&
-          "_private" in observation &&
-          "currentRoomId" in observation &&
-          "adjacentRooms" in observation,
+        typeof observation === "object" &&
+        "_private" in observation &&
+        "currentRoomId" in observation &&
+        "adjacentRooms" in observation,
       );
     });
 

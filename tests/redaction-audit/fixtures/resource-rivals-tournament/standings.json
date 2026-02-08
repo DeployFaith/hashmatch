@@ -1,1 +1,46 @@
-[{"agentId":"conservative-1","draws":0,"losses":0,"matches":6,"points":18,"scoreAgainst":228,"scoreDiff":511,"scoreFor":739,"wins":6},{"agentId":"conservative-3","draws":0,"losses":2,"matches":6,"points":12,"scoreAgainst":343,"scoreDiff":382,"scoreFor":725,"wins":4},{"agentId":"randomBidder-0","draws":0,"losses":4,"matches":6,"points":6,"scoreAgainst":720,"scoreDiff":-437,"scoreFor":283,"wins":2},{"agentId":"randomBidder-2","draws":0,"losses":6,"matches":6,"points":0,"scoreAgainst":660,"scoreDiff":-456,"scoreFor":204,"wins":0}]
+[
+  {
+    "agentId": "conservative-1",
+    "draws": 0,
+    "losses": 0,
+    "matches": 6,
+    "points": 18,
+    "scoreAgainst": 228,
+    "scoreDiff": 511,
+    "scoreFor": 739,
+    "wins": 6
+  },
+  {
+    "agentId": "conservative-3",
+    "draws": 0,
+    "losses": 2,
+    "matches": 6,
+    "points": 12,
+    "scoreAgainst": 343,
+    "scoreDiff": 382,
+    "scoreFor": 725,
+    "wins": 4
+  },
+  {
+    "agentId": "randomBidder-0",
+    "draws": 0,
+    "losses": 4,
+    "matches": 6,
+    "points": 6,
+    "scoreAgainst": 720,
+    "scoreDiff": -437,
+    "scoreFor": 283,
+    "wins": 2
+  },
+  {
+    "agentId": "randomBidder-2",
+    "draws": 0,
+    "losses": 6,
+    "matches": 6,
+    "points": 0,
+    "scoreAgainst": 660,
+    "scoreDiff": -456,
+    "scoreFor": 204,
+    "wins": 0
+  }
+]

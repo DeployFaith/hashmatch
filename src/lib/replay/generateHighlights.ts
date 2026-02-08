@@ -62,10 +62,7 @@ function normalizeSignalValue(value: unknown): string | null {
   return null;
 }
 
-function resolveSignalValue(
-  signals: Record<string, unknown>,
-  keys: string[],
-): string | null {
+function resolveSignalValue(signals: Record<string, unknown>, keys: string[]): string | null {
   for (const key of keys) {
     if (key in signals) {
       const normalized = normalizeSignalValue(signals[key]);
@@ -92,8 +89,21 @@ function buildTemplateValues(
   type: ReplayMoment["type"],
   signals: Record<string, unknown>,
 ): Record<string, string> {
-  const agent = resolveSignalValue(signals, ["agent", "agentId", "winner", "newLeader", "previousLeader"]);
-  const delta = resolveSignalValue(signals, ["delta", "scoreDelta", "lead", "diff", "margin", "deficit"]);
+  const agent = resolveSignalValue(signals, [
+    "agent",
+    "agentId",
+    "winner",
+    "newLeader",
+    "previousLeader",
+  ]);
+  const delta = resolveSignalValue(signals, [
+    "delta",
+    "scoreDelta",
+    "lead",
+    "diff",
+    "margin",
+    "deficit",
+  ]);
   const deficit = resolveSignalValue(signals, ["deficit", "scoreDelta", "delta", "lead", "diff"]);
   const margin = resolveSignalValue(signals, ["margin", "diff", "delta", "lead", "scoreDelta"]);
 

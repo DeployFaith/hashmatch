@@ -1,1 +1,58 @@
-[{"description":"conservative-1 swung the score by 36.","endSeq":40,"id":"moment-score-swing-24-40-conservative-1","label":"Score swing","signals":{"agentId":"conservative-1","delta":36,"endScores":{"conservative-1":36,"conservative-3":31},"startScores":{"conservative-1":0,"conservative-3":31}},"startSeq":24,"type":"score_swing"},{"description":"conservative-3 swung the score by 23.","endSeq":56,"id":"moment-score-swing-48-56-conservative-3","label":"Score swing","signals":{"agentId":"conservative-3","delta":23,"endScores":{"conservative-1":36,"conservative-3":54},"startScores":{"conservative-1":36,"conservative-3":31}},"startSeq":48,"type":"score_swing"},{"description":"conservative-3 swung the score by 11.","endSeq":88,"id":"moment-score-swing-72-88-conservative-3","label":"Score swing","signals":{"agentId":"conservative-3","delta":11,"endScores":{"conservative-1":36,"conservative-3":65},"startScores":{"conservative-1":36,"conservative-3":54}},"startSeq":72,"type":"score_swing"},{"description":"conservative-1 swung the score by 42.","endSeq":112,"id":"moment-score-swing-96-112-conservative-1","label":"Score swing","signals":{"agentId":"conservative-1","delta":42,"endScores":{"conservative-1":87,"conservative-3":65},"startScores":{"conservative-1":45,"conservative-3":65}},"startSeq":96,"type":"score_swing"}]
+[
+  {
+    "description": "conservative-1 swung the score by 36.",
+    "endSeq": 40,
+    "id": "moment-score-swing-24-40-conservative-1",
+    "label": "Score swing",
+    "signals": {
+      "agentId": "conservative-1",
+      "delta": 36,
+      "endScores": { "conservative-1": 36, "conservative-3": 31 },
+      "startScores": { "conservative-1": 0, "conservative-3": 31 }
+    },
+    "startSeq": 24,
+    "type": "score_swing"
+  },
+  {
+    "description": "conservative-3 swung the score by 23.",
+    "endSeq": 56,
+    "id": "moment-score-swing-48-56-conservative-3",
+    "label": "Score swing",
+    "signals": {
+      "agentId": "conservative-3",
+      "delta": 23,
+      "endScores": { "conservative-1": 36, "conservative-3": 54 },
+      "startScores": { "conservative-1": 36, "conservative-3": 31 }
+    },
+    "startSeq": 48,
+    "type": "score_swing"
+  },
+  {
+    "description": "conservative-3 swung the score by 11.",
+    "endSeq": 88,
+    "id": "moment-score-swing-72-88-conservative-3",
+    "label": "Score swing",
+    "signals": {
+      "agentId": "conservative-3",
+      "delta": 11,
+      "endScores": { "conservative-1": 36, "conservative-3": 65 },
+      "startScores": { "conservative-1": 36, "conservative-3": 54 }
+    },
+    "startSeq": 72,
+    "type": "score_swing"
+  },
+  {
+    "description": "conservative-1 swung the score by 42.",
+    "endSeq": 112,
+    "id": "moment-score-swing-96-112-conservative-1",
+    "label": "Score swing",
+    "signals": {
+      "agentId": "conservative-1",
+      "delta": 42,
+      "endScores": { "conservative-1": 87, "conservative-3": 65 },
+      "startScores": { "conservative-1": 45, "conservative-3": 65 }
+    },
+    "startSeq": 96,
+    "type": "score_swing"
+  }
+]

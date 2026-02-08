@@ -30,7 +30,11 @@ function parseSseEvent(raw: string): ParsedEvent {
   return { event, data: dataText ? JSON.parse(dataText) : null, ...(id ? { id } : {}) };
 }
 
-async function readEvents(response: Response, maxEvents: number, timeoutMs = 2000): Promise<ParsedEvent[]> {
+async function readEvents(
+  response: Response,
+  maxEvents: number,
+  timeoutMs = 2000,
+): Promise<ParsedEvent[]> {
   const events: ParsedEvent[] = [];
   const reader = response.body?.getReader();
   if (!reader) {
@@ -153,7 +157,14 @@ describe("GET /api/matches/[matchId]/stream", () => {
         maxTurns: 1,
       },
       { type: "TurnStarted", seq: 1, matchId, turn: 1 },
-      { type: "MatchEnded", seq: 2, matchId, reason: "completed", scores: { a: 1, b: 0 }, turns: 1 },
+      {
+        type: "MatchEnded",
+        seq: 2,
+        matchId,
+        reason: "completed",
+        scores: { a: 1, b: 0 },
+        turns: 1,
+      },
     ];
     writeLog(
       matchDir,

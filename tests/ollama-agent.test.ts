@@ -122,12 +122,12 @@ describe("heistAdapter.parseResponse", () => {
   });
 
   it("parses JSON inside markdown fences", () => {
-    const parsed = parseResponse("```json\n{\"type\":\"extract\"}\n```");
+    const parsed = parseResponse('```json\n{"type":"extract"}\n```');
     expect(parsed).toEqual({ type: "extract" });
   });
 
   it("parses JSON inside prose", () => {
-    const parsed = parseResponse("Here you go: {\"type\":\"move\",\"toRoomId\":\"room-2\"}");
+    const parsed = parseResponse('Here you go: {"type":"move","toRoomId":"room-2"}');
     expect(parsed).toEqual({ type: "move", toRoomId: "room-2" });
   });
 
@@ -263,9 +263,7 @@ describe("createOllamaAgent", () => {
   });
 
   it("runs the full pipeline and returns parsed actions", async () => {
-    const ollamaChatSpy = vi
-      .spyOn(ollamaClient, "ollamaChat")
-      .mockResolvedValue('{"type":"wait"}');
+    const ollamaChatSpy = vi.spyOn(ollamaClient, "ollamaChat").mockResolvedValue('{"type":"wait"}');
 
     const adapter = {
       systemPrompt: "system",

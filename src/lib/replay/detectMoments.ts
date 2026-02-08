@@ -64,7 +64,9 @@ function extractNumericRecord(value: unknown): ScoreRecord | null {
   if (!isRecord(value)) {
     return null;
   }
-  const entries = Object.entries(value).filter(([, v]) => typeof v === "number" && Number.isFinite(v));
+  const entries = Object.entries(value).filter(
+    ([, v]) => typeof v === "number" && Number.isFinite(v),
+  );
   if (entries.length < 2) {
     return null;
   }
@@ -168,16 +170,19 @@ function buildScoreSeries(events: MomentEvent[]): ScoreSnapshot[] {
     if (!scoreRecord) {
       continue;
     }
-    const turn = typeof (event as { turn?: number }).turn === "number"
-      ? (event as { turn?: number }).turn
-      : undefined;
+    const turn =
+      typeof (event as { turn?: number }).turn === "number"
+        ? (event as { turn?: number }).turn
+        : undefined;
     snapshots.push({ seq: event.seq, turn, scores: scoreRecord });
   }
 
   return snapshots.sort((a, b) => a.seq - b.seq);
 }
 
-function getLeader(scores: ScoreRecord): { leader: string; lead: number; runnerUp: string; diff: number } | null {
+function getLeader(
+  scores: ScoreRecord,
+): { leader: string; lead: number; runnerUp: string; diff: number } | null {
   const entries = Object.entries(scores);
   if (entries.length < 2) {
     return null;
@@ -352,11 +357,12 @@ function buildBlunderMoments(events: MomentEvent[]): ScoredMoment[] {
       continue;
     }
 
-    const agentId = typeof (event as { agentId?: string }).agentId === "string"
-      ? (event as { agentId?: string }).agentId
-      : typeof payload.agentId === "string"
-        ? payload.agentId
-        : null;
+    const agentId =
+      typeof (event as { agentId?: string }).agentId === "string"
+        ? (event as { agentId?: string }).agentId
+        : typeof payload.agentId === "string"
+          ? payload.agentId
+          : null;
 
     moments.push({
       id: `moment-blunder-${event.seq}-${agentId ?? "unknown"}`,

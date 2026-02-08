@@ -43,11 +43,7 @@ function CopyInlineButton({ text }: { text: string }) {
   );
 }
 
-export default function MatchDetailClient({
-  params,
-}: {
-  params: Promise<{ matchId: string }>;
-}) {
+export default function MatchDetailClient({ params }: { params: Promise<{ matchId: string }> }) {
   const { matchId } = use(params);
   const { getMatch, getAgent, getEventsForMatch, getRunsForMatch, getReplayMeta, isReplayMatch } =
     useAppStore();
@@ -81,7 +77,10 @@ export default function MatchDetailClient({
 
   // Filtering
   const filteredEvents = useMemo(() => applyFilters(matchEvents, filters), [matchEvents, filters]);
-  const filteredEventIds = useMemo(() => new Set(filteredEvents.map((e) => e.id)), [filteredEvents]);
+  const filteredEventIds = useMemo(
+    () => new Set(filteredEvents.map((e) => e.id)),
+    [filteredEvents],
+  );
   const filteredEpisodes = useMemo(
     () => filterEpisodes(match.episodes, filteredEventIds, filters.turn),
     [match.episodes, filteredEventIds, filters.turn],
@@ -139,8 +138,7 @@ export default function MatchDetailClient({
           )}
           {replayMeta.seed !== undefined && (
             <span className="text-muted-foreground">
-              Seed:{" "}
-              <span className="font-mono font-medium text-foreground">{replayMeta.seed}</span>
+              Seed: <span className="font-mono font-medium text-foreground">{replayMeta.seed}</span>
             </span>
           )}
         </div>
@@ -311,8 +309,7 @@ export default function MatchDetailClient({
                   {match.score && match.score[agentId] !== undefined && (
                     <CardContent>
                       <p className="text-sm">
-                        Score:{" "}
-                        <span className="font-mono font-bold">{match.score[agentId]}</span>
+                        Score: <span className="font-mono font-bold">{match.score[agentId]}</span>
                       </p>
                     </CardContent>
                   )}

@@ -39,8 +39,7 @@ function extractSummaryTimestamp(summary: MatchSummaryRecord): number | null {
     startedAt?: string;
     endedAt?: string;
   };
-  const candidate =
-    summaryAny.createdAt ?? summaryAny.startedAt ?? summaryAny.endedAt ?? null;
+  const candidate = summaryAny.createdAt ?? summaryAny.startedAt ?? summaryAny.endedAt ?? null;
   if (!candidate) {
     return null;
   }
@@ -73,9 +72,7 @@ export async function GET(): Promise<Response> {
           return null;
         }
 
-        const status = await readJsonFile<MatchStatusRecord>(
-          join(matchDir, "match_status.json"),
-        );
+        const status = await readJsonFile<MatchStatusRecord>(join(matchDir, "match_status.json"));
         const manifest = await readJsonFile<Record<string, unknown>>(
           join(matchDir, "match_manifest.json"),
         );
@@ -134,9 +131,7 @@ async function loadExhibitionEntries(): Promise<MatchListItem[]> {
 
   const results = await Promise.all(
     matchDirs.map(async (matchDir) => {
-      const summary = await readJsonFile<MatchSummaryRecord>(
-        join(matchDir, "match_summary.json"),
-      );
+      const summary = await readJsonFile<MatchSummaryRecord>(join(matchDir, "match_summary.json"));
       if (!summary) {
         return null;
       }
