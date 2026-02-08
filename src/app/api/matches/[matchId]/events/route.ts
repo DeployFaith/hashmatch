@@ -406,7 +406,7 @@ type RouteContext = { params: Promise<{ matchId: string }> };
 export async function GET(request: Request, context: RouteContext): Promise<Response> {
   const { matchId } = await context.params;
   if (!isSafeMatchId(matchId)) {
-    return NextResponse.json({ error: "Invalid matchId" }, { status: 400 });
+    return NextResponse.json({ error: "Match not found" }, { status: 404 });
   }
 
   const matchDir = resolveMatchDir(matchId);

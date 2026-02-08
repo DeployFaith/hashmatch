@@ -58,6 +58,14 @@ describe("GET /api/matches", () => {
 });
 
 describe("GET /api/matches/[matchId]/status", () => {
+  it("returns 404 for invalid matchIds", async () => {
+    const response = await getMatchStatus(new Request("http://localhost"), {
+      params: Promise.resolve({ matchId: "../nope" }),
+    });
+
+    expect(response.status).toBe(404);
+  });
+
   it("returns stored status", async () => {
     writeMatchStatus(MATCH_ID, {
       matchId: MATCH_ID,

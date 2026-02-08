@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { stableStringify } from "../core/json.js";
 
@@ -19,12 +20,6 @@ function pad(value: number, size: number): string {
   return String(value).padStart(size, "0");
 }
 
-export function sanitizeScenarioLabel(scenario: string): string {
-  const normalized = scenario.trim().toLowerCase();
-  const sanitized = normalized.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-  return sanitized.length > 0 ? sanitized : "scenario";
-}
-
 export function formatMatchTimestamp(date: Date): string {
   return [pad(date.getUTCFullYear(), 4), pad(date.getUTCMonth() + 1, 2), pad(date.getUTCDate(), 2)]
     .join("")
@@ -38,10 +33,9 @@ export function formatMatchTimestamp(date: Date): string {
     );
 }
 
-export function buildOperatorMatchId(date: Date, scenario: string): string {
+export function buildOperatorMatchId(date: Date): string {
   const timestamp = formatMatchTimestamp(date);
-  const scenarioLabel = sanitizeScenarioLabel(scenario);
-  return `match-${timestamp}-${scenarioLabel}`;
+  return `match-${timestamp}-${randomUUID()}`;
 }
 
 export function readOperatorMatchStatus(path: string): OperatorMatchStatus | null {

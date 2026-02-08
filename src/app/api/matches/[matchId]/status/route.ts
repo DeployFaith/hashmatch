@@ -11,7 +11,7 @@ export async function GET(
 ): Promise<Response> {
   const { matchId } = await params;
   if (!isSafeMatchId(matchId)) {
-    return NextResponse.json({ error: "Invalid matchId" }, { status: 400 });
+    return NextResponse.json({ error: "Match not found" }, { status: 404 });
   }
 
   const matchDir = resolveMatchDir(matchId);

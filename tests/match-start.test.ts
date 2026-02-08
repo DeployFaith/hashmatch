@@ -7,6 +7,10 @@ import { POST } from "../src/app/api/matches/start/route.js";
 import { buildOperatorMatchId } from "../src/server/operatorMatch.js";
 import type { MatchLifecycleStatusRecord } from "../src/server/matchLifecycle.js";
 
+vi.mock("node:crypto", () => ({
+  randomUUID: () => "d3b07384-d9a4-4f32-bd0e-1b6b1b2c4f5a",
+}));
+
 let tempDir = "";
 const scenario = "numberGuess";
 const agents = ["random", "baseline"];
@@ -78,13 +82,15 @@ describe("POST /api/matches/start", () => {
     expect(response.status).toBe(200);
     const payload = (await response.json()) as { matchId: string };
 
-    expect(payload.matchId).toMatch(/^match-\d{8}-\d{6}-\d{3}-numberguess$/);
+    expect(payload.matchId).toMatch(/^match-\d{8}-\d{6}-\d{3}-[a-f0-9-]+$/);
+    expect(payload.matchId).not.toContain("numberguess");
 
     const matchDir = join(tempDir, "matches", payload.matchId);
     expect(existsSync(matchDir)).toBe(true);
 
     const status = readStatus(matchDir);
     expect(["running", "finished"]).toContain(status.status);
+    expect(status.scenario).toBe(scenario);
     expect(status.totalTurns).toBe(totalTurns);
 
     const terminalStatus = await waitForTerminalStatus(matchDir);
@@ -98,7 +104,7 @@ describe("POST /api/matches/start", () => {
     const now = new Date("2024-01-02T03:04:05.006Z");
     vi.useFakeTimers();
     vi.setSystemTime(now);
-    const matchId = buildOperatorMatchId(now, scenario);
+    const matchId = buildOperatorMatchId(now);
     const matchDir = join(tempDir, "matches", matchId);
     mkdirSync(matchDir, { recursive: true });
     writeFileSync(

@@ -125,7 +125,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const now = new Date();
-  const matchId = buildOperatorMatchId(now, parsed.data.scenario);
+  const matchId = buildOperatorMatchId(now);
   const matchDir = resolveMatchDir(matchId);
 
   ensureMatchesRoot();
