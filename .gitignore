@@ -45,3 +45,6 @@ Documents/Agentic_Design_Patterns.pdf
 
 # local gateway diagnostics
 gateway_transcript.jsonl
+
+# build output
+/dist-scripts/
