@@ -5,10 +5,12 @@ import { join } from "node:path";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "../src/app/api/matches/start/route.js";
 import { buildOperatorMatchId } from "../src/server/operatorMatch.js";
+import type { MatchLifecycleStatusRecord } from "../src/server/matchLifecycle.js";
 
 let tempDir = "";
 const scenario = "numberGuess";
 const agents = ["random", "baseline"];
+const totalTurns = 5;
 
 function createStartRequest() {
   return new Request("http://localhost/api/matches/start", {
@@ -17,21 +19,22 @@ function createStartRequest() {
       scenario,
       agents,
       seed: 123,
+      totalTurns,
     }),
   });
 }
 
-function readStatus(matchDir: string): { status: string; finishedAt?: string } {
+function readStatus(matchDir: string): MatchLifecycleStatusRecord {
   const statusPath = join(matchDir, "match_status.json");
   const statusRaw = readFileSync(statusPath, "utf-8");
-  return JSON.parse(statusRaw) as { status: string; finishedAt?: string };
+  return JSON.parse(statusRaw) as MatchLifecycleStatusRecord;
 }
 
 async function waitForTerminalStatus(matchDir: string, timeoutMs = 10_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const status = readStatus(matchDir);
-    if (status.status !== "running") {
+    if (status.status === "finished") {
       return status;
     }
     await new Promise((resolve) => setTimeout(resolve, 50));
@@ -48,7 +51,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   tempDir = mkdtempSync(join(tmpdir(), "match-start-"));
-  process.env.MATCH_STORAGE_DIR = tempDir;
+  process.env.HASHMATCH_DATA_DIR = tempDir;
   process.env.HASHMATCH_OPERATOR_MODE = "true";
 });
 
@@ -56,7 +59,7 @@ afterEach(() => {
   if (tempDir) {
     rmSync(tempDir, { recursive: true, force: true });
   }
-  delete process.env.MATCH_STORAGE_DIR;
+  delete process.env.HASHMATCH_DATA_DIR;
   delete process.env.HASHMATCH_OPERATOR_MODE;
   vi.useRealTimers();
 });
@@ -77,14 +80,15 @@ describe("POST /api/matches/start", () => {
 
     expect(payload.matchId).toMatch(/^match-\d{8}-\d{6}-\d{3}-numberguess$/);
 
-    const matchDir = join(tempDir, payload.matchId);
+    const matchDir = join(tempDir, "matches", payload.matchId);
     expect(existsSync(matchDir)).toBe(true);
 
     const status = readStatus(matchDir);
-    expect(["running", "completed", "crashed"]).toContain(status.status);
+    expect(["running", "finished"]).toContain(status.status);
+    expect(status.totalTurns).toBe(totalTurns);
 
     const terminalStatus = await waitForTerminalStatus(matchDir);
-    expect(["completed", "crashed"]).toContain(terminalStatus.status);
+    expect(terminalStatus.status).toBe("finished");
     expect(existsSync(join(matchDir, "match_summary.json"))).toBe(true);
     expect(existsSync(join(matchDir, "match_manifest.json"))).toBe(true);
     expect(existsSync(join(matchDir, "match.jsonl"))).toBe(true);
@@ -95,7 +99,7 @@ describe("POST /api/matches/start", () => {
     vi.useFakeTimers();
     vi.setSystemTime(now);
     const matchId = buildOperatorMatchId(now, scenario);
-    const matchDir = join(tempDir, matchId);
+    const matchDir = join(tempDir, "matches", matchId);
     mkdirSync(matchDir, { recursive: true });
     writeFileSync(
       join(matchDir, "match_status.json"),
@@ -104,8 +108,11 @@ describe("POST /api/matches/start", () => {
         status: "running",
         scenario,
         agents,
-        seed: 123,
         startedAt: new Date().toISOString(),
+        finishedAt: null,
+        verified: null,
+        totalTurns,
+        currentTurn: null,
       }),
       "utf-8",
     );
@@ -117,9 +124,10 @@ describe("POST /api/matches/start", () => {
     const response = await POST(createStartRequest());
     expect(response.status).toBe(200);
     const payload = (await response.json()) as { matchId: string };
-    const matchDir = join(tempDir, payload.matchId);
+    const matchDir = join(tempDir, "matches", payload.matchId);
     const terminalStatus = await waitForTerminalStatus(matchDir);
-    expect(["completed", "crashed"]).toContain(terminalStatus.status);
+    expect(terminalStatus.status).toBe("finished");
     expect(terminalStatus.finishedAt).toBeDefined();
+    expect(terminalStatus.verified).not.toBeNull();
   });
 });
