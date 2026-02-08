@@ -64,6 +64,13 @@ Real-time distribution:
 3. Platform marks match/tournament as **Verified ✅** (or fail)
 4. Replay is served from stored logs (no downloads required)
 
+## Artifacts: Trust Substrate, Not Product Surface
+Artifacts are the **trust substrate** of HashMatch, not the product surface. The live
+experience happens via URLs and streams, while artifacts are the verifiable receipts that
+answer “what exact code and config produced this result.” Manifests, content hashes, and
+truth bundles are the audit trail that power verification, dispute resolution, and long-term
+archival integrity—even when the primary UX is live.
+
 ## Hidden Info / Spoiler Safety (Live)
 Key principle: **Never send private info to spectators in the first place.**
 
@@ -116,4 +123,3 @@ Acceptance criteria:
 - Receipts are mandatory: verification is built-in, not optional.
 - No spoilers: hidden info stays server-side unless authenticated.
 - Determinism and auditability remain core differentiators.
-

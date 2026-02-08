@@ -123,6 +123,7 @@ Generated show assets are allowed only under strict grounding rules.
 ## 6. Distribution Model
 
 The current implementation is **offline-first**: the core runs without infrastructure, and tournaments are distributed as portable file bundles. The product direction is evolving toward a **live-first platform** where matches run in real time and are watched via URLs (see `hashmatch_live_platform_direction_decision_architecture.md`). Offline artifacts remain valuable as verifiable receipts and archive.
+See “Artifacts: Trust Substrate, Not Product Surface” in `hashmatch_live_platform_direction_decision_architecture.md` for the trust-substrate framing that keeps artifacts central even in a live-first product.
 
 Current distribution:
 

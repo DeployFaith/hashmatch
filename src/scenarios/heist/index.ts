@@ -63,7 +63,7 @@ export type { HeistAction };
 // Defaults
 // ---------------------------------------------------------------------------
 
-const DEFAULT_HEIST_PARAMS: HeistScenarioParams = {
+export const DEFAULT_HEIST_PARAMS: HeistScenarioParams = {
   map: {
     rooms: [
       { id: "room-1", type: "spawn" },

@@ -10,6 +10,7 @@ The goal is:
 * bundles support spectator broadcast packaging
 
 No servers required.
+For product framing on why artifacts remain the trust substrate, see “Artifacts: Trust Substrate, Not Product Surface” in `hashmatch_live_platform_direction_decision_architecture.md`.
 
 ## 1. Packaging Principles
 

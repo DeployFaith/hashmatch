@@ -1,18 +1,39 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import type { AgentId } from "../contract/types.js";
-import { computeArtifactContentHash } from "../core/hash.js";
+import type { AgentId, JsonValue } from "../contract/types.js";
+import { computeArtifactContentHash, hashFile, sha256Hex } from "../core/hash.js";
+import { stableStringify } from "../core/json.js";
+import {
+  DEFAULT_RANGE_MAX,
+  DEFAULT_RANGE_MIN,
+} from "../scenarios/numberGuess/index.js";
+import {
+  DEFAULT_MAX_OBJECTIVES,
+  DEFAULT_MAX_OBJECTIVE_VALUE,
+  DEFAULT_MIN_OBJECTIVES,
+  DEFAULT_MIN_OBJECTIVE_VALUE,
+  DEFAULT_STARTING_RESOURCES,
+} from "../scenarios/resourceRivals/index.js";
+import { DEFAULT_HEIST_PARAMS } from "../scenarios/heist/index.js";
 import type { MatchManifestAgent, MatchManifestScenario, TournamentResult } from "./types.js";
 import { getAgentProvenanceDescriptor } from "./runTournament.js";
 
 const RUNTIME_ROOT = join(process.cwd(), "src");
-const REPO_ROOT = process.cwd();
 const HASH_EXCLUDE_EXTENSIONS = [".d.ts", ".map"];
 
-const SCENARIO_PATHS: Record<string, string> = {
-  numberGuess: "scenarios/numberGuess",
-  resourceRivals: "scenarios/resourceRivals",
-  heist: "scenarios/heist",
+const SCENARIO_PARAMS_BY_KEY: Record<string, JsonValue> = {
+  numberGuess: {
+    rangeMin: DEFAULT_RANGE_MIN,
+    rangeMax: DEFAULT_RANGE_MAX,
+  },
+  resourceRivals: {
+    startingResources: DEFAULT_STARTING_RESOURCES,
+    minObjectives: DEFAULT_MIN_OBJECTIVES,
+    maxObjectives: DEFAULT_MAX_OBJECTIVES,
+    minObjectiveValue: DEFAULT_MIN_OBJECTIVE_VALUE,
+    maxObjectiveValue: DEFAULT_MAX_OBJECTIVE_VALUE,
+  },
+  heist: DEFAULT_HEIST_PARAMS as unknown as JsonValue,
 };
 
 const AGENT_PATHS: Record<string, string> = {
@@ -24,17 +45,13 @@ const AGENT_PATHS: Record<string, string> = {
   "ollama-heist": "agents/ollama",
 };
 
-function resolveDirectoryPath(relativePath: string): string {
-  const fullPath = join(RUNTIME_ROOT, relativePath);
-  if (!existsSync(fullPath)) {
-    throw new Error(`Missing artifact directory: ${fullPath}`);
-  }
-  const stats = statSync(fullPath);
-  if (!stats.isDirectory()) {
-    throw new Error(`Expected directory for artifact hashing: ${fullPath}`);
-  }
-  return relativePath;
-}
+const BUILTIN_AGENT_FILES: Record<string, string> = {
+  random: "agents/randomAgent.ts",
+  baseline: "agents/baselineAgent.ts",
+  noop: "agents/noopAgent.ts",
+  randomBidder: "agents/resourceRivals/randomBidder.ts",
+  conservative: "agents/resourceRivals/conservativeAgent.ts",
+};
 
 function resolveArtifactPath(relativePath: string): string {
   const directPath = join(RUNTIME_ROOT, relativePath);
@@ -55,12 +72,27 @@ function resolveArtifactPath(relativePath: string): string {
   throw new Error(`Missing artifact path: ${directPath}`);
 }
 
-function readPackageVersion(): string {
+function resolveVersionFromMetadata(metadata?: Record<string, JsonValue>): string {
+  if (metadata && typeof metadata.version === "string" && metadata.version.trim().length > 0) {
+    return metadata.version;
+  }
+  return "unversioned";
+}
+
+function resolveScenarioParams(scenarioKey: string): JsonValue {
+  const params = SCENARIO_PARAMS_BY_KEY[scenarioKey];
+  if (!params) {
+    throw new Error(`Missing scenario params mapping for "${scenarioKey}"`);
+  }
+  return params;
+}
+
+function resolveScenarioVersionFromFile(path: string): string {
   try {
-    const raw = readFileSync(join(REPO_ROOT, "package.json"), "utf-8");
-    const parsed = JSON.parse(raw) as { version?: string };
-    if (typeof parsed.version === "string" && parsed.version.trim()) {
-      return parsed.version;
+    const raw = readFileSync(path, "utf-8");
+    const parsed = JSON.parse(raw) as { gameVersion?: unknown };
+    if (typeof parsed.gameVersion === "string" && parsed.gameVersion.trim().length > 0) {
+      return parsed.gameVersion;
     }
   } catch {
     // ignore errors
@@ -76,27 +108,27 @@ export interface MatchManifestProvenance {
 export interface MatchManifestProvenanceConfig {
   scenarioKey: string;
   scenarioName: string;
+  scenarioPath?: string;
   agentKeys: string[];
 }
 
 export async function buildMatchManifestProvenanceFromConfig(
   config: MatchManifestProvenanceConfig,
 ): Promise<MatchManifestProvenance> {
-  const scenarioPath = SCENARIO_PATHS[config.scenarioKey];
-  if (!scenarioPath) {
-    throw new Error(`Missing scenario provenance mapping for "${config.scenarioKey}"`);
+  let scenarioContentHash: string;
+  let scenarioVersion: string;
+  if (config.scenarioPath) {
+    scenarioContentHash = await hashFile(config.scenarioPath);
+    scenarioVersion = resolveScenarioVersionFromFile(config.scenarioPath);
+  } else {
+    const params = resolveScenarioParams(config.scenarioKey);
+    scenarioContentHash = sha256Hex(Buffer.from(stableStringify(params), "utf-8"));
+    scenarioVersion = "unversioned";
   }
-  const scenarioContentHash = await computeArtifactContentHash({
-    rootDir: RUNTIME_ROOT,
-    includePaths: [resolveDirectoryPath(scenarioPath)],
-    excludeExtensions: HASH_EXCLUDE_EXTENSIONS,
-  });
-
-  const artifactVersion = readPackageVersion();
 
   const scenario: MatchManifestScenario = {
     id: config.scenarioName,
-    version: artifactVersion,
+    version: scenarioVersion,
     contractVersion: null,
     contentHash: scenarioContentHash,
   };
@@ -110,15 +142,23 @@ export async function buildMatchManifestProvenanceFromConfig(
     if (!agentPath) {
       throw new Error(`Missing agent provenance mapping for "${agentKey}"`);
     }
-    const contentHash = await computeArtifactContentHash({
-      rootDir: RUNTIME_ROOT,
-      includePaths: [resolveArtifactPath(agentPath)],
-      excludeExtensions: HASH_EXCLUDE_EXTENSIONS,
-    });
+    let contentHash: string;
+    const builtInAgentFile = BUILTIN_AGENT_FILES[agentKey];
+    if (builtInAgentFile) {
+      // Built-in agents are hashed from their single source file (no artifact bundle exists).
+      contentHash = await hashFile(join(RUNTIME_ROOT, builtInAgentFile));
+    } else {
+      contentHash = await computeArtifactContentHash({
+        rootDir: RUNTIME_ROOT,
+        includePaths: [resolveArtifactPath(agentPath)],
+        excludeExtensions: HASH_EXCLUDE_EXTENSIONS,
+      });
+    }
     agentContentHashes.set(agentKey, contentHash);
   }
 
   const agentMetadataByKey = new Map<string, MatchManifestAgent["metadata"]>();
+  const agentVersionByKey = new Map<string, string>();
   for (const agentKey of config.agentKeys) {
     if (agentMetadataByKey.has(agentKey)) {
       continue;
@@ -126,6 +166,9 @@ export async function buildMatchManifestProvenanceFromConfig(
     const descriptor = getAgentProvenanceDescriptor(agentKey);
     if (descriptor?.metadata) {
       agentMetadataByKey.set(agentKey, descriptor.metadata);
+      agentVersionByKey.set(agentKey, resolveVersionFromMetadata(descriptor.metadata));
+    } else {
+      agentVersionByKey.set(agentKey, "unversioned");
     }
   }
 
@@ -137,9 +180,10 @@ export async function buildMatchManifestProvenanceFromConfig(
       throw new Error(`Missing agent hash for "${agentKey}"`);
     }
     const metadata = agentMetadataByKey.get(agentKey);
+    const version = agentVersionByKey.get(agentKey) ?? "unversioned";
     agentsById.set(agentId, {
       id: agentId,
-      version: artifactVersion,
+      version,
       contentHash,
       ...(metadata ? { metadata } : {}),
     });
