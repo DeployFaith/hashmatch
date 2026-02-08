@@ -388,7 +388,7 @@ Dispute outcomes should be logged (who decided what, and why), ideally as signed
 
 ## 12. Implementation Status (Repo Audit)
 
-Last audited: 2026-02-07
+Last audited: 2026-02-08
 
 **Phase A status:**
 
@@ -401,5 +401,6 @@ Last audited: 2026-02-07
 - Verification CLI: ✅ implemented (`verify-match`, `verify-tournament`, `verify-receipt`).
 - Signed receipts: ✅ implemented (`src/core/receipt.ts`, `sign-tournament`).
 - Receipt validation: ✅ implemented (`verify-receipt`).
+- Bundle validation: ✅ implemented (`validate-bundle` CLI with structure, cross-reference, content hash, and signature checks).
 
 **Phase C:** Not started.

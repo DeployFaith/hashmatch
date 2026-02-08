@@ -4,9 +4,9 @@ Competitive agent tournament platform — "UFC for Agents." Deterministic match 
 
 ## Structure
 
-- `Documents/` project documentation (21 spec/design documents)
+- `Documents/` project documentation (30 spec/design documents)
 - `src/` source code (engine, CLI, web UI, scenarios, agents, gateway)
-- `tests/` test suite (39 test files)
+- `tests/` test suite (56 test files)
 - `scenarios/` pre-generated heist scenario presets
 - `examples/` example HTTP agent server
 - `scripts/` build/utility scripts
@@ -138,7 +138,7 @@ Published URL patterns:
 - https://hashmatch.deployfaith.xyz/tournaments/<run_id>/tournament.json
 - https://hashmatch.deployfaith.xyz/tournaments/<run_id>/matches/\*.jsonl (when --writeLogs is used)
 
-Project documentation lives in Documents/.
+Project documentation lives in Documents/. See [QUICKSTART.md](QUICKSTART.md) for a step-by-step developer guide.
 
 ## Verify the signed exhibition bundle
 

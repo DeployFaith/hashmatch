@@ -167,7 +167,7 @@ Hashes follow strict byte-level rules for cross-platform consistency.
 | Deterministic Harness         | ✅ Done                                                   |
 | Replay Viewer MVP             | ✅ Done                                                   |
 | Heist Game Framework          | ✅ Done                                                   |
-| Artifact Packaging            | 🟨 Partial (local registry + bundle validation remaining) |
+| Artifact Packaging            | 🟨 Partial (bundle validation done; local registry remaining) |
 | Receipts + Verification Tools | ✅ Done                                                   |
 | Tournament Operations         | ✬ Not started                                             |
 | Live Broadcast                | ✬ Not started                                             |

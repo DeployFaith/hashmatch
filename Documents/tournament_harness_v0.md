@@ -47,8 +47,8 @@ A matchKey must be stable across machines and runs.
 
 Recommended format:
 
-- `roundIndex:agentAId:agentBId` for round”‘robin
-- `bracketPath:agentAId:agentBId` for bracket
+- `RR:<agentAId>-vs-<agentBId>:round<N>` for round-robin (this is the implemented format)
+- `bracketPath:agentAId:agentBId` for bracket (not yet implemented)
 
 Important:
 
@@ -256,7 +256,7 @@ CLI shape is flexible; artifact outputs are the important contract.
 
 ## 14. Implementation Status (Repo Audit)
 
-Last audited: 2026-02-07
+Last audited: 2026-02-08
 
 The v0 harness is **implemented** in `src/tournament/runTournament.ts` with artifacts written by `src/tournament/artifacts.ts`.
 

@@ -176,7 +176,7 @@ Infrastructure must not be required to run a tournament.
 - Curated presets (`warehouse_breakin`, `prison_escape`, `museum_night`): ✅ `scenarios/heist/` (9 files, 3 seeds per preset)
 - Heist scenario (game rules + scoring): ✅ `src/scenarios/heist/index.ts`
 - Heist competitive runner: ✅ `src/engine/heistCompetitive.ts`
-- Tests (determinism, validation, hard-lock rejection, presets, CLI, competitive runner): ✅ 7 test files (`tests/heist-*.test.ts`)
+- Tests (determinism, validation, hard-lock rejection, presets, CLI, competitive runner, spatial layout, scene reducer, spectator telemetry): ✅ 13 test files (`tests/heist*.test.ts`)
 
 ## Cross”‘Cutting Workstreams
 
@@ -203,7 +203,7 @@ Infrastructure must not be required to run a tournament.
 
 ## Current Status (Confirmed by Repo Audit)
 
-Last audited: 2026-02-07
+Last audited: 2026-02-08
 
 ### Milestone 0 ”” Foundations: ✅ Done
 
@@ -261,13 +261,13 @@ All spec documents are written and checked in under `Documents/`.
 - `highlights.json` generation: ✅ implemented.
 - Scene/storyboard prompts: ✬ not started.
 
-### Milestone 3 ”” Artifact Bundles & Local Registry: 🟨 Partial
+### Milestone 3 "" Artifact Bundles & Local Registry: 🟨 Partial
 
 - Tournament folder output with standard layout: ✅
 - Single-file tournament bundle: ✅ (`--bundle-out`)
 - `broadcast_manifest.json`: ✅ implemented.
+- Bundle validation tooling: ✅ implemented (`src/cli/validate-bundle.ts`, tested in `tests/validate-bundle.test.ts`). Checks structure, cross-references, content hashes, tournament hash, standings, broadcast manifest, and optional signatures.
 - Local registry index: ✬ not implemented.
-- Bundle validation tooling: ✬ not implemented (JSONL validation exists for individual files).
 
 ### Milestone 4 ”” Receipts & Verification Tooling: ✅ Done
 
@@ -293,9 +293,9 @@ See milestone definition above. All items implemented with 7 dedicated test file
 
 ### Cross-Cutting Workstreams
 
-- **Scenario Library:** Three scenarios implemented: NumberGuess (basic), ResourceRivals (hidden-information bidding with `_private` field-level redaction), and Heist (stealth/objective with procedural generation). Five agent types available: random, baseline, noop, randomBidder, conservative. Ollama LLM agent integration exists for heist scenarios.
+- **Scenario Library:** Three scenarios implemented: NumberGuess (basic), ResourceRivals (hidden-information bidding with `_private` field-level redaction), and Heist (stealth/objective with procedural generation). Six agent types available: random, baseline, noop, randomBidder, conservative, ollama-heist. Ollama LLM agent integration exists for heist scenarios.
 - **Safety & Policy:** Mode profiles are defined in docs but not enforced by the harness.
-- **Developer Experience:** HTTP agent example exists (`examples/http-agent/`). No standalone agent templates or quickstart guide yet.
+- **Developer Experience:** HTTP agent example exists (`examples/http-agent/`). Developer quickstart guide at `QUICKSTART.md`.
 
 ## Status Notes
 

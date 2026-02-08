@@ -40,8 +40,8 @@ src/
   scenarios/      Scenario implementations (numberGuess, heist, resourceRivals)
   server/         Backend match management (runner, artifacts, storage)
   tournament/     Tournament orchestration (runTournament, artifacts, provenance, types)
-tests/            Test files using Vitest (*.test.ts) — 39 test files
-Documents/        Project documentation (21 spec/design documents)
+tests/            Test files using Vitest (*.test.ts) — 56 test files
+Documents/        Project documentation (30 spec/design documents)
 scripts/          Build/utility scripts (gen-sample-replay, validate-jsonl, shell scripts)
 scenarios/        Pre-generated heist scenario files (9 presets)
 examples/         Example HTTP agent server

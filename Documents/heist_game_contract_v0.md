@@ -193,7 +193,7 @@ TypeScript types will be defined in `src/games/heist/types.ts`.
 
 ## 14. Implementation Status (Repo Audit)
 
-Last audited: 2026-02-07
+Last audited: 2026-02-08
 
 The Heist game framework is **fully implemented**.
 
@@ -208,7 +208,7 @@ The Heist game framework is **fully implemented**.
 | CLI: `scenario gen\|validate\|preview\|describe` | ✅     | `src/cli/scenario.ts`                                           |
 | Curated presets (3 themes × 3 seeds)             | ✅     | `scenarios/heist/` (9 files)                                    |
 | Ollama LLM agent adapter                         | ✅     | `src/agents/ollama/heistAdapter.ts`                             |
-| Tests                                            | ✅     | 7 files: `tests/heist-*.test.ts`                                |
+| Tests                                            | ✅     | 13 files: `tests/heist*.test.ts` (including competitive runner, decoder, spatial layout, scene reducer, spectator telemetry) |
 
 ### Differences from this spec
 

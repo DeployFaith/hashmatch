@@ -159,10 +159,11 @@ Additional fields depend on event type; see §5.2.
 | `TurnStarted`        | `turn`                                                                                   |
 | `ObservationEmitted` | `agentId`, `turn`, `observation`                                                         |
 | `ActionSubmitted`    | `agentId`, `turn`, `action`                                                              |
-| `ActionAdjudicated`  | `agentId`, `turn`, `valid`, `feedback`                                                   |
-| `StateUpdated`       | `turn`, `summary`                                                                        |
-| `AgentError`         | `agentId`, `turn`, `message`                                                             |
-| `MatchEnded`         | `reason` (`"completed"` or `"maxTurnsReached"`), `scores`, `turns`, optional `details`   |
+| `ActionAdjudicated`  | `agentId`, `turn`, `valid`, `feedback`                                                                            |
+| `AgentRawOutput`     | `agentId`, `turn`, `rawOutput`, `sha256`, `bytes`                                                                 |
+| `StateUpdated`       | `turn`, `summary`                                                                                                 |
+| `AgentError`         | `agentId`, `turn`, `message`                                                                                      |
+| `MatchEnded`         | `reason` (`"completed"`, `"maxTurnsReached"`, or `"agentForfeited"`), `scores`, `turns`, optional `details`       |
 
 Scenarios may define additional event types. The viewer treats unrecognized types as "unknown" and renders them with a raw JSON fallback.
 

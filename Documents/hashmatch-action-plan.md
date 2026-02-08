@@ -12,7 +12,7 @@
 
 The project has a working core loop: a deterministic tournament harness runs round-robin matches, writes structured output folders, and an interactive web replay viewer renders them with spoiler protection, redaction modes, and filtering. Three scenarios (NumberGuess, ResourceRivals, Heist) and multiple agents (random, baseline, noop, randomBidder, conservative, ollama) exist. Twenty-one design documents define the full system architecture.
 
-What's remaining: signed receipts, bundle validation/local registry tooling, scene/storyboard prompts (show layer), tournament operations, and online infrastructure.
+What's remaining: local registry tooling, scene/storyboard prompts (show layer), tournament operations, and online infrastructure. Signed receipts and bundle validation are now implemented.
 
 The plan below is ordered by dependency and strategic value. It begins with decisions that must be locked before any code ships, then sequences implementation work with explicit parallelism where safe.
 
@@ -500,8 +500,8 @@ At the end of this plan:
 | Trust Foundation  | Every match has a manifest + hashes, verify CLI gives pass/fail        | ✅ Done                                                                            |
 | Scenario #2       | Hidden-info scenario runs in tournaments, exercises redaction pipeline | ✅ Done (ResourceRivals + Heist)                                                   |
 | Watchability      | Moments detect score swings/blunders/reversals, viewer can auto-play   | ✅ Done                                                                            |
-| Packaging         | Broadcast bundles are self-describing, validated, and shareable        | 🟨 Partial (broadcast manifest done; local registry + bundle validation remaining) |
-| Developer On-Ramp | A stranger can build an agent and run it locally from the README       | ✬ Not started                                                                      |
+| Packaging         | Broadcast bundles are self-describing, validated, and shareable        | 🟨 Partial (broadcast manifest + bundle validation done; local registry remaining) |
+| Developer On-Ramp | A stranger can build an agent and run it locally from the README       | 🟨 Partial (QUICKSTART.md created; agent template not yet standalone)               |
 | Fight Night       | A tournament can be packaged and "presented" as an event               | ✬ Not started                                                                      |
 
 ---
@@ -509,7 +509,7 @@ At the end of this plan:
 ## What This Plan Does NOT Cover (Intentionally Deferred)
 
 - Bracket/single-elimination tournament formats (round-robin is sufficient for now)
-- Signed receipts / organizer keys (hashes first, signatures later)
+- ~~Signed receipts / organizer keys~~ — implemented (`sign-tournament`, `verify-receipt`)
 - Mode profile enforcement by the harness (designed but not blocking)
 - Public anchoring / ledger integration (explicitly future)
 - Economy / prize pools (trust must be solid first)

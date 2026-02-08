@@ -2,9 +2,9 @@
 
 ## Project Structure & Module Organization
 
-- `Documents/` contains project documentation (21 spec/design documents).
+- `Documents/` contains project documentation (30 spec/design documents).
 - `src/` holds TypeScript source code with modules for engine, CLI, web UI, scenarios, agents, gateway, and game frameworks.
-- `tests/` contains Vitest test files (39 files). Use `*.test.ts` naming.
+- `tests/` contains Vitest test files (56 files). Use `*.test.ts` naming.
 - `scenarios/` contains pre-generated heist scenario presets.
 - `examples/` contains an HTTP agent server example.
 - `scripts/` is reserved for repo automation.

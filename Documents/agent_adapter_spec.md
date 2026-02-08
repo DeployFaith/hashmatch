@@ -340,16 +340,17 @@ Agents need to know what games exist and what their observation/action schemas l
 ### CLI (Local)
 
 ```bash
-# List available scenarios
-hm scenario list
+# Generate a heist scenario from a preset
+npm run build:engine && node dist/cli/scenario.js gen --game heist --preset warehouse_breakin --seed 42 --out /tmp/heist
 
-# Describe a scenario's contract
-hm scenario describe heist
+# Validate a generated scenario
+node dist/cli/scenario.js validate --path /tmp/heist/scenario.json
 
-# Generate and preview a scenario instance
-hm scenario gen heist --preset normal --seed 42
-hm scenario preview heist --preset normal --seed 42
+# Preview/describe a scenario
+node dist/cli/scenario.js preview --path /tmp/heist/scenario.json
 ```
+
+> **Note:** The scenario CLI currently supports operations on Heist scenarios (gen, validate, preview/describe, debug-view, layout-report). Scenario listing and schema introspection are planned for a future release.
 
 ### API (Future — Live Platform)
 
