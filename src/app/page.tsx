@@ -8,12 +8,12 @@ import { BuilderFooter } from "@/components/home/BuilderFooter";
 
 export default function HomePage() {
   return (
-    <div>
+    <>
       <Hero />
       <MomentsStrip />
       <RecentMatches />
       <TrustReceipt />
       <BuilderFooter />
-    </div>
+    </>
   );
 }
