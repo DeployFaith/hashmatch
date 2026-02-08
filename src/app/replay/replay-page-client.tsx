@@ -29,6 +29,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AgentCard } from "@/components/AgentCard";
+import { MomentsPanel } from "@/components/MomentsPanel";
+import { getMomentStyle } from "@/components/MomentChip";
 import { cn } from "@/lib/utils";
 import { parseJsonl } from "@/lib/replay/parseJsonl";
 import type { ReplayEvent, ParseError } from "@/lib/replay/parseJsonl";
@@ -166,52 +168,9 @@ const AUTOPLAY_SPEEDS = [
 
 type AutoplaySpeedIdx = 0 | 1 | 2 | 3 | 4;
 
-/** Styling for the 6 moment types. */
-const momentTypeStyles: Record<string, { badge: string; bg: string }> = {
-  score_swing: {
-    badge: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    bg: "border-amber-500/20",
-  },
-  lead_change: {
-    badge: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    bg: "border-blue-500/20",
-  },
-  comeback: {
-    badge: "bg-green-500/20 text-green-400 border-green-500/30",
-    bg: "border-green-500/20",
-  },
-  blunder: { badge: "bg-red-500/20 text-red-400 border-red-500/30", bg: "border-red-500/20" },
-  clutch: {
-    badge: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-    bg: "border-purple-500/20",
-  },
-  close_call: {
-    badge: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
-    bg: "border-cyan-500/20",
-  },
-};
-
-/** Return a safe description for a moment in spectator mode (no private leaks). */
-function safeMomentDescription(moment: ReplayMoment, spoilers: boolean): string {
-  if (spoilers && moment.description) {
-    return moment.description;
-  }
-  // In spectator mode, show type + involved agents if available, but not scores or private data.
-  const agentId =
-    typeof moment.signals.agentId === "string"
-      ? moment.signals.agentId
-      : typeof moment.signals.winner === "string"
-        ? moment.signals.winner
-        : typeof moment.signals.newLeader === "string"
-          ? moment.signals.newLeader
-          : null;
-  const turnInfo =
-    typeof moment.signals.decisiveTurn === "number"
-      ? ` at turn ${moment.signals.decisiveTurn}`
-      : "";
-  const suffix = agentId ? ` — ${agentId}${turnInfo}` : turnInfo;
-  return `${moment.label}${suffix}`;
-}
+// Moment type styles are now provided by MomentChip.tsx via getMomentStyle().
+// The canonical color mapping (score_swing→orange, lead_change→blue, comeback→green,
+// blunder→red, clutch→gold, close_call→purple, unknown→gray) is enforced there.
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1625,6 +1584,19 @@ function ReplayViewer({
   // Derive if spoilers is effectively active (director mode forces it)
   const effectiveSpoilers = spoilers || viewerMode === "director";
 
+  // Scenario/stakes header data — derived from MatchStarted event
+  const scenarioInfo = useMemo(() => {
+    const matchStarted = events.find((e) => e.type === "MatchStarted");
+    if (!matchStarted) {
+      return { scenarioName: null, maxTurns: null };
+    }
+    const scenarioName =
+      typeof matchStarted.raw.scenarioName === "string" ? matchStarted.raw.scenarioName : null;
+    const maxTurns =
+      typeof matchStarted.raw.maxTurns === "number" ? matchStarted.raw.maxTurns : null;
+    return { scenarioName, maxTurns };
+  }, [events]);
+
   useEffect(() => {
     if (lockSensitiveControls) {
       setViewerMode("spectator");
@@ -1816,6 +1788,28 @@ function ReplayViewer({
         </div>
       )}
 
+      {/* Scenario/Stakes header */}
+      <div className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm">
+        <span className="font-medium">{scenarioInfo.scenarioName ?? "Unknown Scenario"}</span>
+        <span className="text-muted-foreground">{"\u00B7"}</span>
+        <span className="text-muted-foreground font-mono text-xs">
+          Turn {currentTurn ?? "\u2014"} / {scenarioInfo.maxTurns ?? "\u2014"}
+        </span>
+        {activeMoment && (
+          <>
+            <span className="text-muted-foreground">{"\u00B7"}</span>
+            <span
+              className={cn(
+                "inline-block rounded px-1.5 py-0 text-[10px] font-medium border",
+                getMomentStyle(activeMoment.type).badge,
+              )}
+            >
+              {activeMoment.type.replace(/_/g, " ")}
+            </span>
+          </>
+        )}
+      </div>
+
       {/* Filters */}
       <div className="flex items-center gap-3">
         <ReplayFilterBar events={events} filters={filters} onFiltersChange={setFilters} />
@@ -1834,53 +1828,13 @@ function ReplayViewer({
             <h2 className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Moments
             </h2>
-            {moments.length === 0 ? (
-              <p className="text-xs text-muted-foreground">
-                No moments detected for this replay yet.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {moments.map((moment) => {
-                  const isActive = moment.id === activeMoment?.id;
-                  const range = momentRanges.get(moment.id);
-                  const style = momentTypeStyles[moment.type] ?? {
-                    badge: "bg-muted text-muted-foreground border-border",
-                    bg: "border-border",
-                  };
-                  return (
-                    <button
-                      key={moment.id}
-                      type="button"
-                      onClick={() => jumpToMoment(moment)}
-                      className={cn(
-                        "w-full rounded-md border px-2 py-1.5 text-left text-xs transition",
-                        "hover:bg-muted/40",
-                        isActive ? "border-primary/40 bg-primary/10 text-primary" : style.bg,
-                      )}
-                    >
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span
-                          className={cn(
-                            "inline-block rounded px-1 py-0 text-[9px] font-medium border",
-                            style.badge,
-                          )}
-                        >
-                          {moment.type.replace(/_/g, " ")}
-                        </span>
-                      </div>
-                      <p className="font-medium">
-                        {safeMomentDescription(moment, effectiveSpoilers)}
-                      </p>
-                      <p className="text-[0.7rem] text-muted-foreground">
-                        {range
-                          ? `Events ${range.startEventIdx + 1}\u2013${range.endEventIdx + 1}`
-                          : `Seq ${moment.startSeq}\u2013${moment.endSeq}`}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            <MomentsPanel
+              moments={moments}
+              momentRanges={momentRanges}
+              onSelectMoment={jumpToMoment}
+              activeMomentId={activeMoment?.id}
+              spoilers={effectiveSpoilers}
+            />
           </div>
 
           <div className="border-t border-border pt-3">
