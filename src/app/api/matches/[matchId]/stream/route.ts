@@ -14,11 +14,18 @@ const TAIL_POLL_INTERVAL_MS = 300;
 const STATUS_POLL_INTERVAL_MS = 1_000;
 const BROADCAST_MATCH_PHASE: MatchPhase = "live";
 
-type MatchStatusState = "running" | "complete" | "incomplete" | "failed";
+type MatchStatusState =
+  | "running"
+  | "complete"
+  | "incomplete"
+  | "failed"
+  | "completed"
+  | "crashed";
 interface MatchStatus {
   status: MatchStatusState;
   startedAt: string;
   endedAt?: string;
+  finishedAt?: string;
   error?: string;
 }
 
@@ -208,8 +215,9 @@ async function streamMatchEvents(ctx: StreamContext, matchDir: string, lastEvent
   }
 
   if (status.status !== "running") {
-    if (status.status === "complete") {
-      enqueueEvent(ctx, "match_end", { status: status.status, endedAt: status.endedAt ?? null });
+    const endedAt = status.finishedAt ?? status.endedAt ?? null;
+    if (status.status === "complete" || status.status === "completed") {
+      enqueueEvent(ctx, "match_end", { status: status.status, endedAt });
     } else {
       enqueueEvent(ctx, "error", { status: status.status, error: status.error ?? null });
     }

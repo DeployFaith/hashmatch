@@ -15,12 +15,24 @@ export interface MatchSummaryRecord {
   hashes?: MatchSummaryHashes;
 }
 
-export type MatchStatusState = "running" | "complete" | "incomplete" | "failed";
+export type MatchStatusState =
+  | "running"
+  | "complete"
+  | "incomplete"
+  | "failed"
+  | "completed"
+  | "crashed";
 
 export interface MatchStatusRecord {
+  matchId?: string;
   status: MatchStatusState;
+  scenario?: string;
+  agents?: string[];
+  seed?: number;
   startedAt: string;
   endedAt?: string;
+  finishedAt?: string;
+  exitCode?: number;
   error?: string;
 }
 

@@ -9,6 +9,7 @@ import { createHttpAdapter } from "../gateway/httpAdapter.js";
 import { createTranscriptWriter } from "../gateway/transcript.js";
 import type { GatewayRuntimeConfig } from "../gateway/runtime.js";
 import { getScenarioFactory, getAgentFactory } from "../tournament/runTournament.js";
+import { writeMatchArtifacts } from "../server/matchArtifacts.js";
 
 // ---------------------------------------------------------------------------
 // Arg parsing
@@ -19,6 +20,9 @@ interface MatchCliArgs {
   seed: number;
   turns: number;
   out?: string;
+  outDir?: string;
+  matchId?: string;
+  agents?: string[];
   agentA: string;
   agentB: string;
   agentAProvided: boolean;
@@ -38,6 +42,9 @@ Options:
   --scenario <name>        Scenario to run (default: numberGuess)
   --seed <number>          RNG seed (default: 42)
   --turns <number>         Max turns (default: 20)
+  --outDir <path>          Write match artifacts to a directory
+  --matchId <id>           Override match id (default: derived from seed)
+  --agents <list>          Comma-separated agent keys (overrides agentA/B)
   --agentA <name>          Agent A id (default: scenario-specific)
   --agentB <name>          Agent B id (default: scenario-specific)
   --out <path>             Write JSONL events to a file
@@ -63,6 +70,9 @@ export function parseArgs(argv: string[]): MatchCliArgs {
   let seed = 42;
   let turns = 20;
   let out: string | undefined;
+  let outDir: string | undefined;
+  let matchId: string | undefined;
+  let agents: string[] | undefined;
   let agentA = "random";
   let agentB = "baseline";
   let agentAProvided = false;
@@ -84,6 +94,15 @@ export function parseArgs(argv: string[]): MatchCliArgs {
       turns = parseInt(argv[++i], 10);
     } else if (arg === "--out" && i + 1 < argv.length) {
       out = argv[++i];
+    } else if ((arg === "--outDir" || arg === "--out-dir") && i + 1 < argv.length) {
+      outDir = argv[++i];
+    } else if (arg === "--matchId" && i + 1 < argv.length) {
+      matchId = argv[++i];
+    } else if (arg === "--agents" && i + 1 < argv.length) {
+      agents = argv[++i]
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0);
     } else if (arg === "--agentA" && i + 1 < argv.length) {
       agentA = argv[++i];
       agentAProvided = true;
@@ -118,6 +137,9 @@ export function parseArgs(argv: string[]): MatchCliArgs {
     agentB,
     agentAProvided,
     agentBProvided,
+    outDir,
+    matchId,
+    agents,
     gateway,
     agentUrls,
     emitProvenance,
@@ -198,8 +220,15 @@ function tryReadEngineVersion(): string | undefined {
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const resolvedAgents = resolveAgentDefaults(args);
+  const agentKeys = args.agents?.length ? args.agents : [resolvedAgents.agentA, resolvedAgents.agentB];
 
-  if (resolvedAgents.warning) {
+  if (args.agents?.length === 0) {
+    // eslint-disable-next-line no-console
+    console.error("Error: --agents must include at least one agent key.");
+    process.exit(1);
+  }
+
+  if (resolvedAgents.warning && !args.agents?.length) {
     // eslint-disable-next-line no-console
     console.warn(resolvedAgents.warning);
   }
@@ -215,28 +244,25 @@ async function main(): Promise<void> {
   }
 
   // Validate agents
-  let agentAFactory;
-  let agentBFactory;
-  try {
-    agentAFactory = getAgentFactory(resolvedAgents.agentA);
-  } catch (err: unknown) {
-    // eslint-disable-next-line no-console
-    console.error(err instanceof Error ? err.message : String(err));
-    process.exit(1);
-  }
-  try {
-    agentBFactory = getAgentFactory(resolvedAgents.agentB);
-  } catch (err: unknown) {
-    // eslint-disable-next-line no-console
-    console.error(err instanceof Error ? err.message : String(err));
-    process.exit(1);
+  const agentFactories = new Map<string, ReturnType<typeof getAgentFactory>>();
+  for (const key of agentKeys) {
+    try {
+      agentFactories.set(key, getAgentFactory(key));
+    } catch (err: unknown) {
+      // eslint-disable-next-line no-console
+      console.error(err instanceof Error ? err.message : String(err));
+      process.exit(1);
+    }
   }
 
   const scenario = scenarioFactory();
-  const agents = [
-    agentAFactory(`${resolvedAgents.agentA}-0`),
-    agentBFactory(`${resolvedAgents.agentB}-1`),
-  ];
+  const agents = agentKeys.map((key, index) => {
+    const factory = agentFactories.get(key);
+    if (!factory) {
+      throw new Error(`Missing agent factory for "${key}"`);
+    }
+    return factory(`${key}-${index}`);
+  });
 
   // Opt-in provenance: only include if explicitly requested AND at least one field resolves.
   let provenance:
@@ -264,6 +290,12 @@ async function main(): Promise<void> {
   }
 
   let result;
+  const matchConfig = {
+    seed: args.seed,
+    maxTurns: args.turns,
+    ...(provenance ? { provenance } : {}),
+    ...(args.matchId ? { matchId: args.matchId } : {}),
+  };
   if (args.gateway) {
     const outDir = args.out ? dirname(args.out) : process.cwd();
     const gatewayDefaults = {
@@ -288,32 +320,37 @@ async function main(): Promise<void> {
         : {}),
     };
 
-    result = await runMatchWithGateway(
-      scenario,
-      agents,
-      {
-        seed: args.seed,
-        maxTurns: args.turns,
-        ...(provenance ? { provenance } : {}),
-      },
-      gatewayConfig,
-    );
+    result = await runMatchWithGateway(scenario, agents, matchConfig, gatewayConfig);
   } else {
-    result = await runMatch(scenario, agents, {
-      seed: args.seed,
-      maxTurns: args.turns,
-      ...(provenance ? { provenance } : {}),
-    });
+    result = await runMatch(scenario, agents, matchConfig);
   }
 
   const lines = toStableJsonl(result.events);
+  const lastEvent = result.events[result.events.length - 1];
+  const reason = lastEvent?.type === "MatchEnded" ? lastEvent.reason : "unknown";
+
+  if (args.outDir) {
+    await writeMatchArtifacts({
+      matchId: result.matchId,
+      scenarioName: scenario.name,
+      scenarioKey: args.scenario,
+      agentKeys,
+      seed: args.seed,
+      maxTurns: args.turns,
+      events: result.events,
+      scores: result.scores,
+      turns: result.turns,
+      reason,
+      matchDir: args.outDir,
+    });
+  }
 
   if (args.out) {
     mkdirSync(dirname(args.out), { recursive: true });
     writeFileSync(args.out, lines, "utf-8");
     // eslint-disable-next-line no-console
     console.error(`Wrote ${result.events.length} events to ${args.out}`);
-  } else {
+  } else if (!args.outDir) {
     process.stdout.write(lines);
   }
 }
