@@ -103,6 +103,17 @@ export const ActionAdjudicatedSchema = z
   })
   .passthrough();
 
+export const InvalidActionSchema = z
+  .object({
+    ...BaseFields,
+    type: z.literal("InvalidAction"),
+    agentId: z.string(),
+    turn: z.number().int(),
+    reason: z.string(),
+    attemptedAction: z.record(z.string(), JsonValueSchema).nullable(),
+  })
+  .passthrough();
+
 export const StateUpdatedSchema = z
   .object({
     ...BaseFields,
@@ -140,6 +151,7 @@ export const MatchEventSchema = z.union([
   ActionSubmittedSchema,
   AgentRawOutputSchema,
   ActionAdjudicatedSchema,
+  InvalidActionSchema,
   StateUpdatedSchema,
   AgentErrorSchema,
   MatchEndedSchema,

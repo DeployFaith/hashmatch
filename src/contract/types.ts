@@ -90,6 +90,14 @@ export interface ActionAdjudicatedEvent extends BaseEvent {
   chosenAction: JsonValue;
 }
 
+export interface InvalidActionEvent extends BaseEvent {
+  type: "InvalidAction";
+  agentId: AgentId;
+  turn: number;
+  reason: string;
+  attemptedAction: Record<string, JsonValue> | null;
+}
+
 export interface StateUpdatedEvent extends BaseEvent {
   type: "StateUpdated";
   turn: number;
@@ -121,6 +129,7 @@ export type MatchEvent =
   | ActionSubmittedEvent
   | AgentRawOutputEvent
   | ActionAdjudicatedEvent
+  | InvalidActionEvent
   | StateUpdatedEvent
   | AgentErrorEvent
   | MatchEndedEvent;

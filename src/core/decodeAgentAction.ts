@@ -5,6 +5,7 @@ export interface DecodeResult<T> {
   ok: boolean;
   action: T | null;
   fallbackAction: T | null;
+  candidate: unknown | null;
   method: NormalizationMethod;
   rawSha256: string;
   warnings: string[];
@@ -186,6 +187,7 @@ export function decodeAgentAction<T>(
       ok: false,
       action: null,
       fallbackAction: fallback,
+      candidate: null,
       method: "failed",
       rawSha256,
       warnings,
@@ -208,6 +210,7 @@ export function decodeAgentAction<T>(
       ok: true,
       action: result.data,
       fallbackAction: null,
+      candidate,
       method,
       rawSha256,
       warnings,
@@ -220,6 +223,7 @@ export function decodeAgentAction<T>(
     ok: false,
     action: null,
     fallbackAction: fallback,
+    candidate,
     method,
     rawSha256,
     warnings,

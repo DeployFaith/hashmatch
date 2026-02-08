@@ -42,6 +42,7 @@ function mapEventType(type: string): EventType {
     TurnStarted: "turn_started",
     ActionSubmitted: "action_submitted",
     ActionAdjudicated: "action_adjudicated",
+    InvalidAction: "action_adjudicated",
     StateUpdated: "state_updated",
     AgentError: "agent_error",
     ObservationEmitted: "observation_emitted",
@@ -55,6 +56,9 @@ function deriveSeverity(event: ParsedMatchEvent): Severity {
     return "error";
   }
   if (event.type === "ActionAdjudicated" && !event.valid) {
+    return "warning";
+  }
+  if (event.type === "InvalidAction") {
     return "warning";
   }
   if (event.type === "MatchEnded") {
@@ -83,6 +87,8 @@ function summarize(event: ParsedMatchEvent): string {
       const mark = event.valid ? "valid" : "INVALID";
       return `[${event.agentId}] action ${mark}: ${truncateJson(event.feedback, 80)}`;
     }
+    case "InvalidAction":
+      return `[${event.agentId}] invalid action: ${truncateJson(event.reason, 80)}`;
     case "StateUpdated":
       return `State updated: ${truncateJson(event.summary, 80)}`;
     case "AgentError":
@@ -109,6 +115,10 @@ function detailize(event: ParsedMatchEvent): string | undefined {
           : undefined;
     case "ActionAdjudicated":
       return `Feedback: ${truncateJson(event.feedback, 200)}`;
+    case "InvalidAction":
+      return event.attemptedAction
+        ? `Attempted action: ${truncateJson(event.attemptedAction, 200)}`
+        : undefined;
     case "StateUpdated":
       return `Full state: ${truncateJson(event.summary, 200)}`;
     case "MatchEnded":

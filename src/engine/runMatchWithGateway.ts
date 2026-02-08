@@ -12,6 +12,7 @@ import { createLocalAdapter } from "../gateway/localAdapter.js";
 import type { GatewayObservationRequest } from "../gateway/types.js";
 import type { GatewayRuntimeConfig } from "../gateway/runtime.js";
 import { combineHeistRuns } from "./heistCompetitive.js";
+import { buildInvalidActionDetails } from "./invalidAction.js";
 import { generateMatchId } from "./matchId.js";
 import { resolveMaxConsecutiveTimeouts, resolveMaxTurnTimeMs } from "./turnTimeout.js";
 
@@ -282,6 +283,16 @@ async function runMatchWithGatewayStandard<TState, TObs, TAct>(
         fallbackReason: actionForensics?.fallbackReason ?? null,
         chosenAction: chosenAction as JsonValue,
       });
+      const invalidDetails = buildInvalidActionDetails(chosenAction, actionForensics, result);
+      if (invalidDetails) {
+        emit(events, seq, matchId, {
+          type: "InvalidAction",
+          agentId: agent.id,
+          turn,
+          reason: invalidDetails.reason,
+          attemptedAction: invalidDetails.attemptedAction,
+        });
+      }
 
       state = result.state;
 

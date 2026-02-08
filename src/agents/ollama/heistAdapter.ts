@@ -1,4 +1,5 @@
 import type { HeistAction, HeistObservation } from "../../scenarios/heist/index.js";
+import { z } from "zod";
 import { DEFAULT_UNWRAP_PATHS, decodeAgentAction } from "../../core/decodeAgentAction.js";
 import { attachActionForensics } from "../../core/agentActionMetadata.js";
 import { HeistActionSchema } from "../../games/heist/types.js";
@@ -30,6 +31,85 @@ Response: {"type":"move","toRoomId":"room-1"}
 Respond with ONLY a JSON object. No explanation, no markdown, no backticks.`;
 
 const fallbackAction: HeistAction = { type: "wait" };
+
+const moveActionSchema = z
+  .object({
+    type: z.literal("move"),
+    toRoomId: z.string().min(1).optional(),
+    target: z.string().min(1).optional(),
+    targetRoomId: z.string().min(1).optional(),
+  })
+  .refine((data) => Boolean(data.toRoomId || data.target || data.targetRoomId), {
+    message: "Move action requires a target room.",
+  });
+
+const pickupActionSchema = z
+  .object({
+    type: z.literal("pickup"),
+    itemId: z.string().min(1).optional(),
+    item: z.string().min(1).optional(),
+  })
+  .refine((data) => Boolean(data.itemId || data.item), {
+    message: "Pickup action requires an item id.",
+  });
+
+const useTerminalActionSchema = z
+  .object({
+    type: z.literal("use_terminal"),
+    terminalId: z.string().min(1).optional(),
+    target: z.string().min(1).optional(),
+    targetEntityId: z.string().min(1).optional(),
+  })
+  .refine((data) => Boolean(data.terminalId || data.target || data.targetEntityId), {
+    message: "Use terminal action requires a terminal id.",
+  });
+
+const interactActionSchema = z
+  .object({
+    type: z.literal("interact"),
+    target: z.string().min(1).optional(),
+    targetEntityId: z.string().min(1).optional(),
+  })
+  .refine((data) => Boolean(data.target || data.targetEntityId), {
+    message: "Interact action requires a target entity id.",
+  });
+
+const useActionSchema = z
+  .object({
+    type: z.literal("use"),
+    item: z.string().min(1).optional(),
+    itemId: z.string().min(1).optional(),
+    target: z.string().min(1).optional(),
+    targetEntityId: z.string().min(1).optional(),
+  })
+  .refine((data) => Boolean(data.item || data.itemId || data.target || data.targetEntityId), {
+    message: "Use action requires at least an item or target.",
+  });
+
+const useItemActionSchema = z
+  .object({
+    type: z.literal("use_item"),
+    item: z.string().min(1).optional(),
+    itemId: z.string().min(1).optional(),
+    target: z.string().min(1).optional(),
+    targetEntityId: z.string().min(1).optional(),
+  })
+  .refine((data) => Boolean(data.item || data.itemId || data.target || data.targetEntityId), {
+    message: "Use item action requires at least an item or target.",
+  });
+
+const looseHeistActionSchema = z.discriminatedUnion("type", [
+  moveActionSchema,
+  pickupActionSchema,
+  useTerminalActionSchema,
+  interactActionSchema,
+  useActionSchema,
+  useItemActionSchema,
+  z.object({ type: z.literal("extract") }),
+  z.object({ type: z.literal("wait") }),
+]);
+
+type LooseHeistAction = z.infer<typeof looseHeistActionSchema>;
 
 function formatItems(items: HeistObservation["visibleItems"] | undefined): string {
   if (!items || items.length === 0) {
@@ -145,13 +225,79 @@ function resolveFallbackAction(observation?: unknown): HeistAction {
   return fallbackAction;
 }
 
+function resolveString(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function normalizeHeistAction(action: LooseHeistAction): HeistAction | null {
+  switch (action.type) {
+    case "move": {
+      const toRoomId =
+        resolveString(action.toRoomId) ??
+        resolveString(action.target) ??
+        resolveString(action.targetRoomId);
+      return toRoomId ? { type: "move", toRoomId } : null;
+    }
+    case "pickup": {
+      const itemId = resolveString(action.itemId) ?? resolveString(action.item);
+      return itemId ? { type: "pickup", itemId } : null;
+    }
+    case "use_terminal": {
+      const terminalId =
+        resolveString(action.terminalId) ??
+        resolveString(action.target) ??
+        resolveString(action.targetEntityId);
+      return terminalId ? { type: "use_terminal", terminalId } : null;
+    }
+    case "interact": {
+      const terminalId =
+        resolveString(action.target) ?? resolveString(action.targetEntityId);
+      return terminalId ? { type: "use_terminal", terminalId } : null;
+    }
+    case "use":
+    case "use_item": {
+      const terminalId =
+        resolveString(action.target) ?? resolveString(action.targetEntityId);
+      return terminalId ? { type: "use_terminal", terminalId } : null;
+    }
+    case "extract":
+      return { type: "extract" };
+    case "wait":
+      return { type: "wait" };
+    default:
+      return null;
+  }
+}
+
 export function parseResponse(text: string, observation?: unknown): HeistAction | null {
   const rawText = typeof text === "string" ? text : "";
   const fallback = resolveFallbackAction(observation);
-  const result = decodeAgentAction(rawText, HeistActionSchema, fallback, {
+  const result = decodeAgentAction(rawText, looseHeistActionSchema, fallback, {
     unwrapPaths: [...DEFAULT_UNWRAP_PATHS, ["response"]],
   });
-  const chosenAction = (result.action ?? result.fallbackAction ?? fallback) as HeistAction;
+  const warnings = [...result.warnings];
+  let fallbackReason = result.fallbackReason;
+  let normalizedAction: HeistAction | null = null;
+
+  if (result.action) {
+    normalizedAction = normalizeHeistAction(result.action);
+    if (!normalizedAction) {
+      warnings.push("Action normalization failed.");
+      fallbackReason ??= "normalization-failed";
+    }
+  }
+
+  const validatedAction = normalizedAction
+    ? HeistActionSchema.safeParse(normalizedAction)
+    : null;
+  if (validatedAction && !validatedAction.success) {
+    warnings.push("Normalized action failed Heist schema validation.");
+    fallbackReason ??= "schema-validation-failed";
+    normalizedAction = null;
+  }
+
+  const chosenAction =
+    (normalizedAction ?? result.fallbackAction ?? fallback) as HeistAction;
   const rawBytes = Buffer.byteLength(rawText, "utf-8");
   const actionWithForensics = { ...chosenAction };
 
@@ -161,9 +307,10 @@ export function parseResponse(text: string, observation?: unknown): HeistAction 
     rawBytes,
     truncated: false,
     method: result.method,
-    warnings: result.warnings,
+    warnings,
     errors: result.errors,
-    fallbackReason: result.fallbackReason,
+    fallbackReason,
+    candidateAction: result.candidate,
     chosenAction,
   });
 }

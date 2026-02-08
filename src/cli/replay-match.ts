@@ -7,6 +7,7 @@ import type {
   MatchEndedEvent,
   ActionSubmittedEvent,
   ActionAdjudicatedEvent,
+  InvalidActionEvent,
   AgentErrorEvent,
   StateUpdatedEvent,
 } from "../contract/types.js";
@@ -22,6 +23,7 @@ const KNOWN_TYPES = new Set([
   "ActionSubmitted",
   "AgentRawOutput",
   "ActionAdjudicated",
+  "InvalidAction",
   "StateUpdated",
   "AgentError",
   "MatchEnded",
@@ -150,6 +152,11 @@ export function renderConsoleRecap(events: MatchEvent[]): string {
       lines.push(`  [${e.agentId}] result: ${mark} — ${truncateJson(e.feedback)}`);
     }
 
+    if (event.type === "InvalidAction") {
+      const e = event as InvalidActionEvent;
+      lines.push(`  [${e.agentId}] INVALID: ${e.reason}`);
+    }
+
     if (event.type === "AgentError") {
       const e = event as AgentErrorEvent;
       lines.push(`  [${e.agentId}] ERROR: ${e.message}`);
@@ -226,6 +233,11 @@ export function renderMarkdownRecap(events: MatchEvent[]): string {
       const e = event as ActionAdjudicatedEvent;
       const mark = e.valid ? "valid" : "**INVALID**";
       lines.push(`  - Result: ${mark} — \`${truncateJson(e.feedback)}\``);
+    }
+
+    if (event.type === "InvalidAction") {
+      const e = event as InvalidActionEvent;
+      lines.push(`  - Invalid action: ${e.reason}`);
     }
 
     if (event.type === "AgentError") {

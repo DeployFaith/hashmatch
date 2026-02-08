@@ -10,6 +10,7 @@ export interface AgentActionForensics<TAction> {
   warnings: string[];
   errors: ZodIssue[] | null;
   fallbackReason: string | null;
+  candidateAction: unknown | null;
   chosenAction: TAction;
 }
 
