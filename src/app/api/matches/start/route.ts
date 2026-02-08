@@ -1,39 +1,95 @@
+import { existsSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { spawn } from "node:child_process";
 import { NextResponse } from "next/server";
-import { z } from "zod";
-import { getAgentFactory, getScenarioFactory } from "@/tournament/runTournament";
-import { startMatchRun } from "@/server/matchRunner";
+import { getMatchStorageRoot } from "@/server/matchStorage";
+import {
+  buildOperatorMatchId,
+  readOperatorMatchStatus,
+  writeOperatorMatchStatus,
+  type OperatorMatchStatus,
+} from "@/server/operatorMatch";
 
-const requestSchema = z
-  .object({
-    scenarioKey: z.string().min(1),
-    agentKeys: z.array(z.string().min(1)).min(2),
-    seed: z.number().int().nonnegative().optional(),
-    turns: z.number().int().positive().optional(),
-    modeKey: z.string().min(1).optional(),
-  })
-  .strict();
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-function validateScenarioKey(scenarioKey: string): string | null {
-  try {
-    getScenarioFactory(scenarioKey);
-    return null;
-  } catch (error: unknown) {
-    return error instanceof Error ? error.message : "Invalid scenario key";
-  }
+const DEFAULT_SEED = 42;
+const DEFAULT_TURNS = 20;
+
+interface StartMatchPayload {
+  scenario: string;
+  agents: string[];
+  seed?: number;
 }
 
-function validateAgentKeys(agentKeys: string[]): string | null {
-  for (const key of agentKeys) {
-    try {
-      getAgentFactory(key);
-    } catch (error: unknown) {
-      return error instanceof Error ? error.message : "Invalid agent key";
-    }
+function isValidSeed(seed: unknown): seed is number {
+  return typeof seed === "number" && Number.isInteger(seed) && seed >= 0;
+}
+
+function parsePayload(payload: unknown): { ok: true; data: StartMatchPayload } | { ok: false; error: string } {
+  if (!payload || typeof payload !== "object") {
+    return { ok: false, error: "Invalid request body" };
   }
-  return null;
+  const record = payload as Record<string, unknown>;
+  const scenario = record.scenario;
+  const agents = record.agents;
+  const seed = record.seed;
+
+  if (typeof scenario !== "string" || scenario.trim().length === 0) {
+    return { ok: false, error: "Scenario is required" };
+  }
+  if (!Array.isArray(agents) || agents.length < 2) {
+    return { ok: false, error: "Agents must include at least two entries" };
+  }
+  if (!agents.every((agent) => typeof agent === "string" && agent.trim().length > 0)) {
+    return { ok: false, error: "Agents must be strings" };
+  }
+  if (seed !== undefined && !isValidSeed(seed)) {
+    return { ok: false, error: "Seed must be a non-negative integer" };
+  }
+
+  return {
+    ok: true,
+    data: {
+      scenario: scenario.trim(),
+      agents: agents.map((agent) => agent.trim()),
+      ...(seed !== undefined ? { seed } : {}),
+    },
+  };
+}
+
+function resolveSeed(seed: StartMatchPayload["seed"]): number {
+  return isValidSeed(seed) ? seed : DEFAULT_SEED;
+}
+
+function createRunnerArgs(
+  matchId: string,
+  payload: StartMatchPayload,
+  outDir: string,
+  seed: number,
+): string[] {
+  return [
+    join(process.cwd(), "dist", "cli", "run-match.js"),
+    "--scenario",
+    payload.scenario,
+    "--seed",
+    String(seed),
+    "--turns",
+    String(DEFAULT_TURNS),
+    "--outDir",
+    outDir,
+    "--matchId",
+    matchId,
+    "--agents",
+    payload.agents.join(","),
+  ];
 }
 
 export async function POST(request: Request): Promise<Response> {
+  if (process.env.HASHMATCH_OPERATOR_MODE !== "true") {
+    return new Response("Not Found", { status: 404 });
+  }
+
   let payload: unknown;
   try {
     payload = await request.json();
@@ -41,30 +97,57 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const parsed = requestSchema.safeParse(payload);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Invalid request body", details: parsed.error.flatten() },
-      { status: 400 },
-    );
+  const parsed = parsePayload(payload);
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const scenarioError = validateScenarioKey(parsed.data.scenarioKey);
-  if (scenarioError) {
-    return NextResponse.json({ error: scenarioError }, { status: 400 });
+  const now = new Date();
+  const matchId = buildOperatorMatchId(now, parsed.data.scenario);
+  const outDir = join(getMatchStorageRoot(), matchId);
+  const statusPath = join(outDir, "match_status.json");
+
+  if (existsSync(outDir)) {
+    const existingStatus = readOperatorMatchStatus(statusPath);
+    if (existingStatus?.status === "running") {
+      return NextResponse.json({ error: "Match is already running" }, { status: 409 });
+    }
   }
 
-  const agentError = validateAgentKeys(parsed.data.agentKeys);
-  if (agentError) {
-    return NextResponse.json({ error: agentError }, { status: 400 });
-  }
+  mkdirSync(outDir, { recursive: true });
 
-  try {
-    const { matchId, matchPath, runPromise } = await startMatchRun(parsed.data);
-    void runPromise;
-    return NextResponse.json({ matchId, status: "started", matchPath });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Failed to start match";
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+  const startedAt = now.toISOString();
+  const seed = resolveSeed(parsed.data.seed);
+  const statusPayload: OperatorMatchStatus = {
+    matchId,
+    status: "running",
+    scenario: parsed.data.scenario,
+    agents: parsed.data.agents,
+    startedAt,
+    seed,
+  };
+  writeOperatorMatchStatus(statusPath, statusPayload);
+
+  const runnerArgs = createRunnerArgs(matchId, parsed.data, outDir, seed);
+  const child = spawn(process.execPath, runnerArgs, {
+    detached: false,
+    stdio: "ignore",
+  });
+
+  const finalizeStatus = (exitCode: number | null, error?: string) => {
+    const latestStatus = readOperatorMatchStatus(statusPath) ?? statusPayload;
+    const finishedAt = new Date().toISOString();
+    writeOperatorMatchStatus(statusPath, {
+      ...latestStatus,
+      status: exitCode === 0 ? "completed" : "crashed",
+      finishedAt,
+      ...(typeof exitCode === "number" ? { exitCode } : {}),
+      ...(error ? { error } : {}),
+    });
+  };
+
+  child.on("exit", (code) => finalizeStatus(code));
+  child.on("error", (error) => finalizeStatus(null, error.message));
+
+  return NextResponse.json({ matchId, status: "started" });
 }

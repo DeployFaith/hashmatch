@@ -2,12 +2,24 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { stableStringify } from "../core/json.js";
 
-export type MatchStatusState = "running" | "complete" | "incomplete" | "failed";
+export type MatchStatusState =
+  | "running"
+  | "complete"
+  | "incomplete"
+  | "failed"
+  | "completed"
+  | "crashed";
 
 export interface MatchStatus {
+  matchId?: string;
   status: MatchStatusState;
+  scenario?: string;
+  agents?: string[];
+  seed?: number;
   startedAt: string;
   endedAt?: string;
+  finishedAt?: string;
+  exitCode?: number;
   error?: string;
 }
 
