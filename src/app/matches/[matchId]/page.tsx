@@ -2,7 +2,12 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { MatchDetailResponse } from "@/lib/matches/types";
+import type {
+  MatchDetailResponse,
+  MatchRunState,
+  MatchRunStatusResponse,
+} from "@/lib/matches/types";
+import { LiveMatchDetail } from "./live-match-detail";
 
 async function fetchMatchDetail(matchId: string): Promise<MatchDetailResponse | null> {
   const headersList = await headers();
@@ -29,6 +34,41 @@ async function fetchMatchDetail(matchId: string): Promise<MatchDetailResponse | 
   }
 }
 
+async function fetchMatchRunStatus(matchId: string): Promise<MatchRunState> {
+  const headersList = await headers();
+  const host = headersList.get("x-forwarded-host") ?? headersList.get("host");
+  if (!host) {
+    return "unknown";
+  }
+  const protocol = headersList.get("x-forwarded-proto") ?? "http";
+
+  try {
+    const response = await fetch(`${protocol}://${host}/api/matches/${matchId}/status`, {
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      return "unknown";
+    }
+    const data = (await response.json()) as MatchRunStatusResponse;
+    return data.status;
+  } catch {
+    return "unknown";
+  }
+}
+
+function normalizeStatusLabel(status: MatchRunState): string {
+  switch (status) {
+    case "running":
+      return "Running";
+    case "completed":
+      return "Completed";
+    case "crashed":
+      return "Crashed";
+    default:
+      return "Unknown";
+  }
+}
+
 export default async function MatchDetailPage({
   params,
 }: {
@@ -36,13 +76,6 @@ export default async function MatchDetailPage({
 }) {
   const { matchId } = await params;
   const match = await fetchMatchDetail(matchId);
-  const verificationStatus = match?.verification?.status;
-  const verificationLabel =
-    verificationStatus === "verified"
-      ? "Verified ✅"
-      : verificationStatus === "failed"
-        ? "Verification failed ❌"
-        : "Unverified";
 
   if (!match) {
     return (
@@ -58,6 +91,25 @@ export default async function MatchDetailPage({
     );
   }
 
+  // Fetch the normalized run status to determine if match is live
+  const runStatus = await fetchMatchRunStatus(matchId);
+
+  // If running, delegate to the live client component
+  if (runStatus === "running") {
+    return <LiveMatchDetail matchId={matchId} initialMatch={match} initialRunStatus={runStatus} />;
+  }
+
+  // Static server-rendered view for completed/crashed/unknown matches
+  const verificationStatus = match.verification?.status;
+  const verificationLabel =
+    verificationStatus === "verified"
+      ? "Verified"
+      : verificationStatus === "failed"
+        ? "Verification failed"
+        : "Unverified";
+
+  const statusLabel = normalizeStatusLabel(runStatus);
+
   return (
     <div className="space-y-6">
       <Link
@@ -68,11 +120,32 @@ export default async function MatchDetailPage({
       </Link>
 
       <div>
-        <h1 className="text-lg font-bold">Match {match.matchId}</h1>
-        <p className="text-sm text-muted-foreground">
-          Scenario: {match.scenarioName ?? "Unknown"}
-        </p>
+        <div className="flex items-center gap-3">
+          <h1 className="text-lg font-bold">Match {match.matchId}</h1>
+          <Badge
+            variant="outline"
+            className={
+              runStatus === "completed"
+                ? "border-green-500/40 text-green-400 text-[10px] uppercase tracking-wider"
+                : runStatus === "crashed"
+                  ? "border-destructive/50 text-destructive text-[10px] uppercase tracking-wider"
+                  : "text-[10px] uppercase tracking-wider"
+            }
+          >
+            {statusLabel}
+          </Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">Scenario: {match.scenarioName ?? "Unknown"}</p>
       </div>
+
+      {runStatus === "crashed" && (
+        <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+          <div>
+            <p className="font-medium">Match crashed</p>
+            <p className="text-xs">The match process terminated unexpectedly.</p>
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -83,7 +156,7 @@ export default async function MatchDetailPage({
             <div>
               <dt className="text-muted-foreground">Status</dt>
               <dd className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
-                {match.status?.status ?? "unknown"}
+                {statusLabel}
               </dd>
             </div>
             <div>
@@ -133,7 +206,7 @@ export default async function MatchDetailPage({
           <ul className="space-y-1 text-sm text-muted-foreground">
             {Object.entries(match.artifacts).map(([label, path]) => (
               <li key={label} className="flex items-center justify-between">
-                <span className="uppercase tracking-wide text-xs">{label}</span>
+                <span className="text-xs uppercase tracking-wide">{label}</span>
                 <span className="font-mono text-foreground">{path}</span>
               </li>
             ))}
