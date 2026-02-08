@@ -14,7 +14,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-const eventIcons: Record<string, React.ElementType> = {
+const eventIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   match_started: Play,
   match_ended: Square,
   turn_started: RotateCcw,
