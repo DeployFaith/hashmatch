@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable, type Column } from "@/components/data-table";
-import { Badge } from "@/components/ui/badge";
+import { AgentCard } from "@/components/AgentCard";
 import type { MatchListItem } from "@/lib/matches/types";
 
 function formatStatus(status?: MatchListItem["status"] | null): string {
@@ -60,11 +60,12 @@ export default function MatchesClient({ matches }: { matches: MatchListItem[] })
       key: "agents",
       header: "Agents",
       render: (row) => (
-        <div className="flex flex-wrap gap-1">
-          {row.summary.agentIds.map((agentId) => (
-            <Badge key={agentId} variant="outline" className="text-xs">
-              {agentId}
-            </Badge>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {row.summary.agentIds.map((agentId, i) => (
+            <span key={agentId} className="flex items-center gap-1.5">
+              {i > 0 && <span className="text-[10px] text-muted-foreground font-medium">vs</span>}
+              <AgentCard name={agentId} variant="compact" />
+            </span>
           ))}
         </div>
       ),

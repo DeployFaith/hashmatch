@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AgentCard } from "@/components/AgentCard";
 import type {
   MatchDetailResponse,
   MatchRunState,
@@ -188,12 +189,20 @@ export default async function MatchDetailPage({
           <CardTitle>Agents</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {match.summary.agentIds.map((agentId) => (
-              <Badge key={agentId} variant="outline" className="text-xs">
-                {agentId}
-              </Badge>
-            ))}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {match.summary.agentIds.map((agentId) => {
+              const profile = match.agentProfiles[agentId];
+              return (
+                <AgentCard
+                  key={agentId}
+                  name={agentId}
+                  type={profile?.type}
+                  record={profile?.record}
+                  score={match.summary.scores[agentId] ?? null}
+                  variant="expanded"
+                />
+              );
+            })}
           </div>
         </CardContent>
       </Card>

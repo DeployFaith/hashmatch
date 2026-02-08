@@ -28,6 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AgentCard } from "@/components/AgentCard";
 import { cn } from "@/lib/utils";
 import { parseJsonl } from "@/lib/replay/parseJsonl";
 import type { ReplayEvent, ParseError } from "@/lib/replay/parseJsonl";
@@ -725,6 +726,9 @@ function Scoreboard({ events, spoilers }: { events: ReplayEvent[]; spoilers: boo
   const matchStarted = events.find((e) => e.type === "MatchStarted");
   const agentIds: string[] = matchStarted ? ((matchStarted.raw.agentIds as string[]) ?? []) : [];
 
+  const scores: Record<string, number> | null =
+    spoilers && matchEnded ? (matchEnded.raw.scores as Record<string, number>) : null;
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -734,34 +738,23 @@ function Scoreboard({ events, spoilers }: { events: ReplayEvent[]; spoilers: boo
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {!matchEnded || !spoilers ? (
-          <div className="space-y-2">
-            {agentIds.map((id) => (
-              <div key={id} className="flex items-center justify-between text-sm">
-                <span className="font-medium">{id}</span>
-                <span className="text-muted-foreground">
-                  {spoilers && !matchEnded ? "In progress" : "Hidden"}
-                </span>
-              </div>
-            ))}
-            {!spoilers && matchEnded && (
-              <p className="text-xs text-muted-foreground italic">
-                Enable spoilers to reveal scores
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {Object.entries(matchEnded.raw.scores as Record<string, number>).map(([id, score]) => (
-              <div key={id} className="flex items-center justify-between text-sm">
-                <span className="font-medium">{id}</span>
-                <Badge variant={score > 0 ? "success" : "secondary"}>{score}</Badge>
-              </div>
-            ))}
-            {typeof matchEnded.raw.reason === "string" && (
-              <p className="text-xs text-muted-foreground">Reason: {matchEnded.raw.reason}</p>
-            )}
-          </div>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {agentIds.map((id) => (
+            <AgentCard
+              key={id}
+              name={id}
+              score={scores ? (scores[id] ?? null) : null}
+              variant="expanded"
+            />
+          ))}
+        </div>
+        {!spoilers && matchEnded && (
+          <p className="mt-2 text-xs text-muted-foreground italic">
+            Enable spoilers to reveal scores
+          </p>
+        )}
+        {spoilers && matchEnded && typeof matchEnded.raw.reason === "string" && (
+          <p className="mt-2 text-xs text-muted-foreground">Reason: {matchEnded.raw.reason}</p>
         )}
       </CardContent>
     </Card>
