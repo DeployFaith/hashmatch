@@ -3,6 +3,10 @@ import type { AgentId } from "../contract/types.js";
 import type { NumberGuessAction, NumberGuessObservation } from "../scenarios/numberGuess/index.js";
 import { randomInt } from "../core/rng.js";
 
+// Scripted deterministic agent (seeded RNG, no LLM call). Category (B): will be
+// migrated to an LLM-backed version once the provider gateway lands — see #125.
+// The scripted version remains as a deterministic regression baseline.
+// Tagged purpose:"test" in the tournament registry; non-publishable.
 /**
  * An agent that picks a random number within the full scenario range each turn.
  * Uses only the seeded RNG provided via context — never Math.random.

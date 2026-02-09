@@ -1,3 +1,7 @@
+// TODO(terminology-alignment): "fixture" here means "static test data" for the
+// UI panel, not a scripted agent. This usage is fine, but the matchId
+// "m_fixture_fm_001" should be renamed to "m_sample_fm_001" to avoid confusion
+// with the agent-fixture terminology being phased out. Category: (A) rename only.
 /**
  * Sample match_summary.json with failureModes block for exercising the
  * Behavior Profile panel in the replay viewer.

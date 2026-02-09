@@ -54,12 +54,32 @@ const scenarioRegistry: Record<string, ScenarioFactory> = {
   resourceRivals: createResourceRivalsScenario,
 };
 
+// All five built-in agents are scripted/deterministic (no LLM provider or
+// model config). They are explicitly tagged as non-publishable test fixtures
+// so the publish pipeline can reject them. Category (B) agents (random,
+// baseline, randomBidder, conservative) will be migrated to LLM-backed
+// versions once the provider gateway lands — see #125.
 const agentRegistry: Record<string, AgentRegistration> = {
-  random: { factory: createRandomAgent },
-  baseline: { factory: createBaselineAgent },
-  noop: { factory: createNoopAgent },
-  randomBidder: { factory: createRandomBidderAgent },
-  conservative: { factory: createConservativeAgent },
+  random: {
+    factory: createRandomAgent,
+    provenance: { metadata: { agentType: "scripted", purpose: "test" } },
+  },
+  baseline: {
+    factory: createBaselineAgent,
+    provenance: { metadata: { agentType: "scripted", purpose: "test" } },
+  },
+  noop: {
+    factory: createNoopAgent,
+    provenance: { metadata: { agentType: "scripted", purpose: "test" } },
+  },
+  randomBidder: {
+    factory: createRandomBidderAgent,
+    provenance: { metadata: { agentType: "scripted", purpose: "test" } },
+  },
+  conservative: {
+    factory: createConservativeAgent,
+    provenance: { metadata: { agentType: "scripted", purpose: "test" } },
+  },
 };
 
 const knownLlmProviders: LlmProvider[] = ["ollama", "openrouter"];

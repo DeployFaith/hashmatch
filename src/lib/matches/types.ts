@@ -81,6 +81,12 @@ export interface MatchListItem {
   summary: MatchSummaryRecord;
 }
 
+// TODO(llm-policy-alignment): The "scripted" bucket conflates two distinct
+// categories: (1) deterministic classifier-regression fixtures that SHOULD stay
+// scripted, and (2) built-in strategy agents (random, baseline, conservative)
+// whose long-term policy is to become LLM-powered. Consider splitting into
+// "scripted:regression" | "scripted:baseline" | "llm" | "http", or adding a
+// sub-category field to AgentProfile.
 export type AgentProfileType = "scripted" | "llm" | "http";
 
 export interface AgentRecord {

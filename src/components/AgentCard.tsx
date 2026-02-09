@@ -6,6 +6,9 @@ import type { AgentProfileType, AgentRecord } from "@/lib/matches/types";
 // AgentTypeBadge — renders a small badge for the agent classification
 // ---------------------------------------------------------------------------
 
+// TODO(llm-policy-alignment): When AgentProfileType is updated to distinguish
+// regression fixtures from baseline scripted agents, update these labels and
+// badge variants accordingly.
 const typeLabels: Record<AgentProfileType, string> = {
   scripted: "Scripted",
   llm: "LLM",

@@ -1,3 +1,7 @@
+// Degenerate behavior profiles — FM classifier regression tests.
+// These tests exercise deterministic degenerate-behavior profiles against the
+// heist scenario to verify that the failure-mode classifier produces correct
+// telemetry. They MUST remain deterministic (category C).
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -10,15 +14,15 @@ import type { HeistAction, HeistObservation } from "../src/scenarios/heist/index
 import type { MatchManifest, MatchSummary } from "../src/tournament/types.js";
 import { writeMatchArtifactsCore } from "../src/tournament/writeMatchArtifacts.js";
 import {
-  createActionSpaceCyclerAgent,
-  createCleanDiverseAgent,
-  createFormatHackerAgent,
-  createInvalidActionAgent,
-  createOutputBloatAgent,
-  createRepeatMalformedAgent,
-  createUglyProfileAgent,
-  createWaitSpamAgent,
-} from "./fixtures/agents/heistFixtureAgents.js";
+  createActionSpaceCyclerProfile,
+  createCleanBaselineProfile,
+  createFormatViolationProfile,
+  createInvalidActionProfile,
+  createOutputBloatProfile,
+  createRepeatMalformedProfile,
+  createCompositeDegenerateProfile,
+  createWaitSpamProfile,
+} from "./fixtures/agents/heistDegenerateProfiles.js";
 
 const FIXED_CREATED_AT = "2024-01-01T00:00:00.000Z";
 
@@ -118,7 +122,7 @@ async function runHeistMatchWithArtifacts(options: {
     reason,
   };
 
-  const matchDir = mkdtempSync(join(tmpdir(), "hashmatch-redteam-"));
+  const matchDir = mkdtempSync(join(tmpdir(), "hashmatch-fm-regression-"));
   await writeMatchArtifactsCore({
     matchDir,
     events: result.events,
@@ -130,9 +134,9 @@ async function runHeistMatchWithArtifacts(options: {
   return { matchDir, agentIds };
 }
 
-describe("Red-team fixture agents (integration)", () => {
+describe("Degenerate behavior profiles (FM classifier regression)", () => {
   it("flags wait spam in truth actions and FM telemetry", async () => {
-    const agents = [createWaitSpamAgent("wait-0"), createWaitSpamAgent("wait-1")];
+    const agents = [createWaitSpamProfile("wait-0"), createWaitSpamProfile("wait-1")];
     const { matchDir, agentIds } = await runHeistMatchWithArtifacts({
       agents,
       maxTurns: 12,
@@ -168,8 +172,8 @@ describe("Red-team fixture agents (integration)", () => {
   });
 
   it("records InvalidAction events and FM-06 for hallucinated action types", async () => {
-    const invalidAgent = createInvalidActionAgent("invalid-0");
-    const cleanAgent = createCleanDiverseAgent("clean-1");
+    const invalidAgent = createInvalidActionProfile("invalid-0");
+    const cleanAgent = createCleanBaselineProfile("clean-1");
     const { matchDir } = await runHeistMatchWithArtifacts({
       agents: [invalidAgent, cleanAgent],
       maxTurns: 6,
@@ -193,8 +197,8 @@ describe("Red-team fixture agents (integration)", () => {
   });
 
   it("flags action-space cycling with FM-16", async () => {
-    const cycler = createActionSpaceCyclerAgent("cycler-0");
-    const cleanAgent = createCleanDiverseAgent("clean-1");
+    const cycler = createActionSpaceCyclerProfile("cycler-0");
+    const cleanAgent = createCleanBaselineProfile("clean-1");
     const { matchDir } = await runHeistMatchWithArtifacts({
       agents: [cycler, cleanAgent],
       maxTurns: 12,
@@ -221,10 +225,10 @@ describe("Red-team fixture agents (integration)", () => {
   });
 
   it("marks fenced JSON outputs with FM-13 telemetry", async () => {
-    const formatHacker = createFormatHackerAgent("format-0");
-    const cleanAgent = createCleanDiverseAgent("clean-1");
+    const formatViolation = createFormatViolationProfile("format-0");
+    const cleanAgent = createCleanBaselineProfile("clean-1");
     const { matchDir } = await runHeistMatchWithArtifacts({
-      agents: [formatHacker, cleanAgent],
+      agents: [formatViolation, cleanAgent],
       maxTurns: 3,
       seed: 29,
     });
@@ -232,19 +236,19 @@ describe("Red-team fixture agents (integration)", () => {
     try {
       const events = readMatchJsonl(matchDir);
       const adjudications = events.filter(
-        (event) => event.type === "ActionAdjudicated" && event.agentId === formatHacker.id,
+        (event) => event.type === "ActionAdjudicated" && event.agentId === formatViolation.id,
       ) as Array<{ method?: string }>;
       expect(adjudications.length).toBeGreaterThan(0);
       for (const adjudication of adjudications) {
         expect(adjudication.method).toBe("fenced-json");
       }
       const rawOutputs = events.filter(
-        (event) => event.type === "AgentRawOutput" && event.agentId === formatHacker.id,
+        (event) => event.type === "AgentRawOutput" && event.agentId === formatViolation.id,
       );
       expect(rawOutputs.length).toBe(adjudications.length);
 
       const summary = readMatchSummary(matchDir);
-      const hits = summary.failureModes?.byAgentId[formatHacker.id] ?? [];
+      const hits = summary.failureModes?.byAgentId[formatViolation.id] ?? [];
       const jsonRecovery = hits.find((hit) => hit.id === "FM-13");
       expect(jsonRecovery?.count).toBe(adjudications.length);
     } finally {
@@ -253,8 +257,8 @@ describe("Red-team fixture agents (integration)", () => {
   });
 
   it("flags truncated agent output with FM-12", async () => {
-    const bloatAgent = createOutputBloatAgent("bloat-0");
-    const cleanAgent = createCleanDiverseAgent("clean-1");
+    const bloatAgent = createOutputBloatProfile("bloat-0");
+    const cleanAgent = createCleanBaselineProfile("clean-1");
     const { matchDir } = await runHeistMatchWithArtifacts({
       agents: [bloatAgent, cleanAgent],
       maxTurns: 3,
@@ -281,8 +285,8 @@ describe("Red-team fixture agents (integration)", () => {
   });
 
   it("keeps malformed output diagnostics deterministic across turns", async () => {
-    const malformed = createRepeatMalformedAgent("malformed-0");
-    const cleanAgent = createCleanDiverseAgent("clean-1");
+    const malformed = createRepeatMalformedProfile("malformed-0");
+    const cleanAgent = createCleanBaselineProfile("clean-1");
     const { matchDir } = await runHeistMatchWithArtifacts({
       agents: [malformed, cleanAgent],
       maxTurns: 2,
@@ -310,18 +314,18 @@ describe("Red-team fixture agents (integration)", () => {
     }
   });
 
-  it("emits non-trivial FM profiles for ugly data", async () => {
-    const uglyAgent = createUglyProfileAgent("ugly-0");
-    const cleanAgent = createCleanDiverseAgent("clean-1");
+  it("emits non-trivial FM profiles for composite degenerate behavior", async () => {
+    const degenerateAgent = createCompositeDegenerateProfile("ugly-0");
+    const cleanAgent = createCleanBaselineProfile("clean-1");
     const { matchDir } = await runHeistMatchWithArtifacts({
-      agents: [uglyAgent, cleanAgent],
+      agents: [degenerateAgent, cleanAgent],
       maxTurns: 6,
       seed: 41,
     });
 
     try {
       const summary = readMatchSummary(matchDir);
-      const hits = summary.failureModes?.byAgentId[uglyAgent.id] ?? [];
+      const hits = summary.failureModes?.byAgentId[degenerateAgent.id] ?? [];
       const hitIds = new Set(hits.map((hit) => hit.id));
       expect(hitIds.has("FM-10")).toBe(true);
       expect(hitIds.has("FM-12")).toBe(true);
@@ -329,7 +333,7 @@ describe("Red-team fixture agents (integration)", () => {
 
       const events = readMatchJsonl(matchDir);
       const rawOutputs = events.filter(
-        (event) => event.type === "AgentRawOutput" && event.agentId === uglyAgent.id,
+        (event) => event.type === "AgentRawOutput" && event.agentId === degenerateAgent.id,
       ) as Array<{ truncated?: boolean }>;
       expect(rawOutputs.length).toBeGreaterThan(0);
       for (const rawOutput of rawOutputs) {
@@ -340,9 +344,9 @@ describe("Red-team fixture agents (integration)", () => {
     }
   });
 
-  it("emits no FM hits for clean diverse agents", async () => {
-    const agentA = createCleanDiverseAgent("clean-0");
-    const agentB = createCleanDiverseAgent("clean-1");
+  it("emits no FM hits for clean baseline profiles", async () => {
+    const agentA = createCleanBaselineProfile("clean-0");
+    const agentB = createCleanBaselineProfile("clean-1");
     const { matchDir, agentIds } = await runHeistMatchWithArtifacts({
       agents: [agentA, agentB],
       maxTurns: 8,

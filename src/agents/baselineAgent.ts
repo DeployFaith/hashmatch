@@ -2,6 +2,10 @@ import type { Agent, AgentConfig, AgentContext } from "../contract/interfaces.js
 import type { AgentId } from "../contract/types.js";
 import type { NumberGuessAction, NumberGuessObservation } from "../scenarios/numberGuess/index.js";
 
+// Scripted deterministic agent — no LLM call. Category (B): will be migrated
+// to an LLM-backed version once the provider gateway lands — see #125.
+// The scripted version remains as a deterministic regression baseline.
+// Tagged purpose:"test" in the tournament registry; non-publishable.
 /**
  * Binary-search agent: narrows the known range based on "higher" / "lower"
  * feedback and always guesses the midpoint.
