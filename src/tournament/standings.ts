@@ -61,6 +61,11 @@ export function computeStandings(agentIds: AgentId[], matches: MatchSummary[]): 
     row.scoreDiff = row.scoreFor - row.scoreAgainst;
   }
 
+  // TODO(hashmatch): Implement full tie-break chain per tournament_harness_v0.md §8.2
+  // Context: Spec requires: 1) head-to-head record, 2) scoreDiff, 3) totalPointsScored (scoreFor),
+  // 4) deterministic seed-derived coinflip. Current implementation only uses scoreDiff then
+  // lexicographic agentId fallback, skipping head-to-head and scoreFor tie-breakers.
+  // Verify: tests/tournament.test.ts should test that head-to-head record breaks ties correctly
   return Array.from(map.values()).sort((a, b) => {
     if (b.points !== a.points) {
       return b.points - a.points;

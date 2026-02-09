@@ -28,19 +28,21 @@ All four checks (lint, format:check, typecheck, test) must pass before any commi
 ```
 src/
   app/            Next.js pages (replay viewer, leaderboard, agents, matches, director, settings)
-  cli/            CLI entry points (run-demo, run-match, run-tournament, replay-match, verify-match, verify-tournament, scenario)
+  cli/            CLI entry points (run-demo, run-match, run-tournament, replay-match, verify-match, verify-tournament, verify-receipt, scenario, sign-tournament, validate-bundle, generate-keys)
   components/     React components (app shell, event feed, timeline, UI primitives)
   contract/       Type definitions and interfaces (Agent, Scenario, events)
   core/           Core utilities (seeded RNG, stable JSON serialization, hashing, broadcast manifest)
   engine/         Match execution engine (runMatch, gateway runner, heist competitive)
   games/heist/    Heist game framework (types, generator, validator, preview)
   gateway/        Remote agent communication (HTTP adapter, local adapter, transcript)
+  hooks/          React hooks (useMatchLive)
+  arena/          Arena visualization (heist scene state, reducer, layout)
   lib/            Replay library (parser, redaction, commentary, moments), models, mock data, store
   agents/         Built-in agents (random, baseline, noop, randomBidder, conservative, ollama)
   scenarios/      Scenario implementations (numberGuess, heist, resourceRivals)
   server/         Backend match management (runner, artifacts, storage)
   tournament/     Tournament orchestration (runTournament, artifacts, provenance, types)
-tests/            Test files using Vitest (*.test.ts) — 56 test files
+tests/            Test files using Vitest (*.test.ts) — 59 test files
 Documents/        Project documentation (30 spec/design documents)
 scripts/          Build/utility scripts (gen-sample-replay, validate-jsonl, shell scripts)
 scenarios/        Pre-generated heist scenario files (9 presets)
@@ -142,4 +144,4 @@ All steps must pass for the pipeline to succeed. Run `npm run format:check` loca
 
 ## Secrets Policy
 
-Scenarios with hidden state must not leak secrets through mid-game `StateUpdated` events. Use `summarize()` for public state only; implement the optional `reveal()` method to disclose secrets at match end via `MatchEnded.details`. See `Documents/specification.md` §9 for details.
+Scenarios with hidden state must not leak secrets through mid-game `StateUpdated` events. Use `summarize()` for public state only; implement the optional `reveal()` method to disclose secrets at match end via `MatchEnded.details`. See `Documents/specification.md` §5.3–5.4 for the `_private` field-level redaction convention.

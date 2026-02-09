@@ -159,10 +159,11 @@ Additional fields depend on event type; see §5.2.
 | `TurnStarted`        | `turn`                                                                                   |
 | `ObservationEmitted` | `agentId`, `turn`, `observation`                                                         |
 | `ActionSubmitted`    | `agentId`, `turn`, `action`                                                              |
-| `ActionAdjudicated`  | `agentId`, `turn`, `valid`, `feedback`                                                                            |
-| `AgentRawOutput`     | `agentId`, `turn`, `rawOutput`, `sha256`, `bytes`                                                                 |
+| `ActionAdjudicated`  | `agentId`, `turn`, `valid`, `feedback`, `method`, `warnings`, `errors`, `fallbackReason`, `chosenAction`          |
+| `AgentRawOutput`     | `agentId`, `turn`, `rawSha256`, `rawBytes`, `truncated`, optional `raw`, optional `_privateRaw`                   |
+| `InvalidAction`      | `agentId`, `turn`, `reason`, `attemptedAction`                                                                    |
 | `StateUpdated`       | `turn`, `summary`                                                                                                 |
-| `AgentError`         | `agentId`, `turn`, `message`                                                                                      |
+| `AgentError`         | `agentId`, `turn`, `message`, optional `errorType`                                                                |
 | `MatchEnded`         | `reason` (`"completed"`, `"maxTurnsReached"`, or `"agentForfeited"`), `scores`, `turns`, optional `details`       |
 
 Scenarios may define additional event types. The viewer treats unrecognized types as "unknown" and renders them with a raw JSON fallback.

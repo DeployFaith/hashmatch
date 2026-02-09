@@ -70,16 +70,29 @@ interface BaseObservation {
 ```json
 {
   "turn": 5,
-  "currentRoom": "server_room_b",
-  "inventory": ["keycard_blue", "emp_device"],
-  "alertLevel": 1,
-  "currentNoise": 2.0,
-  "visibleEntities": [
-    { "id": "guard_1", "type": "guard", "room": "hallway_east" },
-    { "id": "terminal_3", "type": "terminal", "room": "server_room_b" }
+  "currentRoomId": "server_room_b",
+  "adjacentRooms": [
+    { "roomId": "hallway_east", "doorId": "door-5", "locked": false, "passable": true },
+    { "roomId": "vault_entrance", "doorId": "door-6", "locked": true, "requiredItem": "keycard-1", "passable": true }
   ],
-  "connectedRooms": ["hallway_east", "vault_entrance"],
-  "score": 150
+  "visibleItems": [
+    { "id": "loot-1", "type": "loot", "roomId": "server_room_b", "scoreValue": 50 }
+  ],
+  "visibleEntities": [
+    { "id": "terminal-3", "type": "terminal", "roomId": "server_room_b", "hackTurns": 2 }
+  ],
+  "inventory": [
+    { "itemId": "keycard-1", "type": "keycard" }
+  ],
+  "_private": {
+    "map": { "rooms": [], "doors": [] },
+    "entities": [],
+    "items": [],
+    "alertLevel": 1,
+    "extractionRoomId": "extraction_room",
+    "terminalProgress": { "terminal-3": 0 },
+    "terminalHacked": { "terminal-3": false }
+  }
 }
 ```
 
@@ -87,21 +100,23 @@ interface BaseObservation {
 
 ```json
 {
-  "turn": 3,
-  "resources": 50,
-  "score": 20,
-  "opponentScore": 15,
-  "roundsRemaining": 7,
-  "lastRoundResult": {
-    "yourBid": 12,
-    "opponentBid": 8,
+  "objectiveValue": 12,
+  "capturedScore": 20,
+  "objectivesRemaining": 7,
+  "opponentCapturedScore": 15,
+  "lastResult": {
     "objectiveValue": 12,
-    "youWon": true
+    "myBid": 12,
+    "opponentBid": 8,
+    "winner": "agent-1"
+  },
+  "_private": {
+    "remainingResources": 50
   }
 }
 ```
 
-Note: Fields prefixed or nested under `_private` in the engine are **never** sent to the agent. Agents see only their authorized observation.
+Note: Fields nested under `_private` are included in the observation sent to the agent but are stripped from spectator views. The `_private` convention is for spectator redaction, not agent visibility.
 
 ---
 
@@ -119,16 +134,19 @@ Actions are JSON objects. Their shape is defined per-scenario.
 
 ```json
 // Movement
-{ "type": "move", "target": "hallway_east" }
+{ "type": "move", "toRoomId": "hallway_east" }
 
-// Use an item on an entity
-{ "type": "use", "item": "keycard_blue", "target": "locked_door_1" }
+// Pick up an item
+{ "type": "pickup", "itemId": "keycard-1" }
 
-// Wait (generates no noise)
+// Hack a terminal
+{ "type": "use_terminal", "terminalId": "terminal-3" }
+
+// Extract from the extraction room
+{ "type": "extract" }
+
+// Wait (no-op, advances turn)
 { "type": "wait" }
-
-// Interact with an entity
-{ "type": "interact", "target": "terminal_3" }
 ```
 
 ### Example: ResourceRivals Actions
@@ -233,7 +251,7 @@ async function act(observation: object): Promise<object> {
   const prompt = `You are playing a heist game. Here is your current state:
 ${JSON.stringify(observation)}
 
-Valid actions: move, use, wait, interact.
+Valid actions: move, pickup, use_terminal, extract, wait.
 Respond with a single JSON action object.`;
 
   const response = await callLLM(prompt);
@@ -268,14 +286,13 @@ class HeistAgent {
 ```typescript
 function act(observation: object): object {
   // Pure strategy — no API calls, deterministic
-  if (observation.alertLevel >= 2) {
+  if (observation._private?.alertLevel >= 2) {
     return { type: "wait" };
   }
-  if (observation.inventory.includes("keycard_blue") &&
-      observation.visibleEntities.some(e => e.type === "locked_door")) {
-    return { type: "use", item: "keycard_blue", target: /* ... */ };
+  if (observation.visibleItems?.some(i => i.type === "keycard")) {
+    return { type: "pickup", itemId: observation.visibleItems.find(i => i.type === "keycard").id };
   }
-  return { type: "move", target: observation.connectedRooms[0] };
+  return { type: "move", toRoomId: observation.adjacentRooms[0]?.roomId };
 }
 ```
 
@@ -295,7 +312,7 @@ Content-Type: application/json
 
 Response:
 {
-  "action": { "type": "move", "target": "hallway_east" }
+  "action": { "type": "move", "toRoomId": "hallway_east" }
 }
 ```
 

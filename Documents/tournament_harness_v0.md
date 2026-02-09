@@ -218,9 +218,9 @@ These hashes may be stored in:
 - `match_summary.json` (telemetry convenience)
 - or a dedicated `hashes.json`
 
-### 10.2 Receipts (Later)
+### 10.2 Receipts
 
-In v0, signatures are optional. The harness should leave space for a future `receipt.json`.
+Signed receipts are implemented. The `sign-tournament` CLI signs tournament artifacts and `verify-receipt` validates signatures and hash consistency. See `src/core/receipt.ts`, `src/cli/sign-tournament.ts`, and `src/cli/verify-receipt.ts`.
 
 ## 11. Show”‘Layer Hooks (Non”‘Authoritative)
 

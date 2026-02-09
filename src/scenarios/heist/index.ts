@@ -224,6 +224,12 @@ export function createHeistScenario(
         }
       }
 
+      // TODO(hashmatch): Implement guard detection mechanics
+      // Context: Guards have patrolRoute and detectionRange defined in HeistGuardEntity
+      // but are currently excluded from observations and do not trigger detection events.
+      // Guards should be visible when in the agent's room or within detectionRange,
+      // and should trigger alert escalation when detecting the agent per heist_game_contract_v0.md §5.
+      // Verify: Add tests that guards in the same room as the agent trigger detection
       const visibleEntities = state.params.entities.filter((entity) => {
         if (entity.type === "guard") {
           return false;
@@ -263,6 +269,12 @@ export function createHeistScenario(
       };
     },
 
+    // TODO(hashmatch): Implement per-action noise tracking using rules.noiseTable
+    // Context: The noiseTable, alertThresholds, and noiseDecayRate are defined in HeistRules
+    // but not used during adjudication. Currently, alertLevel only increments on invalid actions.
+    // Each valid action should generate noise per noiseTable, noise should accumulate with decay,
+    // and alertLevel should be derived from alertThresholds crossings.
+    // Verify: tests/heist-scenario.test.ts should test that move actions generate noise=1 per default noiseTable
     adjudicate(
       state: HeistState,
       agentId: AgentId,
@@ -317,6 +329,11 @@ export function createHeistScenario(
       }
     },
 
+    // TODO(hashmatch): Check captureOnMaxAlert in isTerminal
+    // Context: rules.captureOnMaxAlert is defined in HeistRules and defaults to false.
+    // When true, reaching maxAlertLevel should end the match immediately (capture/lockdown).
+    // Currently isTerminal does not check alertLevel at all.
+    // Verify: tests/heist-scenario.test.ts should test that captureOnMaxAlert=true ends match at max alert
     isTerminal(state: HeistState): boolean {
       if (state.turn >= state.params.winCondition.maxTurns) {
         return true;
