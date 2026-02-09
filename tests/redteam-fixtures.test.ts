@@ -1,3 +1,12 @@
+// TODO(terminology-alignment): This file uses "red-team" framing throughout.
+// Target rename: "redteam-fixtures.test.ts" → "degenerate-behavior.test.ts" (or
+// "failure-mode-regression.test.ts").  The describe block, tmp-dir prefix, and
+// every comment referencing "red team" should be updated.
+// Category: (A) rename only — these tests deliberately exercise deterministic
+// degenerate behavior patterns and MUST stay deterministic (classifier
+// regression tests).  They should NOT be migrated to real LLM calls.
+// Category for test agents: (C) keep deterministic, explicitly label as
+// "classifier regression fixtures."
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -114,6 +123,7 @@ async function runHeistMatchWithArtifacts(options: {
     reason,
   };
 
+  // TODO(terminology-alignment): rename tmp prefix "hashmatch-redteam-" → "hashmatch-fm-regression-"
   const matchDir = mkdtempSync(join(tmpdir(), "hashmatch-redteam-"));
   await writeMatchArtifactsCore({
     matchDir,
@@ -126,6 +136,7 @@ async function runHeistMatchWithArtifacts(options: {
   return { matchDir, agentIds };
 }
 
+// TODO(terminology-alignment): rename describe → "Degenerate behavior profiles (FM classifier regression)"
 describe("Red-team fixture agents (integration)", () => {
   it("flags wait spam in truth actions and FM telemetry", async () => {
     const agents = [createWaitSpamAgent("wait-0"), createWaitSpamAgent("wait-1")];

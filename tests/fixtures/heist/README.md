@@ -1,3 +1,9 @@
+<!-- TODO(terminology-alignment): "fixture" here means "static test data file"
+     (a golden JSONL snapshot), not a scripted agent. This usage is standard
+     testing terminology and is fine to keep. The noop agents used in generation
+     are scripted baselines — see noopAgent.ts for their policy-alignment note.
+     No rename needed for this file. -->
+
 # Heist fixture
 
 This fixture was generated from a real Heist match using the built engine and a

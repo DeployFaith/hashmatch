@@ -92,6 +92,9 @@ async function main(): Promise<void> {
   }
 
   const scenario = createNumberGuessScenario();
+  // TODO(llm-policy-alignment): Demo uses two scripted agents (random + baseline).
+  // Under the new policy this demo should optionally accept --agent-type=llm
+  // and wire up an Ollama/OpenRouter agent. For now, these are scripted baselines.
   const agents = [createRandomAgent("random-1"), createBaselineAgent("baseline-1")];
 
   let provenance: { engineCommit?: string; engineVersion?: string } | undefined;

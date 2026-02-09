@@ -5,6 +5,11 @@ import type {
   ResourceRivalsAction,
 } from "../../scenarios/resourceRivals/index.js";
 
+// TODO(llm-policy-alignment): Scripted deterministic agent — no LLM call.
+// Decision: (B) migrate to LLM test profile, or (C) keep as deterministic
+// baseline with explicit agentType:"scripted" metadata.
+// Used in: resourceRivals.test.ts, agent-compat.test.ts, tournament registry
+// (key: "randomBidder"), redaction-audit fixture generation.
 /**
  * Random bidder agent for Resource Rivals.
  *

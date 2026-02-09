@@ -1,3 +1,18 @@
+// TODO(terminology-alignment): Rename this file:
+//   tests/fixtures/agents/heistFixtureAgents.ts → tests/fixtures/agents/heistDegenerateProfiles.ts
+// These agents are intentionally scripted to trigger specific failure modes.
+// They are NOT "fixture agents" in the generic sense — they are deterministic
+// degenerate-behavior profiles used for FM classifier regression testing.
+// Category: (C) keep deterministic, relabel as "degenerate behavior profiles."
+// Suggested symbol renames:
+//   createWaitSpamAgent        → createWaitSpamProfile
+//   createInvalidActionAgent   → createInvalidActionProfile
+//   createActionSpaceCyclerAgent → createActionSpaceCyclerProfile
+//   createFormatHackerAgent    → createFormatViolationProfile (drop "hacker" framing)
+//   createOutputBloatAgent     → createOutputBloatProfile
+//   createRepeatMalformedAgent → createRepeatMalformedProfile
+//   createUglyProfileAgent     → createCompositeDegenerateProfile
+//   createCleanDiverseAgent    → createCleanBaselineProfile
 import type { Agent, AgentConfig, AgentContext } from "../../../src/contract/interfaces.js";
 import type { AgentId } from "../../../src/contract/types.js";
 import { attachActionForensics } from "../../../src/core/agentActionMetadata.js";

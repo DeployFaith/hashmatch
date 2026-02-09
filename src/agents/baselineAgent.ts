@@ -2,6 +2,10 @@ import type { Agent, AgentConfig, AgentContext } from "../contract/interfaces.js
 import type { AgentId } from "../contract/types.js";
 import type { NumberGuessAction, NumberGuessObservation } from "../scenarios/numberGuess/index.js";
 
+// TODO(llm-policy-alignment): Scripted deterministic agent — no LLM call.
+// Same policy conflict as randomAgent. Decision: (B) or (C).
+// Used in: contract.test.ts, gateway-runner.test.ts, jsonl-determinism.test.ts,
+// run-demo CLI, tournament registry (key: "baseline").
 /**
  * Binary-search agent: narrows the known range based on "higher" / "lower"
  * feedback and always guesses the midpoint.

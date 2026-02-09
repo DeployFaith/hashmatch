@@ -51,6 +51,11 @@ function resolveAgentProfileKey(index: number): string {
   return `agent${index + 1}`;
 }
 
+// TODO(llm-policy-alignment): This function defaults to `undefined` when no
+// metadata is present, which means scripted built-in agents show as "Unknown"
+// in the UI. Under the new policy, agents without provider/model metadata
+// should be explicitly classified. Consider defaulting to "scripted" when no
+// metadata is found, or requiring agentType in the manifest.
 function resolveAgentTypeFromMetadata(
   metadata: Record<string, unknown> | null,
 ): AgentProfileType | undefined {

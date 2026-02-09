@@ -1,3 +1,8 @@
+<!-- TODO(terminology-alignment): This document uses "red-team tests" throughout
+     (17 section headers). Target rename: "Red-Team Tests" → "Failure Mode
+     Regression Tests" or "Degenerate Behavior Tests". The document is research/
+     design only, so this is a (A) terminology-only change. -->
+
 # Agent Failure Taxonomy for HashMatch Scenario Design
 
 **Purpose:** Adversarial intelligence extracted from agent research, mapped to concrete scenario mechanics, platform constraints, and red-team tests. Every entry is designed so an engineer can turn it into a GitHub issue.

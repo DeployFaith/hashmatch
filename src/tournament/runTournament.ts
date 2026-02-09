@@ -49,6 +49,12 @@ const scenarioRegistry: Record<string, ScenarioFactory> = {
   resourceRivals: createResourceRivalsScenario,
 };
 
+// TODO(llm-policy-alignment): All five built-in agents below are scripted/
+// deterministic (no LLM provider or model config). Under the new "all agents
+// are real LLM calls" policy, these registrations need provenance metadata
+// that explicitly declares agentType:"scripted". Open decision: should the
+// tournament runner refuse to schedule scripted-vs-scripted matches in
+// production modes, or only flag them in the manifest?
 const agentRegistry: Record<string, AgentRegistration> = {
   random: { factory: createRandomAgent },
   baseline: { factory: createBaselineAgent },

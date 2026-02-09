@@ -5,6 +5,10 @@ import type {
   ResourceRivalsAction,
 } from "../../scenarios/resourceRivals/index.js";
 
+// TODO(llm-policy-alignment): Scripted deterministic agent — no LLM call.
+// Same policy conflict as randomBidder. Decision: (B) or (C).
+// Used in: resourceRivals.test.ts, agent-compat.test.ts, tournament registry
+// (key: "conservative"), redaction-audit fixture generation.
 /**
  * Conservative agent for Resource Rivals.
  *
