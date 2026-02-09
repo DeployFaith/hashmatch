@@ -49,18 +49,32 @@ const scenarioRegistry: Record<string, ScenarioFactory> = {
   resourceRivals: createResourceRivalsScenario,
 };
 
-// TODO(llm-policy-alignment): All five built-in agents below are scripted/
-// deterministic (no LLM provider or model config). Under the new "all agents
-// are real LLM calls" policy, these registrations need provenance metadata
-// that explicitly declares agentType:"scripted". Open decision: should the
-// tournament runner refuse to schedule scripted-vs-scripted matches in
-// production modes, or only flag them in the manifest?
+// All five built-in agents are scripted/deterministic (no LLM provider or
+// model config). They are explicitly tagged as non-publishable test fixtures
+// so the publish pipeline can reject them. Category (B) agents (random,
+// baseline, randomBidder, conservative) will be migrated to LLM-backed
+// versions once the provider gateway lands — see #125.
 const agentRegistry: Record<string, AgentRegistration> = {
-  random: { factory: createRandomAgent },
-  baseline: { factory: createBaselineAgent },
-  noop: { factory: createNoopAgent },
-  randomBidder: { factory: createRandomBidderAgent },
-  conservative: { factory: createConservativeAgent },
+  random: {
+    factory: createRandomAgent,
+    provenance: { metadata: { agentType: "scripted", purpose: "test" } },
+  },
+  baseline: {
+    factory: createBaselineAgent,
+    provenance: { metadata: { agentType: "scripted", purpose: "test" } },
+  },
+  noop: {
+    factory: createNoopAgent,
+    provenance: { metadata: { agentType: "scripted", purpose: "test" } },
+  },
+  randomBidder: {
+    factory: createRandomBidderAgent,
+    provenance: { metadata: { agentType: "scripted", purpose: "test" } },
+  },
+  conservative: {
+    factory: createConservativeAgent,
+    provenance: { metadata: { agentType: "scripted", purpose: "test" } },
+  },
 };
 
 const knownLlmProviders = ["ollama"];
@@ -188,7 +202,12 @@ export function getAgentFactory(key: string, options: AgentFactoryOptions = {}):
       console.warn('⚠️  Agent key "ollama-heist" is deprecated. Use "llm:ollama" with --scenario.');
     }
     const model = resolveOllamaModel(undefined, options.slotIndex);
-    return resolveLlmAgentFactory("ollama", model, options.scenarioKey ?? "heist", options.slotIndex);
+    return resolveLlmAgentFactory(
+      "ollama",
+      model,
+      options.scenarioKey ?? "heist",
+      options.slotIndex,
+    );
   }
 
   const registration = agentRegistry[key];
