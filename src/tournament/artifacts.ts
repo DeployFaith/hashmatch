@@ -17,6 +17,7 @@ import {
   type BroadcastManifestFileEntry,
 } from "../core/broadcastManifest.js";
 import { writeMatchArtifactsCore } from "./writeMatchArtifacts.js";
+import { getScenarioFactory } from "./runTournament.js";
 
 function resolveModeProfileId(modeProfile: JsonValue | undefined): string {
   if (typeof modeProfile === "string") {
@@ -143,6 +144,8 @@ export async function writeTournamentArtifacts(
   mkdirSync(outDir, { recursive: true });
 
   const provenance = await buildMatchManifestProvenance(result);
+  const scenario = getScenarioFactory(result.config.scenarioKey)();
+  const scenarioHints = scenario.getScenarioHints();
   const effectiveMaxTurnTimeMs = resolveMaxTurnTimeMs({
     seed: result.config.seed,
     maxTurns: result.config.maxTurns,
@@ -183,6 +186,7 @@ export async function writeTournamentArtifacts(
       events,
       manifest,
       summary,
+      scenarioHints,
       moments: {
         enabled: true,
         writeHighlights: (moments, matchSummary) => generateHighlights(moments, matchSummary),
