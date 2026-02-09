@@ -44,6 +44,8 @@ import { buildMomentEventRangeMap, detectMoments } from "@/lib/replay/detectMome
 import type { ReplayMoment } from "@/lib/replay/detectMoments";
 import { redactEvent } from "@/lib/replay/redaction";
 import type { ViewerMode, RedactedEvent } from "@/lib/replay/redaction";
+import { formatEvent } from "@/lib/replay/formatEvent";
+import type { FormattedEvent } from "@/lib/replay/formatEvent";
 import { SAMPLE_JSONL } from "@/lib/replay/fixtures/sampleNumberGuess";
 import { parseCommentaryFile, getCommentaryAtIndex } from "@/lib/replay/commentary";
 import type {
@@ -207,15 +209,17 @@ function prettyJson(value: unknown): string {
   }
 }
 
-const typeColors: Record<string, string> = {
-  MatchStarted: "text-blue-400",
-  MatchEnded: "text-green-400",
-  TurnStarted: "text-muted-foreground",
-  ObservationEmitted: "text-purple-400",
-  ActionSubmitted: "text-amber-400",
-  ActionAdjudicated: "text-green-400",
-  StateUpdated: "text-muted-foreground",
-  AgentError: "text-destructive",
+// ---------------------------------------------------------------------------
+// Badge styles for formatted events (matches live viewer pattern from PR #112)
+// ---------------------------------------------------------------------------
+
+const badgeStyles: Record<FormattedEvent["badge"], string> = {
+  action: "bg-primary/10 text-primary",
+  wait: "bg-muted text-muted-foreground",
+  invalid: "bg-destructive/10 text-destructive font-medium",
+  system: "bg-muted text-muted-foreground italic",
+  score: "bg-amber-500/10 text-amber-400",
+  end: "bg-green-500/10 text-green-400 font-medium",
 };
 
 /** Extract unique agent IDs from events. */
@@ -731,12 +735,15 @@ function EventCard({
   event,
   isSelected,
   onClick,
+  scenarioName,
 }: {
   event: RedactedEvent;
   isSelected: boolean;
   onClick: () => void;
+  scenarioName: string;
 }) {
   const unknown = isUnknownType(event.type);
+  const formatted = formatEvent(event.displayRaw, scenarioName);
 
   return (
     <button
@@ -750,10 +757,12 @@ function EventCard({
       <div className="flex items-center gap-2">
         <span className="font-mono text-muted-foreground">{event.seq}</span>
         <span
-          className={cn("font-medium", unknown ? "text-orange-400 italic" : typeColors[event.type])}
+          className={cn(
+            "shrink-0 rounded px-1.5 py-0.5 text-[10px] uppercase",
+            unknown ? "bg-orange-500/10 text-orange-400 italic" : badgeStyles[formatted.badge],
+          )}
         >
-          {event.type}
-          {unknown && " (unknown)"}
+          {unknown ? `${event.type} (unknown)` : formatted.badge}
         </span>
         {event.agentId && (
           <Badge variant="outline" className="text-[10px] px-1 py-0">
@@ -762,7 +771,10 @@ function EventCard({
         )}
         {event.isRedacted && <ShieldAlert className="h-3 w-3 text-muted-foreground" />}
       </div>
-      <p className="mt-0.5 text-muted-foreground truncate">{event.summary}</p>
+      <p className="mt-0.5 text-muted-foreground truncate">{formatted.primaryText}</p>
+      {formatted.details && (
+        <p className="mt-0.5 text-[10px] text-muted-foreground/70 truncate">{formatted.details}</p>
+      )}
     </button>
   );
 }
@@ -774,9 +786,11 @@ function EventCard({
 function EventDetail({
   event,
   viewerMode,
+  scenarioName,
 }: {
   event: RedactedEvent | null;
   viewerMode: ViewerMode;
+  scenarioName: string;
 }) {
   const [showRaw, setShowRaw] = useState(false);
 
@@ -790,11 +804,20 @@ function EventDetail({
 
   const displayData = showRaw && event.fullRaw ? event.fullRaw : event.displayRaw;
   const unknown = isUnknownType(event.type);
+  const formatted = formatEvent(event.displayRaw, scenarioName);
 
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <Badge variant={unknown ? "warning" : "info"}>{event.type}</Badge>
+        <span
+          className={cn(
+            "rounded px-1.5 py-0.5 text-[10px] uppercase",
+            badgeStyles[formatted.badge],
+          )}
+        >
+          {formatted.badge}
+        </span>
         <span className="font-mono text-xs text-muted-foreground">seq {event.seq}</span>
         {event.agentId && <Badge variant="outline">{event.agentId}</Badge>}
         {event.turn !== undefined && (
@@ -813,7 +836,8 @@ function EventDetail({
         )}
       </div>
 
-      <p className="text-sm text-muted-foreground">{event.summary}</p>
+      <p className="text-sm">{formatted.primaryText}</p>
+      {formatted.details && <p className="text-xs text-muted-foreground">{formatted.details}</p>}
 
       <div className="flex items-center gap-2">
         <span className="text-xs font-medium text-muted-foreground">
@@ -1899,6 +1923,7 @@ function ReplayViewer({
                           event={ev}
                           isSelected={flatIdx === selectedIdx}
                           onClick={() => setSelectedIdx(flatIdx)}
+                          scenarioName={scenarioInfo.scenarioName ?? ""}
                         />
                       );
                     })}
@@ -1915,7 +1940,11 @@ function ReplayViewer({
             <h2 className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Event Detail
             </h2>
-            <EventDetail event={selectedEvent} viewerMode={viewerMode} />
+            <EventDetail
+              event={selectedEvent}
+              viewerMode={viewerMode}
+              scenarioName={scenarioInfo.scenarioName ?? ""}
+            />
 
             {/* Inline commentary for the current event */}
             {activeCommentary.length > 0 && (
