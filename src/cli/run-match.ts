@@ -4,6 +4,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { toStableJsonl } from "../core/json.js";
 import { runMatchWithArtifacts } from "../tournament/runMatchWithArtifacts.js";
+import { assertPublishableAgents } from "../tournament/publishGuard.js";
 
 // ---------------------------------------------------------------------------
 // Arg parsing
@@ -67,8 +68,8 @@ export function parseArgs(argv: string[]): MatchCliArgs {
   let outDir: string | undefined;
   let matchId: string | undefined;
   let agents: string[] | undefined;
-  let agentA = "random";
-  let agentB = "baseline";
+  let agentA = "llm:ollama:qwen2.5:3b";
+  let agentB = "llm:ollama:qwen2.5:3b";
   let agentAProvided = false;
   let agentBProvided = false;
   let gateway: "local" | "http" | undefined;
@@ -143,9 +144,9 @@ export function parseArgs(argv: string[]): MatchCliArgs {
 }
 
 const SCENARIO_AGENT_DEFAULTS: Record<string, { agentA: string; agentB: string }> = {
-  numberGuess: { agentA: "random", agentB: "baseline" },
-  resourceRivals: { agentA: "randomBidder", agentB: "conservative" },
-  heist: { agentA: "noop", agentB: "noop" },
+  numberGuess: { agentA: "llm:ollama:qwen2.5:3b", agentB: "llm:ollama:qwen2.5:3b" },
+  resourceRivals: { agentA: "llm:ollama:qwen2.5:3b", agentB: "llm:ollama:qwen2.5:3b" },
+  heist: { agentA: "llm:ollama:qwen2.5:3b", agentB: "llm:ollama:qwen2.5:3b" },
 };
 
 export function resolveAgentDefaults(args: MatchCliArgs): {
@@ -217,6 +218,10 @@ async function main(): Promise<void> {
   const agentKeys = args.agents?.length
     ? args.agents
     : [resolvedAgents.agentA, resolvedAgents.agentB];
+
+  if (process.env.HASHMATCH_PUBLISH === "1") {
+    assertPublishableAgents(agentKeys);
+  }
 
   if (args.agents?.length === 0) {
     // eslint-disable-next-line no-console

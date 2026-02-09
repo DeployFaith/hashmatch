@@ -1,6 +1,28 @@
 import type { ZodIssue } from "zod";
 import type { NormalizationMethod } from "./decodeAgentAction.js";
 
+export type LlmAdjudicationPath = "structured" | "text+tolerant_decode" | "fallback";
+
+export interface LlmUsageMetrics {
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+}
+
+export interface LlmBudgetTelemetry {
+  tokensUsed: number | null;
+  tokensAllowed: number | null;
+  matchTokensUsed: number | null;
+  matchTokensAllowed: number | null;
+  callsUsed: number;
+  callsAllowed: number;
+  matchCallsUsed: number;
+  matchCallsAllowed: number;
+  outputTruncated: boolean;
+  tokenCapHit: boolean;
+  callCapHit: boolean;
+}
+
 export interface AgentActionForensics<TAction> {
   rawText: string;
   rawSha256: string;
@@ -12,6 +34,12 @@ export interface AgentActionForensics<TAction> {
   fallbackReason: string | null;
   candidateAction: unknown | null;
   chosenAction: TAction;
+  provider?: string;
+  model?: string;
+  latencyMs?: number;
+  usage?: LlmUsageMetrics;
+  adjudicationPath?: LlmAdjudicationPath;
+  budget?: LlmBudgetTelemetry;
 }
 
 const ACTION_FORENSICS_SYMBOL = Symbol("hashmatch.actionForensics");

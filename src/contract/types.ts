@@ -73,6 +73,10 @@ export interface AgentRawOutputEvent extends BaseEvent {
   rawSha256: string;
   rawBytes: number;
   truncated: boolean;
+  provider?: string;
+  model?: string;
+  latencyMs?: number;
+  adjudicationPath?: "structured" | "text+tolerant_decode" | "fallback";
   raw?: string;
   _privateRaw?: string;
 }
@@ -88,6 +92,25 @@ export interface ActionAdjudicatedEvent extends BaseEvent {
   errors: ZodIssue[] | null;
   fallbackReason: string | null;
   chosenAction: JsonValue;
+}
+
+export interface AgentBudgetEvent extends BaseEvent {
+  type: "AgentBudget";
+  agentId: AgentId;
+  turn: number;
+  tokensUsed: number | null;
+  tokensAllowed: number | null;
+  matchTokensUsed: number | null;
+  matchTokensAllowed: number | null;
+  callsUsed: number;
+  callsAllowed: number;
+  matchCallsUsed: number;
+  matchCallsAllowed: number;
+  outputTruncated: boolean;
+  tokenCapHit: boolean;
+  callCapHit: boolean;
+  provider?: string;
+  model?: string;
 }
 
 export interface InvalidActionEvent extends BaseEvent {
@@ -129,6 +152,7 @@ export type MatchEvent =
   | ActionSubmittedEvent
   | AgentRawOutputEvent
   | ActionAdjudicatedEvent
+  | AgentBudgetEvent
   | InvalidActionEvent
   | StateUpdatedEvent
   | AgentErrorEvent

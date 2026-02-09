@@ -70,8 +70,8 @@ describe("CLI defaults", () => {
   it("uses scenario-specific defaults for heist", () => {
     const args = parseArgs(["--scenario", "heist"]);
     const resolved = resolveAgentDefaults(args);
-    expect(resolved.agentA).toBe("noop");
-    expect(resolved.agentB).toBe("noop");
+    expect(resolved.agentA).toBe("llm:ollama:qwen2.5:3b");
+    expect(resolved.agentB).toBe("llm:ollama:qwen2.5:3b");
     expect(resolved.warning).toBeUndefined();
   });
 });

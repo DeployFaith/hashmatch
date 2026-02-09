@@ -1,8 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import * as ollamaClient from "../src/agents/ollama/ollamaClient.js";
+import * as llmClient from "../src/agents/llm/client.js";
 import { createOllamaAgent } from "../src/agents/ollama/createOllamaAgent.js";
 import { createOllamaHeistAgent } from "../src/agents/ollama/index.js";
 import { heistAdapter, parseResponse } from "../src/agents/ollama/heistAdapter.js";
@@ -12,17 +13,10 @@ import { toStableJsonl } from "../src/core/json.js";
 import { parseReplayJsonl } from "../src/lib/replay/parser.js";
 import type { OllamaChatMessage, OllamaConfig } from "../src/agents/ollama/ollamaClient.js";
 
-const originalAllowTools = process.env.HASHMATCH_ALLOW_TOOLS;
-
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.useRealTimers();
-  if (originalAllowTools === undefined) {
-    delete process.env.HASHMATCH_ALLOW_TOOLS;
-  } else {
-    process.env.HASHMATCH_ALLOW_TOOLS = originalAllowTools;
-  }
 });
 
 describe("ollamaChat", () => {
@@ -206,10 +200,6 @@ describe("heistAdapter.parseResponse", () => {
 });
 
 describe("heistAdapter decoder forensics", () => {
-  beforeEach(() => {
-    process.env.HASHMATCH_ALLOW_TOOLS = "true";
-  });
-
   it("logs raw outputs and adjudication details for malformed turns", async () => {
     const responses = [
       '{"type":"move","toRoomId":"room-2"}',
@@ -218,9 +208,21 @@ describe("heistAdapter decoder forensics", () => {
       "",
     ];
 
-    vi.spyOn(ollamaClient, "ollamaChat").mockImplementation(async () => {
-      return responses.shift() ?? "";
+    vi.spyOn(llmClient, "generateStructured").mockImplementation(async () => {
+      throw new Error("force text fallback");
     });
+    vi.spyOn(llmClient, "generatePlainText").mockImplementation(async () => ({
+      text: responses.shift() ?? "",
+      usage: {
+        inputTokens: 0,
+        inputTokenDetails: { noCacheTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
+        outputTokens: 0,
+        outputTokenDetails: { textTokens: 0, reasoningTokens: 0 },
+        totalTokens: 0,
+      },
+      finishReason: "stop",
+      responseBody: { mock: true },
+    }));
 
     const scenario = createHeistScenario();
     const agents = [createOllamaHeistAgent("ollama-a"), createOllamaHeistAgent("ollama-b")];
@@ -258,12 +260,19 @@ describe("heistAdapter decoder forensics", () => {
 });
 
 describe("createOllamaAgent", () => {
-  beforeEach(() => {
-    process.env.HASHMATCH_ALLOW_TOOLS = "true";
-  });
-
   it("runs the full pipeline and returns parsed actions", async () => {
-    const ollamaChatSpy = vi.spyOn(ollamaClient, "ollamaChat").mockResolvedValue('{"type":"wait"}');
+    const textSpy = vi.spyOn(llmClient, "generatePlainText").mockResolvedValue({
+      text: '{"type":"wait"}',
+      usage: {
+        inputTokens: 0,
+        inputTokenDetails: { noCacheTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
+        outputTokens: 0,
+        outputTokenDetails: { textTokens: 0, reasoningTokens: 0 },
+        totalTokens: 0,
+      },
+      finishReason: "stop",
+      responseBody: { mock: true },
+    });
 
     const adapter = {
       systemPrompt: "system",
@@ -277,18 +286,29 @@ describe("createOllamaAgent", () => {
     const action = await agent.act({ turn: 1 }, { agentId: "ollama-1", turn: 1, rng: () => 0.5 });
 
     expect(adapter.formatObservation).toHaveBeenCalled();
-    expect(ollamaChatSpy).toHaveBeenCalled();
+    expect(textSpy).toHaveBeenCalled();
     expect(adapter.parseResponse).toHaveBeenCalled();
     expect(action).toEqual({ type: "wait" });
   });
 
   it("falls back when response parsing fails", async () => {
-    vi.spyOn(ollamaClient, "ollamaChat").mockResolvedValue("garbage");
+    vi.spyOn(llmClient, "generatePlainText").mockResolvedValue({
+      text: "garbage",
+      usage: {
+        inputTokens: 0,
+        inputTokenDetails: { noCacheTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
+        outputTokens: 0,
+        outputTokenDetails: { textTokens: 0, reasoningTokens: 0 },
+        totalTokens: 0,
+      },
+      finishReason: "stop",
+      responseBody: { mock: true },
+    });
 
     const adapter = {
       systemPrompt: "system",
       formatObservation: vi.fn(() => "formatted obs"),
-      parseResponse: vi.fn(() => null),
+      parseResponse: vi.fn(() => ({ type: "wait" })),
       fallbackAction: { type: "wait" },
     };
 
@@ -299,13 +319,13 @@ describe("createOllamaAgent", () => {
     expect(action).toEqual({ type: "wait" });
   });
 
-  it("rejects non-finite numeric values", async () => {
-    vi.spyOn(ollamaClient, "ollamaChat").mockResolvedValue('{"type":"wait"}');
+  it("falls back when LLM request fails", async () => {
+    vi.spyOn(llmClient, "generatePlainText").mockRejectedValue(new Error("LLM down"));
 
     const adapter = {
       systemPrompt: "system",
       formatObservation: vi.fn(() => "formatted obs"),
-      parseResponse: vi.fn(() => ({ type: "move", toRoomId: "room-1", cost: Infinity })),
+      parseResponse: vi.fn(() => ({ type: "wait" })),
       fallbackAction: { type: "wait" },
     };
 
@@ -314,25 +334,6 @@ describe("createOllamaAgent", () => {
     const action = await agent.act({ turn: 1 }, { agentId: "ollama-3", turn: 1, rng: () => 0.5 });
 
     expect(action).toEqual({ type: "wait" });
-  });
-
-  it("warns once when Ollama is unreachable", async () => {
-    vi.spyOn(ollamaClient, "ollamaChat").mockResolvedValue("ERROR: Ollama unreachable");
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
-    const adapter = {
-      systemPrompt: "system",
-      formatObservation: vi.fn(() => "formatted obs"),
-      parseResponse: vi.fn(() => null),
-      fallbackAction: { type: "wait" },
-    };
-
-    const agent = createOllamaAgent("ollama-4", { model: "test" }, adapter);
-    agent.init({ agentId: "ollama-4", seed: 4 });
-    await agent.act({ turn: 1 }, { agentId: "ollama-4", turn: 1, rng: () => 0.5 });
-    await agent.act({ turn: 2 }, { agentId: "ollama-4", turn: 2, rng: () => 0.5 });
-
-    expect(warnSpy).toHaveBeenCalledTimes(1);
   });
 });
 

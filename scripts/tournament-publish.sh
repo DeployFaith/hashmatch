@@ -20,7 +20,7 @@ seed="42"
 rounds="3"
 max_turns="20"
 scenario="numberGuess"
-agents="random,baseline"
+agents="llm:ollama:qwen2.5:3b,llm:ollama:qwen2.5:3b"
 write_logs="false"
 
 while [[ $# -gt 0 ]]; do
@@ -65,6 +65,16 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+IFS="," read -r -a agent_list <<<"$agents"
+for agent_key in "${agent_list[@]}"; do
+  if [[ "$agent_key" != llm:* ]]; then
+    die "Publish blocked: non-LLM agents are not allowed. Use llm:<provider>:<model>[:<purpose>]."
+  fi
+  if [[ "$agent_key" == *:test ]]; then
+    die "Publish blocked: test-purpose agents cannot be published."
+  fi
+done
+
 web_root="/var/www/hashmatch"
 tournaments_dir="$web_root/tournaments"
 
@@ -85,6 +95,7 @@ npm run build
 echo "Publishing tournament: seed=$seed rounds=$rounds maxTurns=$max_turns scenario=$scenario agents=$agents writeLogs=$write_logs"
 
 cmd=(
+  HASHMATCH_PUBLISH=1
   node
   dist/cli/run-tournament.js
   --seed "$seed"

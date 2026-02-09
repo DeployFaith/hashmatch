@@ -95,6 +95,8 @@ function summarize(event: ParsedMatchEvent): string {
       return `[${event.agentId}] ERROR: ${event.message}`;
     case "MatchEnded":
       return `Match ended (${event.reason}). Scores: ${truncateJson(event.scores)}`;
+    default:
+      return `Event: ${truncateJson(event)}`;
   }
 }
 

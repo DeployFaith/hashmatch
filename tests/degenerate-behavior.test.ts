@@ -85,6 +85,10 @@ async function runHeistMatchWithArtifacts(options: {
     },
     agents: agentIds.map((id) => ({
       id,
+      kind: "llm",
+      purpose: "test",
+      provider: "ollama",
+      model: "fixture",
       version: null,
       contentHash: null,
     })),

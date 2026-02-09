@@ -467,6 +467,29 @@ export function formatEvent(
     };
   }
 
+  // -- AgentBudget ----------------------------------------------------------
+  if (type === "AgentBudget") {
+    const agentId = getStr(event, "agentId");
+    const tokensUsed = getNum(event, "tokensUsed");
+    const tokensAllowed = getNum(event, "tokensAllowed");
+    const callsUsed = getNum(event, "callsUsed");
+    const callsAllowed = getNum(event, "callsAllowed");
+    return {
+      primaryText: `Budget \u2192 ${agentId ?? "unknown"}`,
+      details: [
+        tokensUsed !== undefined && tokensAllowed !== undefined
+          ? `Tokens: ${tokensUsed}/${tokensAllowed}`
+          : null,
+        callsUsed !== undefined && callsAllowed !== undefined
+          ? `Calls: ${callsUsed}/${callsAllowed}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" | "),
+      badge: "system",
+    };
+  }
+
   // -- Presence-based fallbacks for unknown event types ---------------------
 
   // Score-bearing events

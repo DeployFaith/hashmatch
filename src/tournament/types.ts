@@ -28,6 +28,10 @@ export interface MatchSpec {
 
 export interface MatchManifestAgent {
   id: AgentId;
+  kind: "llm";
+  purpose: "competitive" | "test";
+  provider: "ollama" | "openrouter";
+  model: string;
   version: string | null;
   contentHash: string | null;
   metadata?: Record<string, JsonValue>;

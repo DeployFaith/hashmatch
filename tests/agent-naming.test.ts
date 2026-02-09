@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getAgentFactory } from "../src/tournament/runTournament.js";
-import * as ollamaAgentModule from "../src/agents/ollama/createOllamaAgent.js";
+import * as llmAgentModule from "../src/agents/llm/createLlmAgent.js";
 
-type OllamaAgent = ReturnType<typeof ollamaAgentModule.createOllamaAgent>;
+type LlmAgent = ReturnType<typeof llmAgentModule.createLlmAgent>;
 
 const originalEnv = {
   OLLAMA_MODEL: process.env.OLLAMA_MODEL,
@@ -99,12 +99,12 @@ describe("agent naming", () => {
   it("prefers model in the key over global env override", () => {
     process.env.OLLAMA_MODEL = "phi3:latest";
     const createSpy = vi
-      .spyOn(ollamaAgentModule, "createOllamaAgent")
+      .spyOn(llmAgentModule, "createLlmAgent")
       .mockImplementation((id, _config, _adapter) => ({
         id,
         init: () => {},
         act: () => ({}),
-      }) as OllamaAgent);
+      }) as LlmAgent);
 
     const factory = getAgentFactory("llm:ollama:qwen2.5:3b", {
       scenarioKey: "heist",
@@ -120,12 +120,12 @@ describe("agent naming", () => {
   it("keeps per-slot override behavior for ollama-heist", () => {
     process.env.OLLAMA_MODEL_0 = "phi3:mini";
     const createSpy = vi
-      .spyOn(ollamaAgentModule, "createOllamaAgent")
+      .spyOn(llmAgentModule, "createLlmAgent")
       .mockImplementation((id, _config, _adapter) => ({
         id,
         init: () => {},
         act: () => ({}),
-      }) as OllamaAgent);
+      }) as LlmAgent);
 
     const factory = getAgentFactory("ollama-heist", { scenarioKey: "heist", slotIndex: 0 });
     factory("ollama-heist-0");

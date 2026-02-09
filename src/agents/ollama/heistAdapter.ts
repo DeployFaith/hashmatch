@@ -269,7 +269,31 @@ function normalizeHeistAction(action: LooseHeistAction): HeistAction | null {
   }
 }
 
-export function parseResponse(text: string, observation?: unknown): HeistAction | null {
+export function parseResponse(
+  text: string,
+  observation?: unknown,
+  context?: {
+    provider?: string;
+    model?: string;
+    latencyMs?: number;
+    usage?: { inputTokens?: number; outputTokens?: number; totalTokens?: number };
+    truncated?: boolean;
+    responseBody?: unknown;
+    budget?: {
+      tokensUsed: number | null;
+      tokensAllowed: number | null;
+      matchTokensUsed: number | null;
+      matchTokensAllowed: number | null;
+      callsUsed: number;
+      callsAllowed: number;
+      matchCallsUsed: number;
+      matchCallsAllowed: number;
+      outputTruncated: boolean;
+      tokenCapHit: boolean;
+      callCapHit: boolean;
+    };
+  },
+): HeistAction {
   const rawText = typeof text === "string" ? text : "";
   const fallback = resolveFallbackAction(observation);
   const result = decodeAgentAction(rawText, looseHeistActionSchema, fallback, {
@@ -300,18 +324,25 @@ export function parseResponse(text: string, observation?: unknown): HeistAction 
     (normalizedAction ?? result.fallbackAction ?? fallback) as HeistAction;
   const rawBytes = Buffer.byteLength(rawText, "utf-8");
   const actionWithForensics = { ...chosenAction };
+  const adjudicationPath = fallbackReason ? "fallback" : "text+tolerant_decode";
 
   return attachActionForensics(actionWithForensics, {
     rawText,
     rawSha256: result.rawSha256,
     rawBytes,
-    truncated: false,
+    truncated: context?.truncated ?? false,
     method: result.method,
     warnings,
     errors: result.errors,
     fallbackReason,
     candidateAction: result.candidate,
     chosenAction,
+    provider: context?.provider,
+    model: context?.model,
+    latencyMs: context?.latencyMs,
+    usage: context?.usage,
+    adjudicationPath,
+    budget: context?.budget,
   });
 }
 
@@ -320,4 +351,20 @@ export const heistAdapter: ScenarioAdapter = {
   formatObservation,
   parseResponse,
   fallbackAction,
+  actionSchema: looseHeistActionSchema,
+  normalizeAction: (action: unknown) => {
+    const parsed = looseHeistActionSchema.safeParse(action);
+    if (!parsed.success) {
+      return { action: null, warnings: ["Structured action failed schema validation."] };
+    }
+    const normalized = normalizeHeistAction(parsed.data);
+    if (!normalized) {
+      return { action: null, warnings: ["Structured action normalization failed."] };
+    }
+    const validated = HeistActionSchema.safeParse(normalized);
+    if (!validated.success) {
+      return { action: null, warnings: ["Structured action failed Heist schema validation."] };
+    }
+    return { action: normalized, warnings: [] };
+  },
 };
