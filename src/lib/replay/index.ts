@@ -16,6 +16,8 @@ export { validateJsonlText } from "./validateJsonl";
 export type { JsonlValidationError, JsonlValidationResult } from "./validateJsonl";
 export { redactEvent, redactEvents } from "./redaction";
 export type { ViewerMode, RedactionOptions, RedactedEvent } from "./redaction";
+export { formatEvent, safeJsonPreview } from "./formatEvent";
+export type { FormattedEvent } from "./formatEvent";
 export { detectMoments, buildMomentEventRangeMap, getMomentEventRange } from "./detectMoments";
 export type { MomentEventRange, MomentEventRangeMap, ReplayMoment } from "./detectMoments";
 export { createFileEventSource, createLiveEventSource } from "./eventSource";
