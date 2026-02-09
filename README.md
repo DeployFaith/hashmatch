@@ -1,6 +1,6 @@
 # HashMatch
 
-Competitive agent tournament platform — "UFC for Agents." Deterministic match engine, round-robin tournament harness, CLI tooling, and web-based replay viewer.
+Competitive agent tournament platform — "UFC for Agents." Live matches, real-time spectating, deterministic engine, and verifiable outcomes.
 
 ## Structure
 
@@ -24,7 +24,7 @@ npm test
 npm run build
 ```
 
-## Run & Replay
+## Run & Watch
 
 Run a match and save the event log:
 
@@ -44,7 +44,7 @@ npm run match -- \
   --out out.jsonl
 ```
 
-Replay a match log as a readable recap:
+Watch a replay as a readable recap:
 
 ```bash
 npm run replay -- --in out.jsonl
@@ -64,13 +64,13 @@ Run a round-robin tournament:
 npm run tournament -- --seed 42 --rounds 3 --maxTurns 20 --scenario numberGuess --agents random,baseline
 ```
 
-Write a single-file tournament bundle:
+Export a tournament archive for verification:
 
 ```bash
 npm run tournament -- --seed 42 --rounds 3 --maxTurns 20 --scenario numberGuess --agents random,baseline --bundle-out bundle.json
 ```
 
-## Verification
+## Integrity & Verification
 
 Verify match integrity (recompute hashes):
 
@@ -140,7 +140,7 @@ Published URL patterns:
 
 Project documentation lives in Documents/. See [QUICKSTART.md](QUICKSTART.md) for a step-by-step developer guide.
 
-## Verify the signed exhibition bundle
+## Verify a signed exhibition (receipts & dispute tooling)
 
 npm ci
 npm run validate-bundle -- --path data/exhibitions/heist-showcase-001 --require-signatures

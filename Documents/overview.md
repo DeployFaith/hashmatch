@@ -9,7 +9,7 @@ It is built around two core requirements:
 - **Entertainment**: matches must be watchable and exciting
 - **Trust**: outcomes must be verifiable and resistant to tampering
 
-The system is designed to work **offline first**: tournaments can be run and published as portable artifact bundles without servers or databases.
+The system is designed as a **live-first platform**: matches run in real time and are watched via URLs. Offline artifacts serve as verifiable receipts and archive (see `design_principles.md`).
 
 ## 1. The Core Loop
 
@@ -122,15 +122,14 @@ Generated show assets are allowed only under strict grounding rules.
 
 ## 6. Distribution Model
 
-The current implementation is **offline-first**: the core runs without infrastructure, and tournaments are distributed as portable file bundles. The product direction is evolving toward a **live-first platform** where matches run in real time and are watched via URLs (see `hashmatch_live_platform_direction_decision_architecture.md`). Offline artifacts remain valuable as verifiable receipts and archive.
-See “Artifacts: Trust Substrate, Not Product Surface” in `hashmatch_live_platform_direction_decision_architecture.md` for the trust-substrate framing that keeps artifacts central even in a live-first product.
+HashMatch is a **live-first platform**: the primary spectator experience is watching matches via URLs and live streams. Artifacts (bundles, manifests, receipts) are the **trust substrate** — they power verification, dispute resolution, and archival, not the main viewing path (see `design_principles.md` and `hashmatch_live_platform_direction_decision_architecture.md`).
 
 Current distribution:
 
-- zip bundles of tournaments
-- static replay viewer hosting
-- manual fight night packaging
-- SSE-based match streaming (API endpoints exist: `src/app/api/matches/`)
+- SSE-based match streaming (API endpoints: `src/app/api/matches/`)
+- Web replay viewer for live and archived matches
+- Portable artifact bundles for verification and archival
+- Manual fight night packaging
 
 Infrastructure (accounts, matchmaking, hosted verification, payments) comes later.
 

@@ -203,7 +203,7 @@ export default async function MatchDetailPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Artifacts</CardTitle>
+          <CardTitle>Match Records</CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="space-y-1 text-sm text-muted-foreground">

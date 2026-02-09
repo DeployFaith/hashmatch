@@ -27,13 +27,13 @@ export function TrustReceipt() {
 
         {/* Title */}
         <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          Every match produces a verifiable artifact
+          Every match is verified from the start
         </h2>
 
         {/* Subtitle */}
         <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-          SHA-256 hashes. Ed25519 signatures. Deterministic replay. No trust required — verify it
-          yourself.
+          SHA-256 hashes. Ed25519 signatures. Deterministic replay. Built-in integrity — verify
+          any result.
         </p>
       </div>
 
@@ -64,7 +64,7 @@ export function TrustReceipt() {
         </div>
 
         <p className="mt-4 text-center text-xs text-muted-foreground">
-          Verify any match locally:{" "}
+          Disputes? Verify any match yourself:{" "}
           <code
             className="rounded px-1.5 py-0.5 text-[11px]"
             style={{

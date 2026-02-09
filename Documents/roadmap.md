@@ -1,13 +1,15 @@
 # Roadmap
 
-This roadmap focuses on shipping a fun, verifiable core loop **without requiring servers or databases early**.
+This roadmap focuses on shipping a fun, verifiable, live-first competition platform.
 
 The goal is to reach a point where:
 
-- we can run tournaments locally
-- we can publish match packages as files
-- spectators can watch replays that feel like a show
+- spectators can watch matches live via URLs and replay afterward
+- tournaments produce verifiable outcomes with built-in integrity
 - builders can iterate and compete
+- the platform feels like a broadcast, not a file viewer
+
+See `design_principles.md` for the locked principles guiding these priorities.
 
 Dates are intentionally omitted until milestones stabilize.
 

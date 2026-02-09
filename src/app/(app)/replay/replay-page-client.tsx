@@ -644,7 +644,7 @@ function FileDropZone({
       <div className="text-center">
         <h1 className="text-lg font-bold">Replay Viewer</h1>
         <p className="text-sm text-muted-foreground">
-          Load a JSONL engine log and explore the match timeline
+          Watch a match and explore the timeline
         </p>
       </div>
 
@@ -665,7 +665,7 @@ function FileDropZone({
             onDrop={handleDrop}
           >
             <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
-            <p className="mb-1 text-sm font-medium">Drop a .jsonl replay file here</p>
+            <p className="mb-1 text-sm font-medium">Drop a replay file here</p>
             <p className="mb-3 text-xs text-muted-foreground">or click below to browse</p>
             <input
               ref={fileInputRef}
@@ -746,7 +746,7 @@ function FileDropZone({
               ) : (
                 <FolderOpen className="h-4 w-4" />
               )}
-              Upload tournament folder
+              Load tournament folder
             </Button>
           )}
 
@@ -1061,7 +1061,7 @@ function OrderingTooltip() {
           <p className="font-medium mb-1">Deterministic ordering</p>
           <p className="text-muted-foreground">
             Events are sorted by <code className="rounded bg-muted px-1">seq</code> (ascending),
-            with ties broken by original line order in the JSONL file. This guarantees identical
+            with ties broken by original event order. This guarantees identical
             display order across reloads and machines.
           </p>
         </div>

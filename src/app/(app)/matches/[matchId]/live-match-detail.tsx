@@ -905,11 +905,11 @@ export function LiveMatchDetail({
         </CardContent>
       </Card>
 
-      {/* Artifacts */}
+      {/* Match Records */}
       {!isLive && !isWaiting && (
         <Card>
           <CardHeader>
-            <CardTitle>Artifacts</CardTitle>
+            <CardTitle>Match Records</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-1 text-sm text-muted-foreground">

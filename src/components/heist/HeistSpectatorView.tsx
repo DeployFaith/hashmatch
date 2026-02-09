@@ -143,7 +143,7 @@ function FilePickerScreen({ onLoad }: { onLoad: (text: string) => void }) {
       >
         <span className="text-3xl text-muted-foreground">&#x1F4C2;</span>
         <span className="text-sm text-muted-foreground">
-          Drop a Heist .jsonl file here, or click to browse
+          Drop a Heist replay file here, or click to browse
         </span>
         <input
           ref={fileInputRef}

@@ -20,8 +20,8 @@ npm run tournament`,
   },
   {
     icon: ShieldCheck,
-    title: "Verify everything",
-    description: "Recompute hashes, validate standings, check signatures.",
+    title: "Verify any result",
+    description: "Recompute hashes, validate standings, check signatures. Receipts for disputes.",
     code: `npx hashmatch verify-tournament \\
   --path ./output`,
   },

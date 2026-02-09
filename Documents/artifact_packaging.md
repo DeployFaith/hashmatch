@@ -1,16 +1,14 @@
 # Artifact Packaging
 
-This document defines how HashMatch packages match/tournament outputs into portable bundles.
+This document defines how HashMatch packages match/tournament outputs into portable bundles. Artifacts are the **trust substrate** of the platform — they power verification, dispute resolution, and archival integrity. The primary spectator experience is live (see `design_principles.md`); packaging exists to make that trust layer portable and auditable.
 
 The goal is:
 
-- everything can be copied as files
-- bundles are replayable offline
-- bundles support verification (hashes/receipts)
+- bundles support verification (hashes/receipts) and dispute resolution
+- everything can be copied as files for archival and offline replay
 - bundles support spectator broadcast packaging
 
-No servers required.
-For product framing on why artifacts remain the trust substrate, see “Artifacts: Trust Substrate, Not Product Surface” in `hashmatch_live_platform_direction_decision_architecture.md`.
+For full product framing, see `hashmatch_live_platform_direction_decision_architecture.md`.
 
 ## 1. Packaging Principles
 
