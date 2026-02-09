@@ -67,7 +67,6 @@ export interface MatchManifest {
   agents: MatchManifestAgent[];
   config: MatchManifestConfig;
   runner: MatchManifestRunner;
-  createdAt: string;
 }
 
 export interface TournamentManifest {
@@ -77,7 +76,6 @@ export interface TournamentManifest {
   matches: MatchSpec[];
   modeProfile?: JsonValue;
   harnessVersion?: string;
-  createdAt: string;
   truthBundleHash?: string;
 }
 

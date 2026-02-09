@@ -24,8 +24,6 @@ import {
   createWaitSpamProfile,
 } from "./fixtures/agents/heistDegenerateProfiles.js";
 
-const FIXED_CREATED_AT = "2024-01-01T00:00:00.000Z";
-
 function determineWinner(scores: Record<AgentId, number>, agentIds: AgentId[]): AgentId | null {
   let winner: AgentId | null = null;
   let bestScore = Number.NEGATIVE_INFINITY;
@@ -106,7 +104,6 @@ async function runHeistMatchWithArtifacts(options: {
       version: null,
       gitCommit: null,
     },
-    createdAt: FIXED_CREATED_AT,
   };
 
   const summary: MatchSummary = {

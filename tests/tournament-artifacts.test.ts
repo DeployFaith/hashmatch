@@ -5,7 +5,6 @@ import { tmpdir } from "node:os";
 import { runTournament } from "../src/tournament/runTournament.js";
 import { writeTournamentArtifacts } from "../src/tournament/artifacts.js";
 import { hashFile, hashManifestCore } from "../src/core/hash.js";
-import { stableStringify } from "../src/core/json.js";
 import type { TournamentConfig } from "../src/tournament/types.js";
 
 function makeConfig(overrides: Partial<TournamentConfig> = {}): TournamentConfig {
@@ -56,19 +55,7 @@ describe("Tournament artifacts determinism", () => {
       for (const file of filesA) {
         const a = readFileSync(join(dirA, file), "utf-8");
         const b = readFileSync(join(dirB, file), "utf-8");
-        if (
-          file.endsWith("match_manifest.json") ||
-          file === "tournament_manifest.json" ||
-          file === "tournament.json"
-        ) {
-          const parsedA = JSON.parse(a) as { createdAt?: string };
-          const parsedB = JSON.parse(b) as { createdAt?: string };
-          delete parsedA.createdAt;
-          delete parsedB.createdAt;
-          expect(stableStringify(parsedA)).toBe(stableStringify(parsedB));
-        } else {
-          expect(a).toBe(b);
-        }
+        expect(a, `File ${file} should be byte-identical`).toBe(b);
       }
     } finally {
       rmSync(dirA, { recursive: true, force: true });
@@ -98,14 +85,13 @@ describe("Tournament artifacts manifest", () => {
         scenarioName: string;
         agents: string[];
         matches: Array<{ matchKey: string }>;
-        createdAt: string;
       };
 
       expect(manifest.tournamentSeed).toBe(result.tournament.tournamentSeed);
       expect(manifest.scenarioName).toBe(result.tournament.scenarioName);
       expect(manifest.agents).toEqual(result.tournament.agents);
       expect(manifest.matches).toHaveLength(result.tournament.matches.length);
-      expect(typeof manifest.createdAt).toBe("string");
+      expect((manifest as Record<string, unknown>).createdAt).toBeUndefined();
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -137,7 +123,6 @@ describe("Tournament artifacts manifest", () => {
         agents: Array<{ id: string; version: string; contentHash: string }>;
         config: { maxTurns: number; seed: number; seedDerivationInputs: Record<string, unknown> };
         runner: { name: string; version: string | null; gitCommit: string | null };
-        createdAt: string;
       };
 
       expect(manifest.matchId).toBe(result.matchSummaries[0].matchId);
@@ -158,7 +143,7 @@ describe("Tournament artifacts manifest", () => {
         matchKey: result.matchSummaries[0].matchKey,
       });
       expect(manifest.runner.name).toBe("tournament-harness");
-      expect(typeof manifest.createdAt).toBe("string");
+      expect((manifest as Record<string, unknown>).createdAt).toBeUndefined();
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -243,29 +228,43 @@ describe("Tournament artifact hashing", () => {
     }
   });
 
-  it("ignores createdAt when hashing manifest core", () => {
-    const baseManifest = {
+  it("produces deterministic hashes without createdAt", () => {
+    const manifestA = {
       matchId: "match-1",
-      createdAt: "2024-01-01T00:00:00.000Z",
       config: { seed: 123 },
     };
-    const sameCoreDifferentCreated = {
+    const manifestB = {
       matchId: "match-1",
-      createdAt: "2024-02-01T00:00:00.000Z",
       config: { seed: 123 },
     };
     const differentCore = {
       matchId: "match-1",
-      createdAt: "2024-01-01T00:00:00.000Z",
       config: { seed: 999 },
     };
 
-    const hashA = hashManifestCore(baseManifest);
-    const hashB = hashManifestCore(sameCoreDifferentCreated);
+    const hashA = hashManifestCore(manifestA);
+    const hashB = hashManifestCore(manifestB);
     const hashC = hashManifestCore(differentCore);
 
     expect(hashA).toBe(hashB);
     expect(hashA).not.toBe(hashC);
     expect(hashA).toMatch(hashRegex);
+  });
+
+  it("still supports explicit excludeFields for legacy manifests", () => {
+    const withCreatedAt = {
+      matchId: "match-1",
+      createdAt: "2024-01-01T00:00:00.000Z",
+      config: { seed: 123 },
+    };
+    const withoutCreatedAt = {
+      matchId: "match-1",
+      config: { seed: 123 },
+    };
+
+    const hashWith = hashManifestCore(withCreatedAt, ["createdAt"]);
+    const hashWithout = hashManifestCore(withoutCreatedAt);
+
+    expect(hashWith).toBe(hashWithout);
   });
 });

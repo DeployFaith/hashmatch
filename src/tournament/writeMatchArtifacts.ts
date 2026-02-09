@@ -269,7 +269,6 @@ export async function writeMatchArtifacts(config: MatchArtifactsConfig): Promise
       version: null,
       gitCommit: null,
     },
-    createdAt: new Date().toISOString(),
   };
 
   const summary: MatchSummary = {

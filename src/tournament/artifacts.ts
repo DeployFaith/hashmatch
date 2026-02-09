@@ -77,7 +77,6 @@ function buildMatchManifest(
       version: harnessVersion,
       gitCommit: null,
     },
-    createdAt: new Date().toISOString(),
   };
 }
 
@@ -93,7 +92,6 @@ function buildTournamentManifest(result: TournamentResult): TournamentManifest {
     ...(result.tournament.harnessVersion !== undefined && {
       harnessVersion: result.tournament.harnessVersion,
     }),
-    createdAt: new Date().toISOString(),
   };
 }
 

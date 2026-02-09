@@ -60,12 +60,7 @@ export async function runMatchWithArtifacts(
       await preflightValidateLlmAgents(llmAgents);
     } catch (err: unknown) {
       if (options.outDir) {
-        await writePreflightFailureArtifacts(
-          options.outDir,
-          options.matchId,
-          options,
-          err,
-        );
+        await writePreflightFailureArtifacts(options.outDir, options.matchId, options, err);
       }
       throw err;
     }
@@ -233,7 +228,6 @@ async function writePreflightFailureArtifacts(
       version: null,
       gitCommit: null,
     },
-    createdAt: new Date().toISOString(),
   };
 
   const scores = Object.fromEntries(agentIds.map((agentId) => [agentId, 0]));

@@ -81,13 +81,12 @@ describe("verify-match", () => {
     }
   });
 
-  it("passes when only createdAt changes", async () => {
+  it("manifests do not contain createdAt", async () => {
     const { dir, matchDir } = await setupMatchDir();
     try {
       const manifestPath = join(matchDir, "match_manifest.json");
       const manifest = JSON.parse(readFileSync(manifestPath, "utf-8")) as Record<string, unknown>;
-      manifest.createdAt = new Date().toISOString();
-      writeJson(manifestPath, manifest);
+      expect(manifest.createdAt).toBeUndefined();
 
       const report = await verifyMatchDirectory(matchDir);
       expect(report.exitCode).toBe(0);
