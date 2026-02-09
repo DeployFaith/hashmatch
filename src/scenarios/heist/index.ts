@@ -462,6 +462,16 @@ export function createHeistScenario(
       return { type: "wait" };
     },
 
+    getScenarioHints() {
+      const roomCount = params.map.rooms.length;
+      const itemCount = params.items.length;
+      const terminalCount = params.entities.filter((entity) => entity.type === "terminal").length;
+      return {
+        noopActions: ["wait"],
+        actionSpaceSize: Math.max(0, roomCount + itemCount + terminalCount + 2),
+      };
+    },
+
     getBriefing: getHeistBriefing,
 
     reveal(state: HeistState): JsonValue {

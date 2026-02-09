@@ -96,6 +96,7 @@ export async function runMatchWithArtifacts(
       matchId: result.matchId,
       scenarioName: scenario.name,
       scenarioKey: options.scenarioKey,
+      scenarioHints: scenario.getScenarioHints(),
       agentKeys: options.agentKeys,
       seed: options.seed,
       maxTurns: options.maxTurns,

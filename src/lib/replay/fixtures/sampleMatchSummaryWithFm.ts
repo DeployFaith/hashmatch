@@ -3,6 +3,9 @@
  * Behavior Profile panel in the replay viewer.
  *
  * This is a dev fixture only — it does not modify production artifact writers.
+ *
+ * detectorSource values follow the canonical DetectorSource type:
+ *   "core" | `scenario:${string}`
  */
 export const SAMPLE_MATCH_SUMMARY_WITH_FM = {
   matchId: "m_fixture_fm_001",
@@ -15,20 +18,20 @@ export const SAMPLE_MATCH_SUMMARY_WITH_FM = {
   turns: 15,
   reason: "completed",
   failureModes: {
-    fmClassifierVersion: "0.3.0-dev",
+    fmClassifierVersion: "core-1",
     byAgentId: {
       alpha: [
-        { id: "FM-TIMEOUT-LOOP", count: 3, detectorSource: "heuristic-v2", rate: 0.2 },
-        { id: "FM-INVALID-ACTION", count: 7, detectorSource: "validator", rate: 0.467 },
-        { id: "FM-REPEAT-MOVE", count: 2, detectorSource: "heuristic-v2", rate: 0.133 },
-        { id: "FM-NOOP-FALLBACK", count: 1, detectorSource: "heuristic-v2", rate: 0.067 },
-        { id: "FM-RESOURCE-WASTE", count: 5, detectorSource: "scenario-specific", rate: 0.333 },
-        { id: "FM-STALL", count: 1, detectorSource: "heuristic-v2", rate: 0.067 },
+        { id: "FM-TIMEOUT-LOOP", count: 3, detectorSource: "core", rate: 0.2 },
+        { id: "FM-INVALID-ACTION", count: 7, detectorSource: "core", rate: 0.467 },
+        { id: "FM-REPEAT-MOVE", count: 2, detectorSource: "core", rate: 0.133 },
+        { id: "FM-NOOP-FALLBACK", count: 1, detectorSource: "core", rate: 0.067 },
+        { id: "FM-RESOURCE-WASTE", count: 5, detectorSource: "scenario:heist", rate: 0.333 },
+        { id: "FM-STALL", count: 1, detectorSource: "core", rate: 0.067 },
       ],
       beta: [
-        { id: "FM-TIMEOUT-LOOP", count: 12, detectorSource: "heuristic-v2", rate: 0.8 },
-        { id: "FM-INVALID-ACTION", count: 2, detectorSource: "validator", rate: 0.133 },
-        { id: "FM-PANIC-BID", count: 4, detectorSource: "scenario-specific", rate: 0.267 },
+        { id: "FM-TIMEOUT-LOOP", count: 12, detectorSource: "core", rate: 0.8 },
+        { id: "FM-INVALID-ACTION", count: 2, detectorSource: "core", rate: 0.133 },
+        { id: "FM-PANIC-BID", count: 4, detectorSource: "scenario:heist", rate: 0.267 },
       ],
     },
   },

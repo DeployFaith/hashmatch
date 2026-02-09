@@ -1,3 +1,4 @@
+import type { FailureModeProfile } from "@/lib/fm";
 import type { ReplayMoment } from "@/lib/replay";
 import type { StandingsRow } from "@/tournament/types";
 
@@ -18,6 +19,7 @@ export interface MatchSummaryRecord {
   turns: number;
   reason: string;
   hashes?: MatchSummaryHashes;
+  failureModes?: FailureModeProfile;
 }
 
 export type MatchStatusState =

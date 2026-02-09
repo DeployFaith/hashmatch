@@ -204,6 +204,13 @@ export function createResourceRivalsScenario(
       return { type: "bid", amount: 0 };
     },
 
+    getScenarioHints() {
+      return {
+        noopActions: [],
+        actionSpaceSize: Math.max(0, startingResources + 1),
+      };
+    },
+
     getBriefing: getResourceRivalsBriefing,
 
     reveal(state: ResourceRivalsState): JsonValue {

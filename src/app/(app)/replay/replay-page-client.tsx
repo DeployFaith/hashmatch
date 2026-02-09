@@ -98,21 +98,19 @@ interface TournamentMeta {
   }>;
 }
 
-/** A single failure-mode entry for an agent. */
-interface FailureModeEntry {
-  id: string;
-  count: number;
-  detectorSource: string;
-  rate?: number;
-}
-
-/** Published FM telemetry snapshot (optional in match_summary.json). */
-interface FailureModesBlock {
-  fmClassifierVersion: string;
-  byAgentId: Record<string, FailureModeEntry[]>;
-}
-
 /** Shape of each matches/<key>/match_summary.json. */
+interface FailureModeHitEntry {
+  id: `FM-${string}`;
+  count: number;
+  rate?: number;
+  detectorSource: "core" | `scenario:${string}`;
+}
+
+interface FailureModeProfileEntry {
+  fmClassifierVersion: string;
+  byAgentId: Record<string, FailureModeHitEntry[]>;
+}
+
 interface MatchSummaryEntry {
   matchId: string;
   matchKey: string;
@@ -124,7 +122,7 @@ interface MatchSummaryEntry {
   winner: string | null;
   turns: number;
   reason: string;
-  failureModes?: FailureModesBlock;
+  failureModes?: FailureModeProfileEntry;
 }
 
 /** Shape of each row in standings.json. */
@@ -398,11 +396,11 @@ function parseMomentsJson(raw: unknown): ReplayMoment[] {
 
 /**
  * Validate the optional `failureModes` block from a match_summary.json.
- * Returns { valid: true, data } on success, { valid: false, raw } on malformed input,
- * or null if the field is absent.
+ * Returns { status: "present", data } on success, { status: "invalid", raw }
+ * on malformed input, or { status: "absent" } if the field is missing.
  */
 type FmParseResult =
-  | { status: "present"; data: FailureModesBlock }
+  | { status: "present"; data: FailureModeProfileEntry }
   | { status: "invalid"; raw: unknown }
   | { status: "absent" };
 
@@ -422,12 +420,12 @@ function parseFailureModes(summary: MatchSummaryEntry): FmParseResult {
     return { status: "invalid", raw };
   }
   const byAgentId = block.byAgentId as Record<string, unknown>;
-  const parsed: Record<string, FailureModeEntry[]> = {};
+  const parsed: Record<string, FailureModeHitEntry[]> = {};
   for (const [agentId, entries] of Object.entries(byAgentId)) {
     if (!Array.isArray(entries)) {
       return { status: "invalid", raw };
     }
-    const agentEntries: FailureModeEntry[] = [];
+    const agentEntries: FailureModeHitEntry[] = [];
     for (const entry of entries) {
       if (
         !entry ||
@@ -440,9 +438,9 @@ function parseFailureModes(summary: MatchSummaryEntry): FmParseResult {
       }
       const e = entry as Record<string, unknown>;
       agentEntries.push({
-        id: e.id as string,
+        id: e.id as FailureModeHitEntry["id"],
         count: e.count as number,
-        detectorSource: e.detectorSource as string,
+        detectorSource: e.detectorSource as FailureModeHitEntry["detectorSource"],
         ...(typeof e.rate === "number" ? { rate: e.rate } : {}),
       });
     }

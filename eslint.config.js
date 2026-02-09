@@ -25,4 +25,15 @@ export default [
       "prefer-const": "error",
     },
   },
+  {
+    files: ["src/engine/**/*.ts", "src/tournament/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: ["**/lib/fm", "**/lib/fm/*"],
+        },
+      ],
+    },
+  },
 ];

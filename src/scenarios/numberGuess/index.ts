@@ -162,6 +162,13 @@ export function createNumberGuessScenario(
       return { type: "guess", value: -1 };
     },
 
+    getScenarioHints() {
+      return {
+        noopActions: [],
+        actionSpaceSize: Math.max(0, rangeMax - rangeMin + 1),
+      };
+    },
+
     getBriefing: getNumberGuessBriefing,
 
     reveal(state: NumberGuessState): JsonValue {

@@ -74,6 +74,20 @@ export interface AdjudicationResult<TState> {
   feedback: JsonValue;
 }
 
+/**
+ * Scenario-defined telemetry hints for failure mode classification.
+ *
+ * These hints must be derived from scenario code, not user-edited metadata.
+ */
+export interface ScenarioHints {
+  /** Scenario-defined action types that count as no-ops. */
+  noopActions: string[];
+  /** Conservative estimate of the action space size. */
+  actionSpaceSize: number;
+  /** Optional cap for prerequisite chain depth (if applicable). */
+  maxChainDepth?: number;
+}
+
 /** A scenario (game / simulation) defining rules and scoring. */
 export interface Scenario<TState = unknown, TObs = JsonValue, TAct = JsonValue> {
   readonly name: string;
@@ -91,6 +105,8 @@ export interface Scenario<TState = unknown, TObs = JsonValue, TAct = JsonValue> 
   summarize(state: TState): JsonValue;
   /** Default action to use when an agent fails to respond in time. */
   getDefaultAction(): TAct;
+  /** Scenario hints for FM telemetry; must be derived from scenario code. */
+  getScenarioHints(): ScenarioHints;
   /** Optional end-of-match reveal (e.g. hidden secrets). Included in MatchEnded.details. */
   reveal?(state: TState): JsonValue;
   /** Optional structured rule briefing injected into the turn-1 observation as gameRules. */

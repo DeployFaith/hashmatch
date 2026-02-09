@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { hashFile, hashManifestCore } from "../core/hash.js";
 import { stableStringify, toStableJsonl } from "../core/json.js";
+import type { ScenarioHints } from "../contract/interfaces.js";
 import type { AgentId, MatchEvent } from "../contract/types.js";
 import { detectMoments } from "../lib/replay/detectMoments.js";
 import { verifyMatchDirectory } from "../core/verifyMatchDirectory.js";
@@ -17,6 +18,7 @@ import {
   type MatchManifestProvenanceConfig,
 } from "./provenance.js";
 import type { MatchManifest, MatchSummary } from "./types.js";
+import { computeFailureModes } from "../lib/matches/failureModes.js";
 
 function ensureSingleTrailingNewline(value: string): string {
   return value.replace(/\n*$/, "\n");
@@ -49,6 +51,7 @@ export interface MatchArtifactsCoreOptions {
   events: MatchEvent[];
   manifest: MatchManifest;
   summary: MatchSummary;
+  scenarioHints?: ScenarioHints;
   moments?: {
     enabled?: boolean;
     writeHighlights?: (moments: ReturnType<typeof detectMoments>, summary: MatchSummary) => unknown;
@@ -115,8 +118,17 @@ export async function writeMatchArtifactsCore(
 
   const logHash = await hashFile(matchLogPath);
   const manifestHash = hashManifestCore(options.manifest as unknown as Record<string, unknown>);
+  const failureModes = options.scenarioHints
+    ? computeFailureModes({
+        events: options.events,
+        scenarioHints: options.scenarioHints,
+        agentIds: options.summary.agentIds,
+        maxTurns: options.manifest.config.maxTurns,
+      })
+    : undefined;
   const summaryWithHashes: MatchSummary = {
     ...options.summary,
+    ...(failureModes ? { failureModes } : {}),
     hashes: {
       logHash,
       manifestHash,
@@ -212,6 +224,7 @@ export interface MatchArtifactsConfig {
   seed: number;
   maxTurns: number;
   maxTurnTimeMs: number;
+  scenarioHints?: ScenarioHints;
   modeKey?: string;
   events: MatchEvent[];
   scores: Record<AgentId, number>;
@@ -277,6 +290,7 @@ export async function writeMatchArtifacts(config: MatchArtifactsConfig): Promise
     events: config.events,
     manifest,
     summary,
+    ...(config.scenarioHints ? { scenarioHints: config.scenarioHints } : {}),
     moments: { enabled: true },
     broadcast: {
       bundleId: config.matchId,

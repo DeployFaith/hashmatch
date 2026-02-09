@@ -3,7 +3,15 @@ export type {
   GameBriefing,
   GameBriefingAction,
   GameBriefingObservationField,
+  ScenarioHints,
 } from "./contract/interfaces.js";
+
+export type {
+  DetectorSource,
+  FailureModeHit,
+  FailureModeId,
+  FailureModeProfile,
+} from "./lib/fm/index.js";
 
 export type {
   CommentaryEntry,

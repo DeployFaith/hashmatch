@@ -7,23 +7,24 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
-// Types (mirrored from replay-page-client to keep the panel self-contained)
+// Types — aligned with the canonical FailureModeProfile shape from @/lib/fm
+// (mirrored here to keep the panel self-contained without importing engine code)
 // ---------------------------------------------------------------------------
 
-interface FailureModeEntry {
-  id: string;
+interface FailureModeHitEntry {
+  id: `FM-${string}`;
   count: number;
-  detectorSource: string;
   rate?: number;
+  detectorSource: "core" | `scenario:${string}`;
 }
 
-interface FailureModesBlock {
+interface FailureModeProfileEntry {
   fmClassifierVersion: string;
-  byAgentId: Record<string, FailureModeEntry[]>;
+  byAgentId: Record<string, FailureModeHitEntry[]>;
 }
 
 type FmParseResult =
-  | { status: "present"; data: FailureModesBlock }
+  | { status: "present"; data: FailureModeProfileEntry }
   | { status: "invalid"; raw: unknown }
   | { status: "absent" };
 
@@ -37,7 +38,13 @@ const DEFAULT_VISIBLE_COUNT = 5;
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function AgentFmSection({ agentId, entries }: { agentId: string; entries: FailureModeEntry[] }) {
+function AgentFmSection({
+  agentId,
+  entries,
+}: {
+  agentId: string;
+  entries: FailureModeHitEntry[];
+}) {
   const [expanded, setExpanded] = useState(false);
 
   const sorted = [...entries].sort((a, b) => b.count - a.count);

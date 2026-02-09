@@ -82,6 +82,18 @@ export interface MatchSummaryHashes {
   manifestHash: string;
 }
 
+export interface FailureModeHitSummary {
+  id: `FM-${string}`;
+  count: number;
+  rate?: number;
+  detectorSource: "core" | `scenario:${string}`;
+}
+
+export interface FailureModeProfileSummary {
+  byAgentId: Record<AgentId, FailureModeHitSummary[]>;
+  fmClassifierVersion: string;
+}
+
 /** Summary of a single match within a tournament. */
 export interface MatchSummary {
   matchId: MatchId;
@@ -95,6 +107,7 @@ export interface MatchSummary {
   turns: number;
   reason: string;
   hashes?: MatchSummaryHashes;
+  failureModes?: FailureModeProfileSummary;
 }
 
 /** A row in the tournament standings table. */
