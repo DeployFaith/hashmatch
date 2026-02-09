@@ -28,6 +28,8 @@ import type {
 } from "@/lib/matches/types";
 import { redactEvent } from "@/lib/replay/redaction";
 import type { RedactedEvent } from "@/lib/replay/redaction";
+import { formatEvent } from "@/lib/replay/formatEvent";
+import type { FormattedEvent } from "@/lib/replay/formatEvent";
 import { detectMoments, buildMomentEventRangeMap } from "@/lib/replay/detectMoments";
 import type { ReplayMoment, MomentEventRangeMap } from "@/lib/replay/detectMoments";
 import type { ReplayEvent } from "@/lib/replay/parseJsonl";
@@ -118,16 +120,6 @@ function LiveStatusBadge({ state }: { state: LiveViewerState }) {
 // Event type colors
 // ---------------------------------------------------------------------------
 
-const typeColors: Record<string, string> = {
-  MatchStarted: "text-blue-400",
-  MatchEnded: "text-green-400",
-  TurnStarted: "text-muted-foreground",
-  ObservationEmitted: "text-purple-400",
-  ActionSubmitted: "text-amber-400",
-  ActionAdjudicated: "text-green-400",
-  StateUpdated: "text-muted-foreground",
-  AgentError: "text-destructive",
-};
 
 // ---------------------------------------------------------------------------
 // Score extraction (reuses the same heuristic as detectMoments)
@@ -185,15 +177,30 @@ function useLatestScores(events: ReplayEvent[]): Record<string, number> {
 }
 
 // ---------------------------------------------------------------------------
+// Badge styles for formatted events
+// ---------------------------------------------------------------------------
+
+const badgeStyles: Record<FormattedEvent["badge"], string> = {
+  action: "bg-primary/10 text-primary",
+  wait: "bg-muted text-muted-foreground",
+  invalid: "bg-destructive/10 text-destructive font-medium",
+  system: "bg-muted text-muted-foreground italic",
+  score: "bg-amber-500/10 text-amber-400",
+  end: "bg-green-500/10 text-green-400 font-medium",
+};
+
+// ---------------------------------------------------------------------------
 // Live event feed with auto-scroll
 // ---------------------------------------------------------------------------
 
 function LiveEventFeed({
   events,
+  scenarioName,
   highlightIdx,
   onSelectEvent,
 }: {
   events: RedactedEvent[];
+  scenarioName: string;
   highlightIdx?: number;
   onSelectEvent?: (idx: number) => void;
 }) {
@@ -231,31 +238,50 @@ function LiveEventFeed({
 
   return (
     <div ref={containerRef} className="space-y-0.5 max-h-[600px] overflow-y-auto">
-      {events.map((ev, idx) => (
-        <div
-          key={`${ev.matchId}-${ev.seq}`}
-          onClick={() => onSelectEvent?.(idx)}
-          className={cn(
-            "flex items-start gap-2 rounded px-2 py-1 text-xs transition-colors",
-            onSelectEvent ? "cursor-pointer" : "",
-            highlightIdx === idx ? "bg-primary/10 border border-primary/30" : "hover:bg-muted/50",
-          )}
-        >
-          <span className="shrink-0 w-8 text-right font-mono text-muted-foreground">{ev.seq}</span>
-          <span className={cn("shrink-0 w-36 font-mono font-medium", typeColors[ev.type])}>
-            {ev.type}
-          </span>
-          {ev.turn !== undefined && (
-            <span className="shrink-0 text-muted-foreground">T{ev.turn}</span>
-          )}
-          {ev.agentId && (
-            <Badge variant="outline" className="shrink-0 text-[10px]">
-              {ev.agentId}
-            </Badge>
-          )}
-          <span className="truncate text-muted-foreground">{ev.summary}</span>
-        </div>
-      ))}
+      {events.map((ev, idx) => {
+        const formatted = formatEvent(ev.displayRaw, scenarioName);
+        return (
+          <div
+            key={`${ev.matchId}-${ev.seq}`}
+            onClick={() => onSelectEvent?.(idx)}
+            className={cn(
+              "flex flex-col gap-0.5 rounded px-2 py-1 text-xs transition-colors",
+              onSelectEvent ? "cursor-pointer" : "",
+              highlightIdx === idx
+                ? "bg-primary/10 border border-primary/30"
+                : "hover:bg-muted/50",
+            )}
+          >
+            <div className="flex items-start gap-2">
+              <span className="shrink-0 w-8 text-right font-mono text-muted-foreground">
+                {ev.seq}
+              </span>
+              <span
+                className={cn(
+                  "shrink-0 rounded px-1.5 py-0.5 text-[10px] uppercase",
+                  badgeStyles[formatted.badge],
+                )}
+              >
+                {formatted.badge}
+              </span>
+              {ev.turn !== undefined && (
+                <span className="shrink-0 text-muted-foreground">T{ev.turn}</span>
+              )}
+              {ev.agentId && (
+                <Badge variant="outline" className="shrink-0 text-[10px]">
+                  {ev.agentId}
+                </Badge>
+              )}
+              <span className="truncate">{formatted.primaryText}</span>
+            </div>
+            {formatted.details && (
+              <div className="ml-10 text-[10px] text-muted-foreground truncate">
+                {formatted.details}
+              </div>
+            )}
+          </div>
+        );
+      })}
       <div ref={sentinelRef} />
     </div>
   );
@@ -774,6 +800,7 @@ export function LiveMatchDetail({
           <CardContent>
             <LiveEventFeed
               events={redactedEvents}
+              scenarioName={displayMatch.scenarioName ?? "unknown"}
               highlightIdx={replayMode ? cursor : undefined}
               onSelectEvent={replayMode ? handleSeek : undefined}
             />
