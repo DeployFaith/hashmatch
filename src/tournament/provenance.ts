@@ -13,6 +13,7 @@ import {
 } from "../scenarios/resourceRivals/index.js";
 import { DEFAULT_HEIST_PARAMS } from "../scenarios/heist/index.js";
 import type { MatchManifestAgent, MatchManifestScenario, TournamentResult } from "./types.js";
+import { parseLlmAgentKey } from "../agents/llm/keys.js";
 import { getAgentProvenanceDescriptor } from "./runTournament.js";
 
 const RUNTIME_ROOT = join(process.cwd(), "src");
@@ -39,7 +40,7 @@ const AGENT_PATHS: Record<string, string> = {
   noop: "agents/noopAgent",
   randomBidder: "agents/resourceRivals/randomBidder",
   conservative: "agents/resourceRivals/conservativeAgent",
-  "ollama-heist": "agents/ollama",
+  "ollama-heist": "agents/llm",
 };
 
 const BUILTIN_AGENT_FILES: Record<string, string> = {
@@ -178,8 +179,13 @@ export async function buildMatchManifestProvenanceFromConfig(
     }
     const metadata = agentMetadataByKey.get(agentKey);
     const version = agentVersionByKey.get(agentKey) ?? "unversioned";
+    const descriptor = resolveLlmDescriptor(agentKey);
     agentsById.set(agentId, {
       id: agentId,
+      kind: descriptor.kind,
+      purpose: descriptor.purpose,
+      provider: descriptor.provider,
+      model: descriptor.model,
       version,
       contentHash,
       ...(metadata ? { metadata } : {}),
@@ -191,9 +197,36 @@ export async function buildMatchManifestProvenanceFromConfig(
 
 function resolveAgentPath(agentKey: string): string | undefined {
   if (agentKey.startsWith("llm:ollama:")) {
-    return "agents/ollama";
+    return "agents/llm";
+  }
+  if (agentKey.startsWith("llm:openrouter:")) {
+    return "agents/llm";
+  }
+  if (agentKey === "ollama-heist") {
+    return "agents/llm";
   }
   return AGENT_PATHS[agentKey];
+}
+
+function resolveLlmDescriptor(agentKey: string): {
+  kind: "llm";
+  purpose: "competitive" | "test";
+  provider: "ollama" | "openrouter";
+  model: string;
+} {
+  if (agentKey === "ollama-heist") {
+    const model = process.env.OLLAMA_MODEL?.trim() || "qwen2.5:3b";
+    return { kind: "llm", purpose: "competitive", provider: "ollama", model };
+  }
+  if (agentKey.startsWith("llm:")) {
+    return parseLlmAgentKey(agentKey);
+  }
+  return {
+    kind: "llm",
+    purpose: "test",
+    provider: "ollama",
+    model: "scripted",
+  };
 }
 
 export async function buildMatchManifestProvenance(

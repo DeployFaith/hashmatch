@@ -4,8 +4,9 @@ import { dirname, resolve } from "node:path";
 import { runMatch } from "../engine/runMatch.js";
 import { toStableJsonl } from "../core/json.js";
 import { createNumberGuessScenario } from "../scenarios/numberGuess/index.js";
-import { createRandomAgent } from "../agents/randomAgent.js";
-import { createBaselineAgent } from "../agents/baselineAgent.js";
+import { getScenarioAdapter } from "../agents/llm/adapters.js";
+import { createLlmAgent } from "../agents/llm/createLlmAgent.js";
+import { resolveLlmBudgetConfig } from "../agents/llm/budget.js";
 
 interface CliArgs {
   seed: number;
@@ -92,7 +93,12 @@ async function main(): Promise<void> {
   }
 
   const scenario = createNumberGuessScenario();
-  const agents = [createRandomAgent("random-1"), createBaselineAgent("baseline-1")];
+  const adapter = getScenarioAdapter("numberGuess");
+  const model = process.env.OLLAMA_MODEL?.trim() || "qwen2.5:3b";
+  const agents = [
+    createLlmAgent("llm-1", { provider: "ollama", model, budget: resolveLlmBudgetConfig() }, adapter),
+    createLlmAgent("llm-2", { provider: "ollama", model, budget: resolveLlmBudgetConfig() }, adapter),
+  ];
 
   let provenance: { engineCommit?: string; engineVersion?: string } | undefined;
 

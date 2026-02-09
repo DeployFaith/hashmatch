@@ -6,6 +6,8 @@ import { createTranscriptWriter } from "../gateway/transcript.js";
 import type { GatewayRuntimeConfig } from "../gateway/runtime.js";
 import { writeMatchArtifacts } from "./writeMatchArtifacts.js";
 import { getAgentFactory, getScenarioFactory } from "./runTournament.js";
+import { preflightValidateLlmAgents } from "../agents/llm/preflight.js";
+import { parseLlmAgentKey } from "../agents/llm/keys.js";
 
 export interface RunMatchArtifactsOptions {
   scenarioKey: string;
@@ -30,6 +32,25 @@ export interface RunMatchArtifactsOutcome {
 export async function runMatchWithArtifacts(
   options: RunMatchArtifactsOptions,
 ): Promise<RunMatchArtifactsOutcome> {
+  const llmAgents = options.agentKeys.flatMap((key) => {
+    if (key.startsWith("llm:")) {
+      return [parseLlmAgentKey(key)];
+    }
+    if (key === "ollama-heist") {
+      return [
+        {
+          kind: "llm" as const,
+          provider: "ollama" as const,
+          model: process.env.OLLAMA_MODEL?.trim() || "qwen2.5:3b",
+          purpose: "competitive" as const,
+        },
+      ];
+    }
+    return [];
+  });
+  if (llmAgents.length > 0) {
+    await preflightValidateLlmAgents(llmAgents);
+  }
   const scenarioFactory = getScenarioFactory(options.scenarioKey);
   const agentFactories = options.agentKeys.map((key, index) => ({
     key,

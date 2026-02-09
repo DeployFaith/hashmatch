@@ -204,6 +204,14 @@ async function runMatchStandard<TState, TObs, TAct>(
           rawSha256: actionForensics.rawSha256,
           rawBytes: actionForensics.rawBytes,
           truncated: actionForensics.truncated,
+          ...(actionForensics.provider ? { provider: actionForensics.provider } : {}),
+          ...(actionForensics.model ? { model: actionForensics.model } : {}),
+          ...(actionForensics.latencyMs !== undefined
+            ? { latencyMs: actionForensics.latencyMs }
+            : {}),
+          ...(actionForensics.adjudicationPath
+            ? { adjudicationPath: actionForensics.adjudicationPath }
+            : {}),
           _privateRaw: actionForensics.rawText,
         });
       }
@@ -228,6 +236,27 @@ async function runMatchStandard<TState, TObs, TAct>(
         fallbackReason: actionForensics?.fallbackReason ?? null,
         chosenAction: chosenAction as JsonValue,
       });
+
+      if (actionForensics?.budget) {
+        emit(events, seq, matchId, {
+          type: "AgentBudget",
+          agentId: agent.id,
+          turn,
+          tokensUsed: actionForensics.budget.tokensUsed,
+          tokensAllowed: actionForensics.budget.tokensAllowed,
+          matchTokensUsed: actionForensics.budget.matchTokensUsed,
+          matchTokensAllowed: actionForensics.budget.matchTokensAllowed,
+          callsUsed: actionForensics.budget.callsUsed,
+          callsAllowed: actionForensics.budget.callsAllowed,
+          matchCallsUsed: actionForensics.budget.matchCallsUsed,
+          matchCallsAllowed: actionForensics.budget.matchCallsAllowed,
+          outputTruncated: actionForensics.budget.outputTruncated,
+          tokenCapHit: actionForensics.budget.tokenCapHit,
+          callCapHit: actionForensics.budget.callCapHit,
+          ...(actionForensics.provider ? { provider: actionForensics.provider } : {}),
+          ...(actionForensics.model ? { model: actionForensics.model } : {}),
+        });
+      }
       const invalidDetails = buildInvalidActionDetails(chosenAction, actionForensics, result);
       if (invalidDetails) {
         emit(events, seq, matchId, {

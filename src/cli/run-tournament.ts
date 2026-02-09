@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { runTournament } from "../tournament/runTournament.js";
 import { writeTournamentArtifacts, writeTournamentBundle } from "../tournament/artifacts.js";
 import type { TournamentConfig, StandingsRow } from "../tournament/types.js";
+import { assertPublishableAgents } from "../tournament/publishGuard.js";
 
 // ---------------------------------------------------------------------------
 // Arg parsing
@@ -23,7 +24,7 @@ function parseArgs(argv: string[]): CliArgs {
   let rounds = 1;
   let maxTurns = 20;
   let scenario = "numberGuess";
-  let agents: string[] = ["random", "baseline"];
+  let agents: string[] = ["llm:ollama:qwen2.5:3b", "llm:ollama:qwen2.5:3b"];
   let outDir = "out";
   let bundleOut: string | undefined;
 
@@ -120,6 +121,10 @@ async function main(): Promise<void> {
     includeEventLogs: true,
     ...(harnessVersion && { harnessVersion }),
   };
+
+  if (process.env.HASHMATCH_PUBLISH === "1") {
+    assertPublishableAgents(config.agentKeys);
+  }
 
   // eslint-disable-next-line no-console
   console.log(

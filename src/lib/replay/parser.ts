@@ -82,6 +82,10 @@ export const AgentRawOutputSchema = z
     rawSha256: z.string(),
     rawBytes: z.number().int(),
     truncated: z.boolean(),
+    provider: z.string().optional(),
+    model: z.string().optional(),
+    latencyMs: z.number().int().optional(),
+    adjudicationPath: z.enum(["structured", "text+tolerant_decode", "fallback"]).optional(),
     raw: z.string().optional(),
     _privateRaw: z.string().optional(),
   })
@@ -100,6 +104,28 @@ export const ActionAdjudicatedSchema = z
     errors: z.array(ZodIssueSchema).nullable().optional(),
     fallbackReason: z.string().nullable().optional(),
     chosenAction: JsonValueSchema.optional(),
+  })
+  .passthrough();
+
+export const AgentBudgetSchema = z
+  .object({
+    ...BaseFields,
+    type: z.literal("AgentBudget"),
+    agentId: z.string(),
+    turn: z.number().int(),
+    tokensUsed: z.number().int().nullable(),
+    tokensAllowed: z.number().int().nullable(),
+    matchTokensUsed: z.number().int().nullable(),
+    matchTokensAllowed: z.number().int().nullable(),
+    callsUsed: z.number().int(),
+    callsAllowed: z.number().int(),
+    matchCallsUsed: z.number().int(),
+    matchCallsAllowed: z.number().int(),
+    outputTruncated: z.boolean(),
+    tokenCapHit: z.boolean(),
+    callCapHit: z.boolean(),
+    provider: z.string().optional(),
+    model: z.string().optional(),
   })
   .passthrough();
 
@@ -151,6 +177,7 @@ export const MatchEventSchema = z.union([
   ActionSubmittedSchema,
   AgentRawOutputSchema,
   ActionAdjudicatedSchema,
+  AgentBudgetSchema,
   InvalidActionSchema,
   StateUpdatedSchema,
   AgentErrorSchema,

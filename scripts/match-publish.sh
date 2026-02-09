@@ -19,8 +19,8 @@ die() {
 scenario="numberGuess"
 seed="42"
 turns="20"
-agentA="random"
-agentB="baseline"
+agentA="llm:ollama:qwen2.5:3b"
+agentB="llm:ollama:qwen2.5:3b"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -60,6 +60,13 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [[ "$agentA" != llm:* || "$agentB" != llm:* ]]; then
+  die "Publish blocked: non-LLM agents are not allowed. Use llm:<provider>:<model>[:<purpose>]."
+fi
+if [[ "$agentA" == *:test || "$agentB" == *:test ]]; then
+  die "Publish blocked: test-purpose agents cannot be published."
+fi
+
 web_root="/var/www/hashmatch"
 matches_dir="$web_root/matches"
 out_jsonl="$matches_dir/latest.jsonl"
@@ -77,7 +84,7 @@ echo "Building project..."
 npm run build
 
 echo "Publishing match: scenario=$scenario seed=$seed turns=$turns agentA=$agentA agentB=$agentB"
-node dist/cli/run-match.js \
+HASHMATCH_PUBLISH=1 node dist/cli/run-match.js \
   --scenario "$scenario" \
   --seed "$seed" \
   --turns "$turns" \
