@@ -55,3 +55,6 @@ gateway_transcript.jsonl
 /keys/*
 !/keys/.gitignore
 !/keys/*.pub.pem
+
+# local generated tournament bundles
+--scenario/
