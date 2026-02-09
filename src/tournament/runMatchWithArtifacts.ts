@@ -4,7 +4,7 @@ import type { MatchResult } from "../contract/types.js";
 import { createHttpAdapter } from "../gateway/httpAdapter.js";
 import { createTranscriptWriter } from "../gateway/transcript.js";
 import type { GatewayRuntimeConfig } from "../gateway/runtime.js";
-import { writeMatchArtifacts } from "../server/matchArtifacts.js";
+import { writeMatchArtifacts } from "./writeMatchArtifacts.js";
 import { getAgentFactory, getScenarioFactory } from "./runTournament.js";
 
 export interface RunMatchArtifactsOptions {

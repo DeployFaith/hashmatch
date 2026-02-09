@@ -1,13 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { hashFile, hashManifestCore, sha256Hex } from "../core/hash.js";
+import { hashManifestCore, sha256Hex } from "../core/hash.js";
 import { stableStringify, toStableJsonl } from "../core/json.js";
 import type { MatchEvent } from "../contract/types.js";
 import type { TournamentBundleV1 } from "../lib/replay/bundle.js";
 import { detectMoments } from "../lib/replay/detectMoments.js";
 import { generateHighlights } from "../lib/replay/generateHighlights.js";
 import type { JsonValue } from "../contract/types.js";
-import { verifyMatchDirectory } from "../cli/verify-match.js";
 import { buildMatchManifestProvenance } from "./provenance.js";
 import type { MatchKey, MatchManifest, TournamentManifest, TournamentResult } from "./types.js";
 import { resolveMaxTurnTimeMs } from "../engine/turnTimeout.js";
@@ -17,6 +16,7 @@ import {
   type BroadcastManifest,
   type BroadcastManifestFileEntry,
 } from "../core/broadcastManifest.js";
+import { writeMatchArtifactsCore } from "./writeMatchArtifacts.js";
 
 function resolveModeProfileId(modeProfile: JsonValue | undefined): string {
   if (typeof modeProfile === "string") {
@@ -175,69 +175,26 @@ export async function writeTournamentArtifacts(
       effectiveMaxTurnTimeMs,
       provenance,
     );
-    writeFileSync(
-      join(matchDir, "match_manifest.json"),
-      ensureSingleTrailingNewline(stableStringify(manifest)),
-      "utf-8",
-    );
 
     assertMatchLogs(summary.matchKey, result.matchLogs);
     const events = result.matchLogs[summary.matchKey];
-    const matchLogPath = join(matchDir, "match.jsonl");
-    writeFileSync(matchLogPath, toStableJsonl(events), "utf-8");
-
-    const logHash = await hashFile(matchLogPath);
-    const manifestHash = hashManifestCore(manifest as unknown as Record<string, unknown>);
+    const { logHash, manifestHash } = await writeMatchArtifactsCore({
+      matchDir,
+      events,
+      manifest,
+      summary,
+      moments: {
+        enabled: true,
+        writeHighlights: (moments, matchSummary) => generateHighlights(moments, matchSummary),
+      },
+      verification: {
+        enabled: true,
+        verifiedAt: new Date(summary.seed).toISOString(),
+      },
+    });
     logHashes.push(logHash);
     truthFileHashes[`matches/${summary.matchKey}/match.jsonl`] = logHash;
     truthFileHashes[`matches/${summary.matchKey}/match_manifest.json`] = manifestHash;
-
-    const summaryWithHashes = {
-      ...summary,
-      hashes: {
-        logHash,
-        manifestHash,
-      },
-    };
-    writeFileSync(
-      join(matchDir, "match_summary.json"),
-      ensureSingleTrailingNewline(stableStringify(summaryWithHashes)),
-      "utf-8",
-    );
-
-    const moments = detectMoments(events);
-    if (moments.length > 0) {
-      writeFileSync(
-        join(matchDir, "moments.json"),
-        ensureSingleTrailingNewline(stableStringify(moments)),
-        "utf-8",
-      );
-
-      const highlights = generateHighlights(moments, summary);
-      if (highlights) {
-        writeFileSync(
-          join(matchDir, "highlights.json"),
-          ensureSingleTrailingNewline(stableStringify(highlights)),
-          "utf-8",
-        );
-      }
-      // TODO: Add highlights.json to broadcast_manifest.json (class: "show") when available.
-    }
-
-    const verificationReport = await verifyMatchDirectory(matchDir);
-    const verificationResult = {
-      status: verificationReport.status === "pass" ? "verified" : "failed",
-      checks: {
-        logHash: verificationReport.logHash?.ok ?? false,
-        manifestHash: verificationReport.manifestHash?.ok ?? false,
-      },
-      verifiedAt: new Date(summary.seed).toISOString(),
-    };
-    writeFileSync(
-      join(matchDir, "verification_result.json"),
-      ensureSingleTrailingNewline(stableStringify(verificationResult)),
-      "utf-8",
-    );
   }
 
   const truthBundleHash = sha256Hex(Buffer.from(logHashes.sort().join(""), "utf-8"));
