@@ -288,8 +288,12 @@ async function pickDirectory(): Promise<FileSystemDirectoryHandle> {
 
 /**
  * Get a child directory handle by name.  Falls back to iterating entries if
- * the name contains characters the File System Access API rejects (e.g. colons
- * from the `llm:<provider>:<model>` agent naming convention in matchKeys).
+ * the direct lookup fails — this handles names with colons (e.g. matchKeys
+ * containing `llm:<provider>:<model>`) that the File System Access API rejects
+ * at the validation layer even though the underlying filesystem permits them.
+ *
+ * We catch ALL errors (not just specific messages) because Chrome throws a
+ * TypeError while other browsers may throw differently.
  */
 async function getChildDirectory(
   parent: FileSystemDirectoryHandle,
@@ -297,20 +301,14 @@ async function getChildDirectory(
 ): Promise<FileSystemDirectoryHandle> {
   try {
     return await parent.getDirectoryHandle(name);
-  } catch (err) {
-    // Chrome throws TypeError (not DOMException) with "Name is not allowed"
-    // when the name contains characters like `:` that the API rejects even
-    // though the underlying filesystem permits them.  Fall back to iterating.
-    const msg = err instanceof Error ? err.message : "";
-    if (msg.includes("not allowed") || msg.includes("is not a valid name")) {
-      for await (const entry of parent.values()) {
-        if (entry.kind === "directory" && entry.name === name) {
-          return entry as FileSystemDirectoryHandle;
-        }
+  } catch {
+    // Fallback — iterate entries to find by exact name.
+    for await (const entry of parent.values()) {
+      if (entry.kind === "directory" && entry.name === name) {
+        return entry as FileSystemDirectoryHandle;
       }
-      throw new Error(`Directory not found: ${name}`);
     }
-    throw err;
+    throw new Error(`Directory not found: ${name}`);
   }
 }
 
@@ -323,17 +321,14 @@ async function getChildFile(
 ): Promise<FileSystemFileHandle> {
   try {
     return await parent.getFileHandle(name);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "";
-    if (msg.includes("not allowed") || msg.includes("is not a valid name")) {
-      for await (const entry of parent.values()) {
-        if (entry.kind === "file" && entry.name === name) {
-          return entry as FileSystemFileHandle;
-        }
+  } catch {
+    // Fallback — iterate entries to find by exact name.
+    for await (const entry of parent.values()) {
+      if (entry.kind === "file" && entry.name === name) {
+        return entry as FileSystemFileHandle;
       }
-      throw new Error(`File not found: ${name}`);
     }
-    throw err;
+    throw new Error(`File not found: ${name}`);
   }
 }
 
