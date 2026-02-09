@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import {
+  Map as MapIcon,
   Upload,
   FileText,
   AlertCircle,
@@ -25,6 +26,7 @@ import {
   Pause,
   Gauge,
 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -57,21 +59,22 @@ import type {
 import { isHeistScenario, useHeistScene } from "@/components/heist/useHeistScene";
 import { HeistViewportDynamic } from "@/components/heist/HeistViewportDynamic";
 import { BehaviorProfilePanel } from "@/components/BehaviorProfilePanel";
-import { Map } from "lucide-react";
+
 
 // ---------------------------------------------------------------------------
 // Known event types for the type filter
 // ---------------------------------------------------------------------------
 
+
 const KNOWN_EVENT_TYPES = [
   "MatchStarted",
-  "TurnStarted",
-  "ObservationEmitted",
-  "ActionSubmitted",
-  "ActionAdjudicated",
-  "StateUpdated",
-  "AgentError",
-  "MatchEnded",
+"TurnStarted",
+"ObservationEmitted",
+"ActionSubmitted",
+"ActionAdjudicated",
+"StateUpdated",
+"AgentError",
+"MatchEnded",
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -297,16 +300,70 @@ async function readTextFile(
   return file.text();
 }
 
+/**
+ * Attempt to locate the tournament root within a directory handle.
+ *
+ * If the selected directory IS the tournament root (contains tournament.json or
+ * tournament_manifest.json), return it directly.  Otherwise, scan one level of
+ * child directories for the first child that contains the marker file.
+ *
+ * This closes the semantic gap with fileMap (which tolerates parent selection
+ * via suffix matching) and prevents "tournament.json not found" when the user
+ * selects a parent directory.
+ */
+async function resolveTournamentRoot(
+  handle: FileSystemDirectoryHandle,
+): Promise<FileSystemDirectoryHandle> {
+  // Check if the selected directory itself is the tournament root
+  for (const name of ["tournament.json", "tournament_manifest.json"]) {
+    try {
+      await handle.getFileHandle(name);
+      return handle;
+    } catch {
+      // not found, keep looking
+    }
+  }
+  // Scan one level of child directories
+  for await (const entry of handle.values()) {
+    if (entry.kind === "directory") {
+      for (const name of ["tournament.json", "tournament_manifest.json"]) {
+        try {
+          await (entry as FileSystemDirectoryHandle).getFileHandle(name);
+          return entry as FileSystemDirectoryHandle;
+        } catch {
+          // not found, try next
+        }
+      }
+    }
+  }
+  throw new Error(
+    "Could not find tournament.json or tournament_manifest.json in the selected directory or its immediate children.",
+  );
+}
+
 // ---------------------------------------------------------------------------
 // File-map helpers (for <input webkitdirectory> fallback)
 // ---------------------------------------------------------------------------
+
+/** Normalise a relative path: forward slashes, no leading ./, no double slashes, no trailing slash. */
+function normalisePath(raw: string): string {
+  return raw
+    .replace(/\\/g, "/")
+    .replace(/^\.\//, "")
+    .replace(/\/+/g, "/")
+    .replace(/\/$/, "");
+}
 
 /** Build a Map of normalised relative paths to File objects from a FileList. */
 function buildFileMap(fileList: FileList): Map<string, File> {
   const map = new (Map as unknown as { new (): Map<string, File> })();
   for (const file of Array.from(fileList)) {
     const rawPath = file.webkitRelativePath || file.name;
-    const normalized = rawPath.replace(/\\/g, "/");
+    const normalized = normalisePath(rawPath);
+    // Skip directory entries (empty name after normalisation)
+    if (!normalized || normalized.endsWith("/")) {
+      continue;
+    }
     map.set(normalized, file);
   }
   return map;
@@ -316,21 +373,30 @@ function buildFileMap(fileList: FileList): Map<string, File> {
  * Find a file in the map by its relative path segments within the tournament
  * folder.  Handles both "parentDir/path" and "path" depending on which folder
  * the user selected.
+ *
+ * When multiple keys suffix-match, the shortest key wins (i.e. the one closest
+ * to the tournament root) to avoid cross-matching files from sibling directories.
  */
 function findFileInMap(fileMap: Map<string, File>, ...segments: string[]): File | undefined {
-  const target = segments.join("/");
+  const target = normalisePath(segments.join("/"));
   // Direct match
   const direct = fileMap.get(target);
   if (direct) {
     return direct;
   }
-  // Suffix match (user selected parent folder, so paths are prefixed)
+  // Suffix match — prefer the shortest key to avoid cross-tournament collisions
+  const suffix = "/" + target;
+  let bestKey: string | undefined;
+  let bestFile: File | undefined;
   for (const [key, file] of fileMap) {
-    if (key.endsWith("/" + target)) {
-      return file;
+    if (key === target || key.endsWith(suffix)) {
+      if (bestKey === undefined || key.length < bestKey.length) {
+        bestKey = key;
+        bestFile = file;
+      }
     }
   }
-  return undefined;
+  return bestFile;
 }
 
 async function readTextFromFileMap(fileMap: Map<string, File>, ...path: string[]): Promise<string> {
@@ -457,7 +523,13 @@ function parseFailureModes(summary: MatchSummaryEntry): FmParseResult {
 
 /** Load all tournament data from any supported source. */
 async function loadTournamentFromSource(source: TournamentSource): Promise<TournamentData> {
-  const tournament = await readJsonFromSource<TournamentMeta>(source, "tournament.json");
+  // Try tournament.json first, fall back to tournament_manifest.json
+  let tournament: TournamentMeta;
+  try {
+    tournament = await readJsonFromSource<TournamentMeta>(source, "tournament.json");
+  } catch {
+    tournament = await readJsonFromSource<TournamentMeta>(source, "tournament_manifest.json");
+  }
   const standings = await readJsonFromSource<StandingsEntry[]>(source, "standings.json");
 
   const matchSummaries: MatchSummaryEntry[] = [];
@@ -574,7 +646,8 @@ function FileDropZone({
     setTournamentLoading(true);
     try {
       const dirHandle = await pickDirectory();
-      const source: TournamentSource = { kind: "dirHandle", handle: dirHandle };
+      const resolvedHandle = await resolveTournamentRoot(dirHandle);
+      const source: TournamentSource = { kind: "dirHandle", handle: resolvedHandle };
       const data = await loadTournamentFromSource(source);
       onTournamentLoad(data);
     } catch (err) {
@@ -1877,7 +1950,7 @@ function ReplayViewer({
             size="sm"
             onClick={() => setShowMapView((v) => !v)}
           >
-            <Map className="h-3 w-3" />
+            <MapIcon className="h-3 w-3" />
             {showMapView ? "Timeline View" : "Map View"}
           </Button>
         )}
@@ -2142,6 +2215,8 @@ export default function ReplayPageClient() {
   const handleMatchSelect = useCallback(
     async (matchKey: string) => {
       if (state.mode !== "tournament") {
+        // Guard against stale callbacks — surface the failure instead of swallowing it
+        setLoadError("Tournament context lost. Please reload the tournament folder.");
         return;
       }
 
