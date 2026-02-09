@@ -56,6 +56,7 @@ import type {
 } from "@/lib/replay/commentary";
 import { isHeistScenario, useHeistScene } from "@/components/heist/useHeistScene";
 import { HeistViewportDynamic } from "@/components/heist/HeistViewportDynamic";
+import { BehaviorProfilePanel } from "@/components/BehaviorProfilePanel";
 import { Map } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -391,6 +392,67 @@ function parseMomentsJson(raw: unknown): ReplayMoment[] {
     });
   }
   return moments;
+}
+
+/**
+ * Validate the optional `failureModes` block from a match_summary.json.
+ * Returns { status: "present", data } on success, { status: "invalid", raw }
+ * on malformed input, or { status: "absent" } if the field is missing.
+ */
+type FmParseResult =
+  | { status: "present"; data: FailureModeProfileEntry }
+  | { status: "invalid"; raw: unknown }
+  | { status: "absent" };
+
+function parseFailureModes(summary: MatchSummaryEntry): FmParseResult {
+  const raw = summary.failureModes;
+  if (raw === undefined || raw === null) {
+    return { status: "absent" };
+  }
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    return { status: "invalid", raw };
+  }
+  const block = raw as unknown as Record<string, unknown>;
+  if (typeof block.fmClassifierVersion !== "string") {
+    return { status: "invalid", raw };
+  }
+  if (!block.byAgentId || typeof block.byAgentId !== "object" || Array.isArray(block.byAgentId)) {
+    return { status: "invalid", raw };
+  }
+  const byAgentId = block.byAgentId as Record<string, unknown>;
+  const parsed: Record<string, FailureModeHitEntry[]> = {};
+  for (const [agentId, entries] of Object.entries(byAgentId)) {
+    if (!Array.isArray(entries)) {
+      return { status: "invalid", raw };
+    }
+    const agentEntries: FailureModeHitEntry[] = [];
+    for (const entry of entries) {
+      if (
+        !entry ||
+        typeof entry !== "object" ||
+        typeof (entry as Record<string, unknown>).id !== "string" ||
+        typeof (entry as Record<string, unknown>).count !== "number" ||
+        typeof (entry as Record<string, unknown>).detectorSource !== "string"
+      ) {
+        continue; // skip malformed entries tolerantly
+      }
+      const e = entry as Record<string, unknown>;
+      agentEntries.push({
+        id: e.id as FailureModeHitEntry["id"],
+        count: e.count as number,
+        detectorSource: e.detectorSource as FailureModeHitEntry["detectorSource"],
+        ...(typeof e.rate === "number" ? { rate: e.rate } : {}),
+      });
+    }
+    parsed[agentId] = agentEntries;
+  }
+  return {
+    status: "present",
+    data: {
+      fmClassifierVersion: block.fmClassifierVersion as string,
+      byAgentId: parsed,
+    },
+  };
 }
 
 /** Load all tournament data from any supported source. */
@@ -1405,6 +1467,7 @@ function ReplayViewer({
   momentsOverride,
   liveStatus,
   lockSensitiveControls = false,
+  matchSummary,
 }: {
   events: ReplayEvent[];
   errors: ParseError[];
@@ -1414,6 +1477,7 @@ function ReplayViewer({
   momentsOverride?: ReplayMoment[] | null;
   liveStatus?: EventSourceStatus;
   lockSensitiveControls?: boolean;
+  matchSummary?: MatchSummaryEntry | null;
 }) {
   const [spoilers, setSpoilers] = useState(false);
   const [viewerMode, setViewerMode] = useState<ViewerMode>("spectator");
@@ -1640,6 +1704,12 @@ function ReplayViewer({
       typeof matchStarted.raw.maxTurns === "number" ? matchStarted.raw.maxTurns : null;
     return { scenarioName, maxTurns };
   }, [events]);
+
+  // FM telemetry parse result (tolerant)
+  const fmResult = useMemo(
+    () => (matchSummary ? parseFailureModes(matchSummary) : ({ status: "absent" } as const)),
+    [matchSummary],
+  );
 
   // Compute heist scene state at the current cursor for the map view.
   // Uses the *original* event index (not filtered) to reduce the full stream.
@@ -1981,6 +2051,12 @@ function ReplayViewer({
           <div className="shrink-0">
             <Scoreboard events={events} spoilers={effectiveSpoilers} />
           </div>
+
+          {fmResult.status !== "absent" && (
+            <div className="shrink-0">
+              <BehaviorProfilePanel fmResult={fmResult} />
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -2199,6 +2275,8 @@ export default function ReplayPageClient() {
   }
 
   if (state.mode === "tournamentMatch") {
+    const currentMatchSummary =
+      state.data.matchSummaries.find((s) => s.matchKey === state.matchKey) ?? null;
     return (
       <ReplayViewer
         events={state.events}
@@ -2213,6 +2291,7 @@ export default function ReplayPageClient() {
           setState({ mode: "tournament", data: state.data });
         }}
         momentsOverride={state.moments}
+        matchSummary={currentMatchSummary}
       />
     );
   }
