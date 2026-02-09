@@ -3,40 +3,42 @@
 **Date:** 2026-02-09
 **Scope:** Comment-only audit — no code changes, no renames, no behavior changes.
 
+**Status:** Categories (A) and (C) applied. See PR referencing #125.
+
 ---
 
 ## 1. Terminology Drift: "Red Team" / "Fixture Agent"
 
 ### Files containing "redteam" / "red-team" / "red team"
 
-| File | What | Category |
-|------|------|----------|
-| `tests/redteam-fixtures.test.ts` | Filename, describe block, tmp-dir prefix | **(A)** rename only |
-| `tests/fixtures/agents/heistFixtureAgents.ts` | Imported as "fixture agents" by the above | **(A)** rename only |
-| `Research/agent_failure_taxonomy.md` | 17× "Red-Team Tests" section headers + intro paragraph | **(A)** rename only |
+| File                                          | What                                                   | Category            | Status                                                        |
+| --------------------------------------------- | ------------------------------------------------------ | ------------------- | ------------------------------------------------------------- |
+| `tests/redteam-fixtures.test.ts`              | Filename, describe block, tmp-dir prefix               | **(A)** rename only | **Done** → `tests/degenerate-behavior.test.ts`                |
+| `tests/fixtures/agents/heistFixtureAgents.ts` | Imported as "fixture agents" by the above              | **(A)** rename only | **Done** → `tests/fixtures/agents/heistDegenerateProfiles.ts` |
+| `Research/agent_failure_taxonomy.md`          | 17× "Red-Team Tests" section headers + intro paragraph | **(A)** rename only | **Done** → "Failure-Mode Regression Tests"                    |
 
 ### Files using "fixture" to mean "scripted agent"
 
-| File | What | Category |
-|------|------|----------|
-| `tests/fixtures/agents/heistFixtureAgents.ts` | 8 exported factory functions with `*Agent` suffix | **(A)** rename symbols |
-| `tests/redteam-fixtures.test.ts` | Imports and uses the above factories | **(A)** rename imports |
+| File                                               | What                                               | Category               | Status   |
+| -------------------------------------------------- | -------------------------------------------------- | ---------------------- | -------- |
+| `tests/fixtures/agents/heistDegenerateProfiles.ts` | 8 exported factory functions renamed to `*Profile` | **(A)** rename symbols | **Done** |
+| `tests/degenerate-behavior.test.ts`                | Imports updated to `*Profile` names                | **(A)** rename imports | **Done** |
 
 ### Files using "fixture" to mean "static test data" (standard, no change needed)
 
-| File | What |
-|------|------|
-| `tests/fixtures/heist/README.md` | Golden JSONL snapshot |
-| `tests/fixtures/heist/*.jsonl`, `*.json` | Test data files |
-| `tests/redaction-integration.test.ts` | Loads JSONL fixtures |
-| `tests/heistRoomLayout.test.ts` | Loads JSONL fixture |
-| `tests/heistSceneReducer.test.ts` | Loads JSONL fixture |
-| `tests/heistSpectatorTelemetry.test.ts` | Loads JSONL fixture |
-| `tests/redaction-audit/` | Fixture generator + test data |
-| `tests/commentary.test.ts` | Inline test data labeled "Fixtures" |
-| `tests/redaction.test.ts` | Inline test data labeled "Fixtures" |
-| `src/lib/replay/fixtures/sampleNumberGuess.ts` | Static UI sample data |
-| `src/lib/replay/fixtures/sampleMatchSummaryWithFm.ts` | Static UI sample data |
+| File                                                  | What                                |
+| ----------------------------------------------------- | ----------------------------------- |
+| `tests/fixtures/heist/README.md`                      | Golden JSONL snapshot               |
+| `tests/fixtures/heist/*.jsonl`, `*.json`              | Test data files                     |
+| `tests/redaction-integration.test.ts`                 | Loads JSONL fixtures                |
+| `tests/heistRoomLayout.test.ts`                       | Loads JSONL fixture                 |
+| `tests/heistSceneReducer.test.ts`                     | Loads JSONL fixture                 |
+| `tests/heistSpectatorTelemetry.test.ts`               | Loads JSONL fixture                 |
+| `tests/redaction-audit/`                              | Fixture generator + test data       |
+| `tests/commentary.test.ts`                            | Inline test data labeled "Fixtures" |
+| `tests/redaction.test.ts`                             | Inline test data labeled "Fixtures" |
+| `src/lib/replay/fixtures/sampleNumberGuess.ts`        | Static UI sample data               |
+| `src/lib/replay/fixtures/sampleMatchSummaryWithFm.ts` | Static UI sample data               |
 
 ---
 
@@ -44,26 +46,26 @@
 
 ### Scripted agents (no provider/model config)
 
-| Agent | File | Used By | Category |
-|-------|------|---------|----------|
-| `createRandomAgent` | `src/agents/randomAgent.ts` | contract.test, gateway-runner.test, jsonl-determinism.test, run-demo CLI, tournament registry | **(B)** or **(C)** — open decision |
-| `createBaselineAgent` | `src/agents/baselineAgent.ts` | same as above | **(B)** or **(C)** |
-| `createNoopAgent` | `src/agents/noopAgent.ts` | agent-compat.test, tournament registry, fixture generation | **(C)** keep deterministic |
-| `createRandomBidderAgent` | `src/agents/resourceRivals/randomBidder.ts` | resourceRivals.test, agent-compat.test, tournament registry | **(B)** or **(C)** |
-| `createConservativeAgent` | `src/agents/resourceRivals/conservativeAgent.ts` | same as above | **(B)** or **(C)** |
-| `createWaitSpamAgent` | `tests/fixtures/agents/heistFixtureAgents.ts` | redteam-fixtures.test only | **(C)** classifier regression |
-| `createInvalidActionAgent` | same | same | **(C)** classifier regression |
-| `createActionSpaceCyclerAgent` | same | same | **(C)** classifier regression |
-| `createFormatHackerAgent` | same | same | **(C)** classifier regression |
-| `createOutputBloatAgent` | same | same | **(C)** classifier regression |
-| `createRepeatMalformedAgent` | same | same | **(C)** classifier regression |
-| `createUglyProfileAgent` | same | same | **(C)** classifier regression |
-| `createCleanDiverseAgent` | same | same | **(C)** classifier regression |
+| Agent                              | File                                               | Used By                                                                                       | Category                                   |
+| ---------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `createRandomAgent`                | `src/agents/randomAgent.ts`                        | contract.test, gateway-runner.test, jsonl-determinism.test, run-demo CLI, tournament registry | **(B)** or **(C)** — open decision         |
+| `createBaselineAgent`              | `src/agents/baselineAgent.ts`                      | same as above                                                                                 | **(B)** or **(C)**                         |
+| `createNoopAgent`                  | `src/agents/noopAgent.ts`                          | agent-compat.test, tournament registry, fixture generation                                    | **(C)** keep deterministic                 |
+| `createRandomBidderAgent`          | `src/agents/resourceRivals/randomBidder.ts`        | resourceRivals.test, agent-compat.test, tournament registry                                   | **(B)** or **(C)**                         |
+| `createConservativeAgent`          | `src/agents/resourceRivals/conservativeAgent.ts`   | same as above                                                                                 | **(B)** or **(C)**                         |
+| `createWaitSpamProfile`            | `tests/fixtures/agents/heistDegenerateProfiles.ts` | degenerate-behavior.test only                                                                 | **(C)** classifier regression — **tagged** |
+| `createInvalidActionProfile`       | same                                               | same                                                                                          | **(C)** classifier regression — **tagged** |
+| `createActionSpaceCyclerProfile`   | same                                               | same                                                                                          | **(C)** classifier regression — **tagged** |
+| `createFormatViolationProfile`     | same                                               | same                                                                                          | **(C)** classifier regression — **tagged** |
+| `createOutputBloatProfile`         | same                                               | same                                                                                          | **(C)** classifier regression — **tagged** |
+| `createRepeatMalformedProfile`     | same                                               | same                                                                                          | **(C)** classifier regression — **tagged** |
+| `createCompositeDegenerateProfile` | same                                               | same                                                                                          | **(C)** classifier regression — **tagged** |
+| `createCleanBaselineProfile`       | same                                               | same                                                                                          | **(C)** classifier regression — **tagged** |
 
 ### Where tests assume deterministic scripted behavior
 
-- `tests/redteam-fixtures.test.ts` — all 8 test cases assert exact FM-classifier
-  output from deterministic agents. These are classifier regression tests and
+- `tests/degenerate-behavior.test.ts` — all 8 test cases assert exact FM-classifier
+  output from deterministic profiles. These are classifier regression tests and
   MUST remain deterministic.
 - `tests/contract.test.ts` — uses `createRandomAgent` + `createBaselineAgent` for
   basic contract validation.
@@ -91,18 +93,18 @@
 
 ---
 
-## 3. Suggested Renames
+## 3. Suggested Renames (all completed)
 
-| Current | Target | Category |
-|---------|--------|----------|
-| `tests/redteam-fixtures.test.ts` | `tests/degenerate-behavior.test.ts` | **(A)** |
-| `tests/fixtures/agents/heistFixtureAgents.ts` | `tests/fixtures/agents/heistDegenerateProfiles.ts` | **(A)** |
-| `createFormatHackerAgent` | `createFormatViolationProfile` | **(A)** |
-| `createWaitSpamAgent` | `createWaitSpamProfile` | **(A)** |
-| Other `create*Agent` in fixtures | `create*Profile` | **(A)** |
-| Describe: "Red-team fixture agents" | "Degenerate behavior profiles (FM classifier regression)" | **(A)** |
-| Research doc: "Red-Team Tests" ×17 | "Failure Mode Regression Tests" | **(A)** |
-| `m_fixture_fm_001` | `m_sample_fm_001` | **(A)** |
+| Current                                       | Target                                                    | Category | Status                    |
+| --------------------------------------------- | --------------------------------------------------------- | -------- | ------------------------- |
+| `tests/redteam-fixtures.test.ts`              | `tests/degenerate-behavior.test.ts`                       | **(A)**  | **Done**                  |
+| `tests/fixtures/agents/heistFixtureAgents.ts` | `tests/fixtures/agents/heistDegenerateProfiles.ts`        | **(A)**  | **Done**                  |
+| `createFormatHackerAgent`                     | `createFormatViolationProfile`                            | **(A)**  | **Done**                  |
+| `createWaitSpamAgent`                         | `createWaitSpamProfile`                                   | **(A)**  | **Done**                  |
+| Other `create*Agent` in fixtures              | `create*Profile`                                          | **(A)**  | **Done**                  |
+| Describe: "Red-team fixture agents"           | "Degenerate behavior profiles (FM classifier regression)" | **(A)**  | **Done**                  |
+| Research doc: "Red-Team Tests" ×17            | "Failure-Mode Regression Tests"                           | **(A)**  | **Done**                  |
+| `m_fixture_fm_001`                            | `m_sample_fm_001`                                         | **(A)**  | deferred (UI sample data) |
 
 ---
 
@@ -111,24 +113,22 @@
 The fastest way to reconcile the "all agents are real LLM calls" policy with
 the existing FM classifier regression coverage is a **three-layer approach**:
 
-1. **Rename only (A):** Rename files, symbols, describe blocks, and doc headers
+1. **Rename only (A):** ~~Rename files, symbols, describe blocks, and doc headers
    from "red team" / "fixture agent" to "degenerate behavior profile" /
-   "FM classifier regression." This is pure terminology and can land in one PR
-   without touching any logic.
+   "FM classifier regression."~~ **Done** — landed in terminology cleanup PR.
 
-2. **Explicitly tag scripted agents (C):** Add `agentType: "scripted"` to the
-   provenance metadata of every built-in agent registration in
-   `runTournament.ts`. Update `resolveAgentTypeFromMetadata()` to default to
-   `"scripted"` when metadata is absent. This ensures manifests and the UI
-   correctly reflect what's happening today.
+2. **Explicitly tag scripted agents (C):** ~~Add `purpose: "test"` and
+   `agentType: "scripted"` to the provenance metadata of every built-in agent
+   registration in `runTournament.ts`.~~ **Done** — all five built-in agents
+   now carry `purpose: "test"` metadata. Publish pipeline can reject them.
 
 3. **Migrate strategy baselines to LLM (B):** As a follow-up, create
    `createLlmRandomAgent` / `createLlmBaselineAgent` wrappers that call
-   Ollama/OpenRouter with system prompts mimicking the current strategies. The
-   existing scripted versions remain as regression baselines (category C). Tests
-   that require determinism continue using the scripted versions; tests that
-   exercise the "real LLM" path use the new wrappers with mocked or live
-   inference.
+   the LLM provider gateway with system prompts mimicking the current
+   strategies. The existing scripted versions remain as regression baselines
+   (category C). Tests that require determinism continue using the scripted
+   versions; tests that exercise the "real LLM" path use the new wrappers
+   with mocked or live inference. **Deferred** to provider gateway follow-up.
 
 This preserves all FM classifier regression coverage, satisfies the policy
 direction, and avoids a big-bang rewrite.

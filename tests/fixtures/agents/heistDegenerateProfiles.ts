@@ -1,18 +1,7 @@
-// TODO(terminology-alignment): Rename this file:
-//   tests/fixtures/agents/heistFixtureAgents.ts → tests/fixtures/agents/heistDegenerateProfiles.ts
-// These agents are intentionally scripted to trigger specific failure modes.
-// They are NOT "fixture agents" in the generic sense — they are deterministic
-// degenerate-behavior profiles used for FM classifier regression testing.
-// Category: (C) keep deterministic, relabel as "degenerate behavior profiles."
-// Suggested symbol renames:
-//   createWaitSpamAgent        → createWaitSpamProfile
-//   createInvalidActionAgent   → createInvalidActionProfile
-//   createActionSpaceCyclerAgent → createActionSpaceCyclerProfile
-//   createFormatHackerAgent    → createFormatViolationProfile (drop "hacker" framing)
-//   createOutputBloatAgent     → createOutputBloatProfile
-//   createRepeatMalformedAgent → createRepeatMalformedProfile
-//   createUglyProfileAgent     → createCompositeDegenerateProfile
-//   createCleanDiverseAgent    → createCleanBaselineProfile
+// Deterministic degenerate-behavior profiles for FM classifier regression testing.
+// These are NOT agents in the product sense — they are lab instruments that
+// trigger specific failure modes so the classifier pipeline can be validated.
+// Category: (C) keep deterministic, non-publishable (purpose: "test").
 import type { Agent, AgentConfig, AgentContext } from "../../../src/contract/interfaces.js";
 import type { AgentId } from "../../../src/contract/types.js";
 import { attachActionForensics } from "../../../src/core/agentActionMetadata.js";
@@ -49,7 +38,7 @@ function buildActionWithForensics(
   });
 }
 
-export function createWaitSpamAgent(id: AgentId): Agent<HeistObservation, HeistAction> {
+export function createWaitSpamProfile(id: AgentId): Agent<HeistObservation, HeistAction> {
   return {
     id,
     init(_config: AgentConfig) {},
@@ -59,7 +48,7 @@ export function createWaitSpamAgent(id: AgentId): Agent<HeistObservation, HeistA
   };
 }
 
-export function createInvalidActionAgent(id: AgentId): Agent<HeistObservation, HeistAction> {
+export function createInvalidActionProfile(id: AgentId): Agent<HeistObservation, HeistAction> {
   return {
     id,
     init(_config: AgentConfig) {},
@@ -69,7 +58,7 @@ export function createInvalidActionAgent(id: AgentId): Agent<HeistObservation, H
   };
 }
 
-export function createActionSpaceCyclerAgent(id: AgentId): Agent<HeistObservation, HeistAction> {
+export function createActionSpaceCyclerProfile(id: AgentId): Agent<HeistObservation, HeistAction> {
   return {
     id,
     init(_config: AgentConfig) {},
@@ -81,7 +70,7 @@ export function createActionSpaceCyclerAgent(id: AgentId): Agent<HeistObservatio
   };
 }
 
-export function createFormatHackerAgent(id: AgentId): Agent<HeistObservation, HeistAction> {
+export function createFormatViolationProfile(id: AgentId): Agent<HeistObservation, HeistAction> {
   return {
     id,
     init(_config: AgentConfig) {},
@@ -102,7 +91,7 @@ export function createFormatHackerAgent(id: AgentId): Agent<HeistObservation, He
   };
 }
 
-export function createOutputBloatAgent(id: AgentId): Agent<HeistObservation, HeistAction> {
+export function createOutputBloatProfile(id: AgentId): Agent<HeistObservation, HeistAction> {
   return {
     id,
     init(_config: AgentConfig) {},
@@ -122,7 +111,7 @@ export function createOutputBloatAgent(id: AgentId): Agent<HeistObservation, Hei
   };
 }
 
-export function createRepeatMalformedAgent(id: AgentId): Agent<HeistObservation, HeistAction> {
+export function createRepeatMalformedProfile(id: AgentId): Agent<HeistObservation, HeistAction> {
   return {
     id,
     init(_config: AgentConfig) {},
@@ -133,7 +122,9 @@ export function createRepeatMalformedAgent(id: AgentId): Agent<HeistObservation,
   };
 }
 
-export function createUglyProfileAgent(id: AgentId): Agent<HeistObservation, HeistAction> {
+export function createCompositeDegenerateProfile(
+  id: AgentId,
+): Agent<HeistObservation, HeistAction> {
   return {
     id,
     init(_config: AgentConfig) {},
@@ -151,7 +142,7 @@ export function createUglyProfileAgent(id: AgentId): Agent<HeistObservation, Hei
   };
 }
 
-export function createCleanDiverseAgent(id: AgentId): Agent<HeistObservation, HeistAction> {
+export function createCleanBaselineProfile(id: AgentId): Agent<HeistObservation, HeistAction> {
   return {
     id,
     init(_config: AgentConfig) {},
