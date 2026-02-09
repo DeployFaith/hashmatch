@@ -393,7 +393,7 @@ hashmatch/
 │   ├── app/                # Next.js web UI (replay viewer, leaderboard)
 │   ├── components/         # React components
 │   └── server/             # Backend match management
-├── tests/                  # Vitest test files (56 test files)
+├── tests/                  # Vitest test files (60 test files)
 ├── Documents/              # Spec and design documents (30 files)
 ├── scenarios/              # Pre-generated heist scenario presets
 ├── examples/               # Example HTTP agent server

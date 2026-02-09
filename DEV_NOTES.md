@@ -136,7 +136,7 @@ The replay viewer loads engine JSONL event logs and renders them as spectator-fr
 ### How it works
 
 1. **Entry point**: `/replay` page with file upload (drag & drop) or "Load sample replay" button
-2. **Parsing**: `src/lib/replay/parser.ts` — Zod schemas validate each JSONL line against the engine event contract (`MatchStarted`, `TurnStarted`, `ObservationEmitted`, `ActionSubmitted`, `ActionAdjudicated`, `StateUpdated`, `AgentError`, `MatchEnded`)
+2. **Parsing**: `src/lib/replay/parser.ts` — Zod schemas validate each JSONL line against the engine event contract (`MatchStarted`, `TurnStarted`, `ObservationEmitted`, `ActionSubmitted`, `AgentRawOutput`, `ActionAdjudicated`, `InvalidAction`, `StateUpdated`, `AgentError`, `MatchEnded`)
 3. **Adaptation**: `src/lib/replay/adapter.ts` — converts engine events to the UI view model (Match + Episodes + Events), groups by turn, generates human-readable summaries, derives severity tags
 4. **Store integration**: `loadReplay(jsonl)` in the Zustand store parses, adapts, and injects the replay as a regular match + events into the store. Metadata (provenance) stored in `replayMeta`
 5. **Rendering**: The match detail page (`/matches/[matchId]`) detects replay matches and shows:

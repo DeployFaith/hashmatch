@@ -42,7 +42,7 @@ src/
   scenarios/      Scenario implementations (numberGuess, heist, resourceRivals)
   server/         Backend match management (runner, artifacts, storage)
   tournament/     Tournament orchestration (runTournament, artifacts, provenance, types)
-tests/            Test files using Vitest (*.test.ts) — 59 test files
+tests/            Test files using Vitest (*.test.ts) — 60 test files
 Documents/        Project documentation (30 spec/design documents)
 scripts/          Build/utility scripts (gen-sample-replay, validate-jsonl, shell scripts)
 scenarios/        Pre-generated heist scenario files (9 presets)
@@ -129,7 +129,7 @@ All steps must pass for the pipeline to succeed. Run `npm run format:check` loca
 | `src/gateway/`                      | Remote agent communication (HTTP + local adapters)             |
 | `src/cli/verify-match.ts`           | Match integrity verification CLI                               |
 | `src/cli/verify-tournament.ts`      | Tournament integrity verification CLI                          |
-| `src/cli/scenario.ts`               | Scenario CLI (list, generate, validate, preview)               |
+| `src/cli/scenario.ts`               | Scenario CLI (gen, validate, preview, describe, debug-view, layout-report) |
 | `src/core/hash.ts`                  | SHA-256 hashing for artifact integrity                         |
 | `src/app/replay/page.tsx`           | Web replay viewer                                              |
 | `src/lib/replay/`                   | Replay library (parser, redaction, commentary, moments)        |

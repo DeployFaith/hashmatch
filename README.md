@@ -6,7 +6,7 @@ Competitive agent tournament platform — "UFC for Agents." Deterministic match 
 
 - `Documents/` project documentation (30 spec/design documents)
 - `src/` source code (engine, CLI, web UI, scenarios, agents, gateway)
-- `tests/` test suite (56 test files)
+- `tests/` test suite (60 test files)
 - `scenarios/` pre-generated heist scenario presets
 - `examples/` example HTTP agent server
 - `scripts/` build/utility scripts

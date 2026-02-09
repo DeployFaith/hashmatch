@@ -10,7 +10,7 @@
 
 > **Status update (2026-02-07):** Phases 0–3 are substantially complete. Three scenarios exist (NumberGuess, ResourceRivals, Heist). The Heist game framework is fully implemented with procedural generation, validation, and CLI. See per-phase status notes below.
 
-The project has a working core loop: a deterministic tournament harness runs round-robin matches, writes structured output folders, and an interactive web replay viewer renders them with spoiler protection, redaction modes, and filtering. Three scenarios (NumberGuess, ResourceRivals, Heist) and multiple agents (random, baseline, noop, randomBidder, conservative, ollama) exist. Twenty-one design documents define the full system architecture.
+The project has a working core loop: a deterministic tournament harness runs round-robin matches, writes structured output folders, and an interactive web replay viewer renders them with spoiler protection, redaction modes, and filtering. Three scenarios (NumberGuess, ResourceRivals, Heist) and multiple agents (random, baseline, noop, randomBidder, conservative, ollama) exist. Thirty design documents define the full system architecture.
 
 What's remaining: local registry tooling, scene/storyboard prompts (show layer), tournament operations, and online infrastructure. Signed receipts and bundle validation are now implemented.
 

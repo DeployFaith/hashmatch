@@ -176,7 +176,7 @@ Infrastructure must not be required to run a tournament.
 - Curated presets (`warehouse_breakin`, `prison_escape`, `museum_night`): ✅ `scenarios/heist/` (9 files, 3 seeds per preset)
 - Heist scenario (game rules + scoring): ✅ `src/scenarios/heist/index.ts`
 - Heist competitive runner: ✅ `src/engine/heistCompetitive.ts`
-- Tests (determinism, validation, hard-lock rejection, presets, CLI, competitive runner, spatial layout, scene reducer, spectator telemetry): ✅ 13 test files (`tests/heist*.test.ts`)
+- Tests (determinism, validation, hard-lock rejection, presets, CLI, competitive runner, spatial layout, scene reducer, spectator telemetry): ✅ 15 test files (`tests/heist*.test.ts`)
 
 ## Cross”‘Cutting Workstreams
 
@@ -289,7 +289,7 @@ All spec documents are written and checked in under `Documents/`.
 
 ### Milestone 7 — Heist Game Framework: ✅ Done
 
-See milestone definition above. All items implemented with 7 dedicated test files.
+See milestone definition above. All items implemented with 15 dedicated test files.
 
 ### Cross-Cutting Workstreams
 
