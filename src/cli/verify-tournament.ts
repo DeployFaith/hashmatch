@@ -7,7 +7,7 @@ import {
   verifyMatchDirectory,
   type VerifyMatchReport,
   type VerifyMatchStatus,
-} from "./verify-match.js";
+} from "../core/verifyMatchDirectory.js";
 
 const REQUIRED_FILES = ["tournament_manifest.json", "tournament.json"] as const;
 

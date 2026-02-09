@@ -11,7 +11,7 @@ import {
 } from "./receipt.js";
 import type { MatchSummary, StandingsRow, TournamentManifest } from "../tournament/types.js";
 import { computeStandings } from "../tournament/standings.js";
-import { verifyMatchDirectory } from "../cli/verify-match.js";
+import { verifyMatchDirectory } from "./verifyMatchDirectory.js";
 
 /**
  * Step 0 findings (before implementation):
