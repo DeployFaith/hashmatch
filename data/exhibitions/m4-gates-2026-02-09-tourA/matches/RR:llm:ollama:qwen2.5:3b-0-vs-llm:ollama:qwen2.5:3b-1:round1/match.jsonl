@@ -1,0 +1,2 @@
+{"details":["Ollama model \"qwen2.5:3b\" not found in /api/tags listing."],"matchId":"m_31hig3lbmmi6","message":"LLM preflight validation failed.","seq":0,"type":"MatchSetupFailed"}
+{"matchId":"m_31hig3lbmmi6","reason":"setupFailed","scores":{},"seq":1,"turns":0,"type":"MatchEnded"}
