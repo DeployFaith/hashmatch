@@ -11,7 +11,7 @@ import type {
   NumberGuessObservation,
 } from "../src/scenarios/numberGuess/index.js";
 import { writeMatchArtifacts } from "../src/server/matchArtifacts.js";
-import { verifyMatchDirectory } from "../src/cli/verify-match.js";
+import { verifyMatchDirectory } from "../src/core/verifyMatchDirectory.js";
 import { verifyTournamentDirectory } from "../src/cli/verify-tournament.js";
 import { writeTournamentArtifacts } from "../src/tournament/artifacts.js";
 import type {

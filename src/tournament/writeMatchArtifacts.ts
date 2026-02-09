@@ -4,7 +4,7 @@ import { hashFile, hashManifestCore } from "../core/hash.js";
 import { stableStringify, toStableJsonl } from "../core/json.js";
 import type { AgentId, MatchEvent } from "../contract/types.js";
 import { detectMoments } from "../lib/replay/detectMoments.js";
-import { verifyMatchDirectory } from "../cli/verify-match.js";
+import { verifyMatchDirectory } from "../core/verifyMatchDirectory.js";
 import {
   hashTruthBundle,
   sortBroadcastManifestFiles,

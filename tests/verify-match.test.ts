@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { runTournament } from "../src/tournament/runTournament.js";
 import { writeTournamentArtifacts } from "../src/tournament/artifacts.js";
 import { stableStringify } from "../src/core/json.js";
-import { verifyMatchDirectory } from "../src/cli/verify-match.js";
+import { verifyMatchDirectory } from "../src/core/verifyMatchDirectory.js";
 import type { TournamentConfig } from "../src/tournament/types.js";
 
 function makeConfig(overrides: Partial<TournamentConfig> = {}): TournamentConfig {

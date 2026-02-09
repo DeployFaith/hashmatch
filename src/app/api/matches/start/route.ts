@@ -3,7 +3,7 @@ import { createWriteStream, existsSync, mkdirSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import { NextResponse } from "next/server";
-import { verifyMatchDirectory } from "@/cli/verify-match";
+import { verifyMatchDirectory } from "@/core/verifyMatchDirectory";
 import { buildOperatorMatchId } from "@/server/operatorMatch";
 import {
   ensureMatchesRoot,
