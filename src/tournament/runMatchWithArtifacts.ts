@@ -6,12 +6,15 @@ import type { MatchEndedEvent, MatchResult, MatchSetupFailedEvent } from "../con
 import { createHttpAdapter } from "../gateway/httpAdapter.js";
 import { createTranscriptWriter } from "../gateway/transcript.js";
 import type { GatewayRuntimeConfig } from "../gateway/runtime.js";
-import { writeMatchArtifacts } from "./writeMatchArtifacts.js";
+import { writeMatchArtifacts, writeMatchArtifactsCore } from "./writeMatchArtifacts.js";
 import { getAgentFactory, getScenarioFactory } from "./runTournament.js";
 import { LlmPreflightError, preflightValidateLlmAgents } from "../agents/llm/preflight.js";
 import { parseLlmAgentKey } from "../agents/llm/keys.js";
-import { createUniqueMatchId } from "../engine/matchId.js";
-import { stableStringify, toStableJsonl } from "../core/json.js";
+import { createMatchIdFromSeed } from "../engine/matchId.js";
+import { stableStringify } from "../core/json.js";
+import { buildMatchManifestProvenanceFromConfig } from "./provenance.js";
+import { resolveMaxTurnTimeMs } from "../engine/turnTimeout.js";
+import type { MatchManifest, MatchSummary } from "./types.js";
 
 export interface RunMatchArtifactsOptions {
   scenarioKey: string;
@@ -57,7 +60,12 @@ export async function runMatchWithArtifacts(
       await preflightValidateLlmAgents(llmAgents);
     } catch (err: unknown) {
       if (options.outDir) {
-        writePreflightFailureArtifacts(options.outDir, options.matchId, err);
+        await writePreflightFailureArtifacts(
+          options.outDir,
+          options.matchId,
+          options,
+          err,
+        );
       }
       throw err;
     }
@@ -153,12 +161,20 @@ export async function runMatchWithArtifacts(
 // Preflight failure artifact writer
 // ---------------------------------------------------------------------------
 
-function writePreflightFailureArtifacts(
+function resolveModeProfileId(modeKey: string | undefined): string {
+  if (modeKey && modeKey.trim().length > 0) {
+    return modeKey;
+  }
+  return "sandbox";
+}
+
+async function writePreflightFailureArtifacts(
   outDir: string,
   matchIdOverride: string | undefined,
+  options: RunMatchArtifactsOptions,
   err: unknown,
-): void {
-  const matchId = matchIdOverride ?? createUniqueMatchId();
+): Promise<void> {
+  const matchId = matchIdOverride ?? createMatchIdFromSeed(options.seed);
   const now = new Date().toISOString();
   const safeMessage = err instanceof Error ? err.message : String(err);
   const safeDetails = err instanceof LlmPreflightError ? err.details : undefined;
@@ -180,13 +196,70 @@ function writePreflightFailureArtifacts(
     turns: 0,
   };
 
+  const scenarioName = getScenarioFactory(options.scenarioKey)().name;
+  const provenance = await buildMatchManifestProvenanceFromConfig({
+    scenarioKey: options.scenarioKey,
+    scenarioName,
+    agentKeys: options.agentKeys,
+  });
+  const agentIds = options.agentKeys.map((key, index) => `${key}-${index}`);
+  const maxTurnTimeMs = resolveMaxTurnTimeMs({
+    seed: options.seed,
+    maxTurns: options.maxTurns,
+  });
+
+  const manifest: MatchManifest = {
+    matchId,
+    modeProfileId: resolveModeProfileId(options.modeKey),
+    scenario: provenance.scenario,
+    agents: agentIds.map((id) => {
+      const agent = provenance.agentsById.get(id);
+      if (!agent) {
+        throw new Error(`Missing provenance for agent "${id}"`);
+      }
+      return agent;
+    }),
+    config: {
+      maxTurns: options.maxTurns,
+      maxTurnTimeMs,
+      seed: options.seed,
+      seedDerivationInputs: {
+        tournamentSeed: options.seed,
+        matchKey: matchId,
+      },
+    },
+    runner: {
+      name: "local-runner",
+      version: null,
+      gitCommit: null,
+    },
+    createdAt: new Date().toISOString(),
+  };
+
+  const scores = Object.fromEntries(agentIds.map((agentId) => [agentId, 0]));
+  const timeoutsPerAgent = Object.fromEntries(agentIds.map((agentId) => [agentId, 0]));
+  const summary: MatchSummary = {
+    matchId,
+    matchKey: matchId,
+    seed: options.seed,
+    agentIds,
+    scores,
+    timeoutsPerAgent,
+    winner: null,
+    turns: 0,
+    reason: "setupFailed",
+    error: safeMessage,
+  };
+
   mkdirSync(outDir, { recursive: true });
 
-  writeFileSync(
-    join(outDir, "match.jsonl"),
-    toStableJsonl([setupFailedEvent, matchEndedEvent]),
-    "utf-8",
-  );
+  await writeMatchArtifactsCore({
+    matchDir: outDir,
+    events: [setupFailedEvent, matchEndedEvent],
+    manifest,
+    summary,
+    moments: { enabled: false },
+  });
 
   writeFileSync(
     join(outDir, "match_status.json"),

@@ -110,6 +110,7 @@ export interface MatchSummary {
   winner: AgentId | null;
   turns: number;
   reason: string;
+  error?: string;
   hashes?: MatchSummaryHashes;
   failureModes?: FailureModeProfileSummary;
 }

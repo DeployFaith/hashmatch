@@ -79,6 +79,23 @@ describe("preflight failure artifacts", () => {
       expect(typeof status.startedAt).toBe("string");
       expect(typeof status.endedAt).toBe("string");
       expect(typeof status.error).toBe("string");
+
+      // -- match_manifest.json ------------------------------------------
+      const manifestPath = join(outDir, "match_manifest.json");
+      expect(existsSync(manifestPath)).toBe(true);
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf-8")) as Record<string, unknown>;
+      expect(typeof manifest.matchId).toBe("string");
+      expect(typeof manifest.modeProfileId).toBe("string");
+
+      // -- match_summary.json -------------------------------------------
+      const summaryPath = join(outDir, "match_summary.json");
+      expect(existsSync(summaryPath)).toBe(true);
+      const summary = JSON.parse(readFileSync(summaryPath, "utf-8")) as Record<string, unknown>;
+      expect(summary.reason).toBe("setupFailed");
+      expect(typeof summary.error).toBe("string");
+      const hashes = summary.hashes as { logHash?: unknown; manifestHash?: unknown };
+      expect(typeof hashes?.logHash).toBe("string");
+      expect(typeof hashes?.manifestHash).toBe("string");
     } finally {
       if (originalKey !== undefined) {
         process.env.OPENROUTER_API_KEY = originalKey;

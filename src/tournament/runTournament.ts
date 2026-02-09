@@ -1,5 +1,12 @@
 import type { Agent, Scenario } from "../contract/interfaces.js";
-import type { AgentId, JsonValue, MatchEvent, Seed } from "../contract/types.js";
+import type {
+  AgentId,
+  JsonValue,
+  MatchEndedEvent,
+  MatchEvent,
+  MatchSetupFailedEvent,
+  Seed,
+} from "../contract/types.js";
 import { runMatch } from "../engine/runMatch.js";
 import { createNumberGuessScenario } from "../scenarios/numberGuess/index.js";
 import { createHeistScenario } from "../scenarios/heist/index.js";
@@ -15,7 +22,8 @@ import { createLlmAgent } from "../agents/llm/createLlmAgent.js";
 import { resolveLlmBudgetConfig } from "../agents/llm/budget.js";
 import type { LlmProvider } from "../agents/llm/types.js";
 import { parseLlmAgentKey } from "../agents/llm/keys.js";
-import { preflightValidateLlmAgents } from "../agents/llm/preflight.js";
+import { LlmPreflightError, preflightValidateLlmAgents } from "../agents/llm/preflight.js";
+import { createMatchIdFromSeed } from "../engine/matchId.js";
 import type {
   MatchKey,
   MatchSpec,
@@ -330,10 +338,6 @@ export async function runTournament(config: TournamentConfig): Promise<Tournamen
     }
     return [];
   });
-  if (llmAgents.length > 0) {
-    await preflightValidateLlmAgents(llmAgents);
-  }
-
   // Validate
   const scenarioFactory = getScenarioFactory(scenarioKey);
   const agentFactories = agentKeys.map((key, index) => ({
@@ -351,6 +355,7 @@ export async function runTournament(config: TournamentConfig): Promise<Tournamen
   const matchLogs: Record<MatchKey, MatchEvent[]> = {};
   const agentIds = agentFactories.map((a, i) => `${a.key}-${i}`);
   const scenarioName = scenarioFactory().name;
+  let preflightOk = false;
 
   // Round-robin: for every unordered pair (i, j) with i < j, play `rounds` matches
   for (let round = 0; round < rounds; round++) {
@@ -361,6 +366,69 @@ export async function runTournament(config: TournamentConfig): Promise<Tournamen
         const agentBId = `${agentFactories[j].key}-${j}`;
         const matchKey = `RR:${agentAId}-vs-${agentBId}:round${round + 1}`;
         const matchSeed = deriveMatchSeed(seed, matchKey);
+
+        let preflightError: unknown;
+        if (llmAgents.length > 0 && !preflightOk) {
+          try {
+            await preflightValidateLlmAgents(llmAgents);
+            preflightOk = true;
+          } catch (err: unknown) {
+            preflightError = err;
+          }
+        }
+
+        if (preflightError) {
+          const matchId = createMatchIdFromSeed(matchSeed);
+          const safeMessage = preflightError instanceof Error ? preflightError.message : String(preflightError);
+          const safeDetails =
+            preflightError instanceof LlmPreflightError ? preflightError.details : undefined;
+          const setupFailedEvent: MatchSetupFailedEvent = {
+            type: "MatchSetupFailed",
+            seq: 0,
+            matchId,
+            message: safeMessage,
+            ...(safeDetails ? { details: safeDetails } : {}),
+          };
+          const matchEndedEvent: MatchEndedEvent = {
+            type: "MatchEnded",
+            seq: 1,
+            matchId,
+            reason: "setupFailed",
+            scores: {},
+            turns: 0,
+          };
+          const failureEvents = [setupFailedEvent, matchEndedEvent];
+
+          if (includeEventLogs) {
+            matchLogs[matchKey] = failureEvents;
+          }
+
+          const scores = { [agentAId]: 0, [agentBId]: 0 };
+          const timeoutsPerAgent = { [agentAId]: 0, [agentBId]: 0 };
+
+          matches.push({
+            matchId,
+            matchKey,
+            seed: matchSeed,
+            agentIds: [agentAId, agentBId],
+            scores,
+            timeoutsPerAgent,
+            winner: null,
+            turns: 0,
+            reason: "setupFailed",
+            error: safeMessage,
+          });
+
+          matchSpecs.push({
+            matchKey,
+            seed: matchSeed,
+            scenarioName,
+            agentIds: [agentAId, agentBId],
+            maxTurns,
+          });
+          continue;
+        }
+
         const scenario = scenarioFactory();
 
         // Fresh agent instances per match (agents can be stateful)
