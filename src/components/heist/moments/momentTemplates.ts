@@ -230,6 +230,20 @@ const MOMENT_TEMPLATES: Record<HeistMomentId, TemplateFn[]> = {
       category: "stealth",
     }),
   ],
+  fm17_stall: [
+    (ctx) => ({
+      icon: "\u{1F501}",
+      title: "FM-17 stall",
+      detail: `No observable progress for ${ctx.stalledTurns ?? 0} turns`,
+      category: "tempo",
+    }),
+    (ctx) => ({
+      icon: "\u26A0\uFE0F",
+      title: "Strategy deadlock",
+      detail: `Repeated same action without progress (${ctx.stalledTurns ?? 0} turns)`,
+      category: "tempo",
+    }),
+  ],
   near_miss: [
     (ctx) => ({
       icon: "\u{1F9DF}\u200D\u2642\uFE0F",

@@ -20,6 +20,14 @@ RULES:
 - Only use terminals that are visible in the current room.
 - Only extract if you are in the extraction room.
 
+STRATEGY:
+- Maintain a running mental model: track your items, visited rooms, known intel/terminals, and locked paths.
+- Before every action, explicitly reason: What do I need to reach extraction? Which prerequisites (keys, intel, items) am I missing? Where are they likely to be?
+- Doors and vaults are gated—acquire prerequisites first, even if it means backtracking to earlier rooms you skipped.
+- Terminals require multiple turns of hacking; the payoff is intel that reveals new paths or codes. Persist but verify progress each time.
+- An effective sequence often looks like: secure nearby items, gather intel, unlock in dependency order, collect objectives, then extract.
+- If an action produced no new state (no item, no intel, no door opened) on the previous turn, switch tactics—repeating is wasted time.
+
 Example:
 Game state: Turn 1. You are in room-1. Adjacent rooms: room-2 (passable). Visible items: keycard-1.
 Response: {"type":"pickup","itemId":"keycard-1"}

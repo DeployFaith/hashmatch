@@ -201,6 +201,99 @@ describe("heist moment detectors", () => {
     expect(seventh.some((candidate) => candidate.id === "stalled_objective")).toBe(true);
   });
 
+
+
+  it("fires fm17_stall once when no-progress same-room same-action streak reaches 6", () => {
+    const detectorState = createMomentDetectorState();
+    let previousState: HeistSceneState | undefined;
+
+    for (let turn = 1; turn <= 5; turn += 1) {
+      const state = createBaseState({
+        turn: { current: turn },
+        agents: {
+          "agent-1": {
+            agentId: "agent-1",
+            roomId: "room-a",
+            lastAction: { type: "wait" },
+          },
+        },
+      });
+      const candidates = runHeistStatefulDetectors({
+        state,
+        turn,
+        seq: turn,
+        candidatesThisTurn: [],
+        detectorState,
+        previousState,
+      });
+      expect(candidates.some((candidate) => candidate.id === "fm17_stall")).toBe(false);
+      previousState = state;
+    }
+
+    const sixthState = createBaseState({
+      turn: { current: 6 },
+      agents: {
+        "agent-1": {
+          agentId: "agent-1",
+          roomId: "room-a",
+          lastAction: { type: "wait" },
+        },
+      },
+    });
+
+    const sixth = runHeistStatefulDetectors({
+      state: sixthState,
+      turn: 6,
+      seq: 6,
+      candidatesThisTurn: [],
+      detectorState,
+      previousState,
+    });
+    expect(sixth.some((candidate) => candidate.id === "fm17_stall")).toBe(false);
+
+    const seventhState = createBaseState({
+      turn: { current: 7 },
+      agents: {
+        "agent-1": {
+          agentId: "agent-1",
+          roomId: "room-a",
+          lastAction: { type: "wait" },
+        },
+      },
+    });
+
+    const seventh = runHeistStatefulDetectors({
+      state: seventhState,
+      turn: 7,
+      seq: 7,
+      candidatesThisTurn: [],
+      detectorState,
+      previousState: sixthState,
+    });
+    expect(seventh.some((candidate) => candidate.id === "fm17_stall")).toBe(true);
+
+    const eighthState = createBaseState({
+      turn: { current: 8 },
+      agents: {
+        "agent-1": {
+          agentId: "agent-1",
+          roomId: "room-a",
+          lastAction: { type: "wait" },
+        },
+      },
+    });
+
+    const eighth = runHeistStatefulDetectors({
+      state: eighthState,
+      turn: 8,
+      seq: 8,
+      candidatesThisTurn: [],
+      detectorState,
+      previousState: seventhState,
+    });
+    expect(eighth.some((candidate) => candidate.id === "fm17_stall")).toBe(false);
+  });
+
   it("fires noise_creep at 50% and 75% without re-firing on decay", () => {
     const detectorState = createMomentDetectorState();
     const baseState = createBaseState({

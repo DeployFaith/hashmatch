@@ -13,7 +13,8 @@ export type HeistMomentId =
   | "guard_closing"
   | "stalled_objective"
   | "noise_creep"
-  | "near_miss";
+  | "near_miss"
+  | "fm17_stall";
 
 export interface HeistMomentCandidate {
   id: HeistMomentId;

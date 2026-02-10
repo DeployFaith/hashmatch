@@ -512,6 +512,14 @@ export type MomentDetectorState = {
   noiseCreepFired: Record<number, Set<number>>;
   lastGuardRooms: Record<string, string | undefined>;
   lastAgentId?: string;
+  fm17ByAgent: Record<
+    string,
+    {
+      lastRoomId?: string;
+      lastActionType?: string;
+      noProgressStreak: number;
+    }
+  >;
 };
 
 export const createMomentDetectorState = (): MomentDetectorState => ({
@@ -520,6 +528,7 @@ export const createMomentDetectorState = (): MomentDetectorState => ({
   noiseCreepFired: {},
   lastGuardRooms: {},
   lastAgentId: undefined,
+  fm17ByAgent: {},
 });
 
 const buildAdjacencyMap = (state: HeistSceneState): Map<string, Set<string>> => {
@@ -550,8 +559,9 @@ export function runHeistStatefulDetectors(params: {
   seq: number;
   candidatesThisTurn: HeistMomentCandidate[];
   detectorState: MomentDetectorState;
+  previousState?: HeistSceneState;
 }): HeistMomentCandidate[] {
-  const { state, turn, seq, candidatesThisTurn, detectorState } = params;
+  const { state, turn, seq, candidatesThisTurn, detectorState, previousState } = params;
   const results: HeistMomentCandidate[] = [];
   const agentIds = Object.keys(state.agents);
   const fallbackAgentId = detectorState.lastAgentId ?? agentIds[0] ?? "team";
@@ -664,6 +674,111 @@ export function runHeistStatefulDetectors(params: {
     }
   }
 
+  // FM-17: Stall detection — agent shows no observable progress for 6+ consecutive turns.
+  // "No progress" means: no room change, no inventory growth, no newly unlocked doors,
+  // and no newly revealed intel/terminal result (use whatever concrete state field(s) exist).
+  // Derived telemetry only; recomputable from truth logs; does NOT affect scoring.
+  for (const agentId of agentIds) {
+    const snapshot = detectorState.fm17ByAgent[agentId] ?? {
+      noProgressStreak: 0,
+      lastRoomId: undefined,
+      lastActionType: undefined,
+    };
+    const currentRoomId = state.agents[agentId]?.roomId;
+    const lastActionType =
+      typeof state.agents[agentId]?.lastAction?.type === "string"
+        ? state.agents[agentId]?.lastAction?.type
+        : undefined;
+
+    let inventoryGrew = false;
+    let doorUnlocked = false;
+    let intelOrTerminalProgressed = false;
+
+    if (previousState) {
+      const previousInventoryCount = Object.values(previousState.items).filter(
+        (item) => item.heldBy === agentId,
+      ).length;
+      const currentInventoryCount = Object.values(state.items).filter((item) => item.heldBy === agentId).length;
+      inventoryGrew = currentInventoryCount > previousInventoryCount;
+
+      for (const [doorId, door] of Object.entries(state.map.doors)) {
+        const previousDoor = previousState.map.doors[doorId];
+        if (previousDoor?.isLocked === true && door.isLocked === false) {
+          doorUnlocked = true;
+          break;
+        }
+      }
+
+      for (const [entityId, entity] of Object.entries(state.entities)) {
+        if (entity.kind !== "terminal") {
+          continue;
+        }
+        const previousTerminal = previousState.entities[entityId];
+        const previousProgress =
+          typeof previousTerminal?.state?.progress === "number"
+            ? (previousTerminal.state.progress as number)
+            : 0;
+        const currentProgress =
+          typeof entity.state?.progress === "number" ? (entity.state.progress as number) : 0;
+        const previousHacked = previousTerminal?.state?.hacked === true;
+        const currentHacked = entity.state?.hacked === true;
+        if (currentProgress > previousProgress || (!previousHacked && currentHacked)) {
+          intelOrTerminalProgressed = true;
+          break;
+        }
+      }
+
+      if (!intelOrTerminalProgressed) {
+        for (const [itemId, item] of Object.entries(state.items)) {
+          if (item.kind !== "intel") {
+            continue;
+          }
+          const previousIntel = previousState.items[itemId];
+          if (previousIntel?.heldBy !== agentId && item.heldBy === agentId) {
+            intelOrTerminalProgressed = true;
+            break;
+          }
+        }
+      }
+    }
+
+    const roomChanged =
+      previousState !== undefined &&
+      snapshot.lastRoomId !== undefined &&
+      currentRoomId !== undefined &&
+      snapshot.lastRoomId !== currentRoomId;
+    const progress = roomChanged || inventoryGrew || doorUnlocked || intelOrTerminalProgressed;
+    const sameRoomAndAction = snapshot.lastRoomId === currentRoomId && snapshot.lastActionType === lastActionType;
+
+    if (!progress && sameRoomAndAction) {
+      snapshot.noProgressStreak += 1;
+    } else {
+      snapshot.noProgressStreak = 0;
+    }
+
+    if (snapshot.noProgressStreak === 6) {
+      results.push(
+        createCandidate({
+          id: "fm17_stall",
+          register: "tension",
+          priority: 88,
+          turn,
+          agentId,
+          seqRange: { start: seq, end: seq },
+          context: {
+            stalledTurns: snapshot.noProgressStreak,
+            roomId: currentRoomId,
+            actionType: lastActionType,
+          },
+        }),
+      );
+    }
+
+    snapshot.lastRoomId = currentRoomId;
+    snapshot.lastActionType = lastActionType;
+    detectorState.fm17ByAgent[agentId] = snapshot;
+  }
+
   // near_miss
   const detectionThisTurn = candidatesThisTurn.some((candidate) => {
     const context = candidate.context as Record<string, unknown> | undefined;
@@ -763,6 +878,7 @@ export function selectHeistMomentCandidates(events: MatchEvent[]): HeistMomentCa
         seq: event.seq,
         candidatesThisTurn: turnCandidates,
         detectorState,
+        previousState,
       });
       for (const candidate of stateful) {
         recordCandidate(candidate);
@@ -781,6 +897,7 @@ export function selectHeistMomentCandidates(events: MatchEvent[]): HeistMomentCa
       seq,
       candidatesThisTurn: turnCandidates,
       detectorState,
+      previousState,
     });
     for (const candidate of stateful) {
       recordCandidate(candidate);
