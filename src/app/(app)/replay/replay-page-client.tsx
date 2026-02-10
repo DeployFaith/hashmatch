@@ -60,21 +60,19 @@ import { isHeistScenario, useHeistScene } from "@/components/heist/useHeistScene
 import { HeistViewportDynamic } from "@/components/heist/HeistViewportDynamic";
 import { BehaviorProfilePanel } from "@/components/BehaviorProfilePanel";
 
-
 // ---------------------------------------------------------------------------
 // Known event types for the type filter
 // ---------------------------------------------------------------------------
 
-
 const KNOWN_EVENT_TYPES = [
   "MatchStarted",
-"TurnStarted",
-"ObservationEmitted",
-"ActionSubmitted",
-"ActionAdjudicated",
-"StateUpdated",
-"AgentError",
-"MatchEnded",
+  "TurnStarted",
+  "ObservationEmitted",
+  "ActionSubmitted",
+  "ActionAdjudicated",
+  "StateUpdated",
+  "AgentError",
+  "MatchEnded",
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -141,10 +139,8 @@ interface StandingsEntry {
   scoreDiff: number;
 }
 
-/** A source-agnostic handle for reading tournament files. */
-type TournamentSource =
-  | { kind: "dirHandle"; handle: FileSystemDirectoryHandle }
-  | { kind: "fileMap"; files: Map<string, File> };
+/** Source for reading tournament files — always a flat fileMap built upfront. */
+type TournamentSource = { kind: "fileMap"; files: Map<string, File> };
 
 /** Loaded tournament data held in state. */
 interface TournamentData {
@@ -332,20 +328,6 @@ async function getChildFile(
   }
 }
 
-/** Read a text file from a directory handle by path segments. */
-async function readTextFile(
-  dirHandle: FileSystemDirectoryHandle,
-  ...path: string[]
-): Promise<string> {
-  let current: FileSystemDirectoryHandle = dirHandle;
-  for (let i = 0; i < path.length - 1; i++) {
-    current = await getChildDirectory(current, path[i]);
-  }
-  const fileHandle = await getChildFile(current, path[path.length - 1]);
-  const file = await fileHandle.getFile();
-  return file.text();
-}
-
 /**
  * Attempt to locate the tournament root within a directory handle.
  *
@@ -429,17 +411,109 @@ async function dirHandleToFileMap(
   return map;
 }
 
+/**
+ * After dirHandleToFileMap builds the initial fileMap, some entries may be
+ * missing — the values() iterator on certain browsers silently skips or fails
+ * for directory entries whose names contain colons (common in matchKeys like
+ * "RR:llm:ollama:qwen2.5-coder:7b-0-vs-baseline-1:round1").
+ *
+ * This function reads tournament metadata from the (already populated) fileMap,
+ * determines which match directories are missing, and fills them in using the
+ * handle-based navigation (getChildDirectory / getChildFile) which uses a
+ * values()-based fallback to locate colon-named entries one level at a time.
+ *
+ * Must be called BEFORE the source is created, so the fileMap is complete when
+ * it becomes the sole source for match loading.
+ */
+async function populateMissingMatchFiles(
+  rootHandle: FileSystemDirectoryHandle,
+  fileMap: Map<string, File>,
+): Promise<void> {
+  // Read tournament metadata from the fileMap — it's at the root, so no colons.
+  const tournamentFile =
+    findFileInMap(fileMap, "tournament.json") ?? findFileInMap(fileMap, "tournament_manifest.json");
+  if (!tournamentFile) {
+    return;
+  }
+
+  let matches: Array<{ matchKey: string }>;
+  try {
+    const meta = JSON.parse(await tournamentFile.text()) as {
+      matches?: Array<{ matchKey: string }>;
+    };
+    if (!Array.isArray(meta.matches)) {
+      return;
+    }
+    matches = meta.matches;
+  } catch {
+    return;
+  }
+
+  // Get the "matches" directory handle — name has no colons, direct lookup works.
+  let matchesHandle: FileSystemDirectoryHandle;
+  try {
+    matchesHandle = await getChildDirectory(rootHandle, "matches");
+  } catch {
+    return;
+  }
+
+  for (const spec of matches) {
+    // Check whether this match's files are already in the fileMap.
+    if (findFileInMap(fileMap, "matches", spec.matchKey, "match.jsonl")) {
+      continue;
+    }
+
+    // Navigate to the match directory using getChildDirectory — its values()
+    // fallback can locate a colon-named child from the parent's iterator even
+    // when getDirectoryHandle(name) rejects the name.
+    let matchDir: FileSystemDirectoryHandle;
+    try {
+      matchDir = await getChildDirectory(matchesHandle, spec.matchKey);
+    } catch {
+      continue;
+    }
+
+    // Try iterating the match directory's files.
+    try {
+      for await (const entry of matchDir.values()) {
+        if (entry.kind === "file") {
+          try {
+            const file = await (entry as FileSystemFileHandle).getFile();
+            fileMap.set(`matches/${spec.matchKey}/${entry.name}`, file);
+          } catch {
+            // Skip unreadable files.
+          }
+        }
+      }
+    } catch {
+      // values() failed on the match directory — fall back to reading known
+      // match filenames directly via getChildFile (names have no colons).
+      for (const name of [
+        "match.jsonl",
+        "match_summary.json",
+        "match_manifest.json",
+        "moments.json",
+        "verification_result.json",
+      ]) {
+        try {
+          const fh = await getChildFile(matchDir, name);
+          const file = await fh.getFile();
+          fileMap.set(`matches/${spec.matchKey}/${name}`, file);
+        } catch {
+          // File doesn't exist or can't be read — skip.
+        }
+      }
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // File-map helpers (for <input webkitdirectory> fallback)
 // ---------------------------------------------------------------------------
 
 /** Normalise a relative path: forward slashes, no leading ./, no double slashes, no trailing slash. */
 function normalisePath(raw: string): string {
-  return raw
-    .replace(/\\/g, "/")
-    .replace(/^\.\//, "")
-    .replace(/\/+/g, "/")
-    .replace(/\/$/, "");
+  return raw.replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/+/g, "/").replace(/\/$/, "");
 }
 
 /** Build a Map of normalised relative paths to File objects from a FileList. */
@@ -500,9 +574,6 @@ async function readTextFromFileMap(fileMap: Map<string, File>, ...path: string[]
 // ---------------------------------------------------------------------------
 
 async function readTextFromSource(source: TournamentSource, ...path: string[]): Promise<string> {
-  if (source.kind === "dirHandle") {
-    return readTextFile(source.handle, ...path);
-  }
   return readTextFromFileMap(source.files, ...path);
 }
 
@@ -744,6 +815,13 @@ function FileDropZone({
       // The fileMap code path uses suffix matching (findFileInMap) which is
       // resilient to such naming issues.
       const fileMap = await dirHandleToFileMap(resolvedHandle);
+
+      // dirHandleToFileMap may miss files inside colon-named match directories
+      // (the values() iterator can silently skip or fail for such entries on
+      // some browsers).  Augment the fileMap before creating the source so
+      // every match is accessible via the fileMap-only code path.
+      await populateMissingMatchFiles(resolvedHandle, fileMap);
+
       const source: TournamentSource = { kind: "fileMap", files: fileMap };
       const data = await loadTournamentFromSource(source);
       onTournamentLoad(data);
@@ -813,9 +891,7 @@ function FileDropZone({
     <div className="mx-auto max-w-xl space-y-4">
       <div className="text-center">
         <h1 className="text-lg font-bold">Replay Viewer</h1>
-        <p className="text-sm text-muted-foreground">
-          Watch a match and explore the timeline
-        </p>
+        <p className="text-sm text-muted-foreground">Watch a match and explore the timeline</p>
       </div>
 
       <Card>
@@ -1231,8 +1307,8 @@ function OrderingTooltip() {
           <p className="font-medium mb-1">Deterministic ordering</p>
           <p className="text-muted-foreground">
             Events are sorted by <code className="rounded bg-muted px-1">seq</code> (ascending),
-            with ties broken by original event order. This guarantees identical
-            display order across reloads and machines.
+            with ties broken by original event order. This guarantees identical display order across
+            reloads and machines.
           </p>
         </div>
       )}
