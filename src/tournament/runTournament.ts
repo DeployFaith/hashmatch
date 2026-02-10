@@ -256,6 +256,17 @@ export function getAgentFactory(key: string, options: AgentFactoryOptions = {}):
     }
   }
 
+  if (key === "random") {
+    if (!options.scenarioKey) {
+      throw new Error('Internal: getAgentFactory("random") requires scenarioKey.');
+    }
+    if (options.scenarioKey !== "numberGuess") {
+      throw new Error(
+        'Agent "random" is NumberGuess-only. Use "noop" or an LLM agent for other scenarios.',
+      );
+    }
+  }
+
   return registration.factory;
 }
 
