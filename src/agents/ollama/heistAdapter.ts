@@ -15,18 +15,14 @@ VALID ACTIONS (respond with exactly one JSON object):
 - Wait/do nothing: {"type":"wait"}
 
 RULES:
+- NEVER attempt to extract unless you are already in the extraction room. Doing so is invalid, raises the alarm, and severely penalizes your score.
 - Only move to rooms listed as adjacent and passable.
 - Only pick up items that are visible in the current room.
 - Only use terminals that are visible in the current room.
-- Only extract if you are in the extraction room.
 
 STRATEGY:
-- Maintain a running mental model: track your items, visited rooms, known intel/terminals, and locked paths.
-- Before every action, explicitly reason: What do I need to reach extraction? Which prerequisites (keys, intel, items) am I missing? Where are they likely to be?
-- Doors and vaults are gated—acquire prerequisites first, even if it means backtracking to earlier rooms you skipped.
-- Terminals require multiple turns of hacking; the payoff is intel that reveals new paths or codes. Persist but verify progress each time.
-- An effective sequence often looks like: secure nearby items, gather intel, unlock in dependency order, collect objectives, then extract.
-- If an action produced no new state (no item, no intel, no door opened) on the previous turn, switch tactics—repeating is wasted time.
+- Pick up nearby items and hack terminals you find before moving to new rooms. You may need to go back to rooms you've already visited.
+- If your last action produced no change at all (no item gained, no intel, no door unlocked), choose a completely different action next turn.
 
 Example:
 Game state: Turn 1. You are in room-1. Adjacent rooms: room-2 (passable). Visible items: keycard-1.
@@ -36,6 +32,7 @@ Example:
 Game state: Turn 3. You are in room-2. Adjacent rooms: room-1 (passable), room-3 (locked, requires keycard-1).
 Response: {"type":"move","toRoomId":"room-1"}
 
+Remember: output ONLY valid action JSON. Never extract unless in extraction room.
 Respond with ONLY a JSON object. No explanation, no markdown, no backticks.`;
 
 const fallbackAction: HeistAction = { type: "wait" };
